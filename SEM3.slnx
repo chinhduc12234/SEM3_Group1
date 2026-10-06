@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/CatalogService/CatalogService.csproj" />
+    <Project Path="backend/IdentityService/IdentityService.csproj" />
+    <Project Path="backend/Shared/Shared.csproj" />
+  </Folder>
+</Solution>
