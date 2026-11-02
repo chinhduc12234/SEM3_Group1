@@ -1,0 +1,4 @@
+import Link from "next/link";
+
+export default function CampaignPage(){return <div className="ga-site"><main><section className="ga-page-head"><div className="ga-container"><p className="ga-kicker">TRANG CHỦ / CÁC CHIẾN DỊCH</p><h1>Những câu chuyện<br/><em>cần được sẻ chia.</em></h1><p>Tìm hiểu các hoạt động từ thiện và tình nguyện đang cần sự chung tay.</p></div></section><section className="ga-section"><div className="ga-container"><div className="ga-section-heading"><div><p className="ga-kicker">KHÁM PHÁ</p><h2>Các chiến dịch cộng đồng</h2></div></div><div className="ga-empty-campaign"><div className="ga-empty-icon">✳</div><div><h3>Chiến dịch sẽ sớm được cập nhật</h3><p>Hệ thống đang được xây dựng. Hãy quay lại để khám phá những câu chuyện mới.</p><Link className="ga-text-link" href="/">← Về trang chủ</Link></div></div></div></section></main></div>}
+

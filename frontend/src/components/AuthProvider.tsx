@@ -38,7 +38,7 @@ export function Navigation() {
   const { user, loading, logout } = useAuth(); const router = useRouter();
   const [error, setError] = useState("");
   return <><header className="topbar"><Link className="brand" href="/">Give<span>AID</span><small>Kết nối những điều tốt đẹp</small></Link>
-    <nav>{user ? <><Link href="/organizations">Tổ chức của tôi</Link>{user.roles.includes("ADMIN") && <Link href="/admin/organizations">Quản trị tổ chức</Link>}
+    <nav>{user ? <><Link href="/organizations/mine">Hồ sơ tổ chức</Link>{user.roles.includes("ADMIN") && <Link href="/admin/organizations">Quản trị tổ chức</Link>}
     <Link href="/account">{user.fullName}</Link><button className="quiet" onClick={async () => { try { await logout(); router.push("/"); } catch { setError("Chưa đăng xuất được. Vui lòng thử lại."); } }}>Đăng xuất</button></>
     : !loading && <><Link href="/login">Đăng nhập</Link><Link className="button small" href="/register">Tạo tài khoản</Link></>}</nav></header>
     {error && <div className="notice error" role="alert">{error}<button className="quiet" onClick={() => setError("")}>Đóng</button></div>}</>;

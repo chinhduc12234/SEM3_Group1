@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./styles.css";
-import { AuthProvider, Navigation } from "@/components/AuthProvider";
+import { AuthProvider } from "@/components/AuthProvider";
+import SiteFrame from "@/components/SiteFrame";
+import "./giveaid.css";
+import "./slideshow.css";
 
 // Keep project identity at the app shell; feature pages can replace this starter screen.
 export const metadata: Metadata = {
@@ -12,7 +15,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi">
-      <body><AuthProvider><Navigation /><main className="container">{children}</main><footer>Give-AID · Kết nối cộng đồng, vun đắp niềm tin.</footer></AuthProvider></body>
+      <body><AuthProvider><SiteFrame>{children}</SiteFrame></AuthProvider></body>
     </html>
   );
 }
