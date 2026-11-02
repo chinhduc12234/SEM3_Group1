@@ -1,6 +1,8 @@
 # Give-AID
 
-Nền tảng web quản lý tổ chức từ thiện, chiến dịch, quyên góp mô phỏng và hoạt động tình nguyện. Repository này là khung triển khai theo SRS Give-AID 2.0; nghiệp vụ và dữ liệu mẫu đã được gỡ bỏ để nhóm bắt đầu từ các miền đã chốt.
+Nền tảng web quản lý tổ chức từ thiện, chiến dịch, quyên góp mô phỏng và hoạt động tình nguyện. Repository triển khai theo SRS Give-AID 2.0. Tính năng đầu tiên đã có: tài khoản USER/ADMIN và đăng ký tổ chức kèm hồ sơ pháp lý để Admin xét duyệt.
+
+Hướng dẫn tính năng và API hiện tại: [Tài khoản và xét duyệt tổ chức](docs/ONBOARDING.md). File Word hướng dẫn nhóm trong docs là ảnh chụp bộ khung ban đầu; tài liệu Markdown này mô tả tính năng mới nhất.
 
 ## Công nghệ
 
@@ -13,7 +15,7 @@ Nền tảng web quản lý tổ chức từ thiện, chiến dịch, quyên gó
 
 ## Chạy local
 
-Cần Docker Desktop ở chế độ Linux containers và khoảng 6 GB RAM được cấp cho Docker để chạy SQL Server cùng các service.
+Cần .NET SDK 10 (global.json chỉ định 10.0.103), Docker Desktop ở chế độ Linux containers và khoảng 6 GB RAM cho Docker. Node.js 22 chỉ cần nếu chạy frontend ngoài Docker.
 
 ```powershell
 powershell -NoProfile -File scripts/start-dev.ps1
@@ -36,6 +38,10 @@ docker compose down
 
 Không dùng `docker compose down -v` nếu muốn giữ dữ liệu volume. `.env` chứa secret local và không được commit.
 
+Lần chạy đầu sinh ADMIN_EMAIL và ADMIN_PASSWORD trong .env; tài khoản Admin được tạo bởi migration job, không có mật khẩu dùng chung trong source. Đăng nhập tại /login và đổi mật khẩu ở /account. Khởi động lại không đặt lại mật khẩu đã đổi.
+
+Identity và Organization có migration riêng. Compose cấp login SQL riêng cho mỗi API, chỉ có quyền dữ liệu trong database của service; container migration dùng tài khoản bootstrap để tạo schema. Hồ sơ pháp lý và số định danh được mã hóa bằng Data Protection, keyring nằm trong volume organization-keys. Sao lưu cả database và keyring; mất keyring sẽ không đọc lại được hồ sơ.
+
 ## Cấu trúc và quyền sở hữu dữ liệu
 
 ```text
@@ -52,7 +58,7 @@ infra/gateway.conf        Định tuyến API và health endpoints
 compose.yaml              Hạ tầng dev và các service
 ```
 
-Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev chỉ giúp tiết kiệm tài nguyên; các database vẫn độc lập. Khi chuẩn bị dữ liệu thật, tạo login/database permission riêng cho từng service thay vì dùng `sa` như cấu hình dev hiện tại.
+Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev giúp tiết kiệm tài nguyên. Identity và Organization đã dùng login riêng có quyền đọc/ghi dữ liệu; các service chưa triển khai nghiệp vụ vẫn là host rỗng.
 
 ## Luồng giao tiếp
 

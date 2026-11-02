@@ -26,7 +26,19 @@ if (-not (Test-Path -LiteralPath $publicKeyPath) -or -not (Test-Path -LiteralPat
     if ($LASTEXITCODE -ne 0) { throw 'Could not create the development JWT keys.' }
 }
 
-# Remove retired demo authentication settings without changing other .env values.
-$envLines = Get-Content -LiteralPath $envPath | Where-Object { $_ -notmatch '^(JWT_KEY|ADMIN_EMAIL|ADMIN_PASSWORD)=' }
+# Bootstrap secrets are generated once; restarting never resets the administrator password.
+$envLines = @(Get-Content -LiteralPath $envPath | Where-Object { $_ -notmatch '^JWT_KEY=' })
+foreach ($setting in @('SQL_SA_PASSWORD', 'ADMIN_PASSWORD', 'IDENTITY_DB_PASSWORD', 'ORGANIZATION_DB_PASSWORD')) {
+    $existing = $envLines | Where-Object { $_ -match ("^" + $setting + "=") }
+    if (-not $existing -or $existing -match '=(CHANGE_ME|GENERATE_WITH)') {
+        $envLines = @($envLines | Where-Object { $_ -notmatch ("^" + $setting + "=") })
+        $secretBytes = New-Object byte[] 32
+        $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+        $rng.GetBytes($secretBytes)
+        $rng.Dispose()
+        $envLines += $setting + '=Ga1!' + [Convert]::ToBase64String($secretBytes)
+    }
+}
+if (-not ($envLines | Where-Object { $_ -match '^ADMIN_EMAIL=' })) { $envLines += 'ADMIN_EMAIL=admin@giveaid.local' }
 Set-Content -LiteralPath $envPath -Value $envLines -Encoding utf8
 Write-Host 'Development environment is ready. Keep .env and .secrets private and out of source control.'

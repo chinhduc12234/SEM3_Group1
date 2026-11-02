@@ -50,6 +50,54 @@ services:
     restart: unless-stopped
 
   # Each API is a separate process and image built from the shared backend Dockerfile.
+  sql-provision:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    entrypoint: [/bin/bash, -c]
+    command:
+      - 'exec /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$SQL_SA_PASSWORD" -C -b -i /provision.sql'
+    environment:
+      SQL_SA_PASSWORD: ${SQL_SA_PASSWORD}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
+      ORGANIZATION_DB_PASSWORD: ${ORGANIZATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
+    volumes:
+      - ./infra/provision-databases.sql:/provision.sql:ro
+    depends_on:
+      sqlserver: { condition: service_healthy }
+
+  identity-migrate:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: IdentityService }
+    restart: "no"
+    command: [--migrate]
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Identity;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      Bootstrap__AdminEmail: ${ADMIN_EMAIL:?Run scripts/init-dev.ps1 first}
+      Bootstrap__AdminPassword: ${ADMIN_PASSWORD:?Run scripts/init-dev.ps1 first}
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      sql-provision: { condition: service_completed_successfully }
+
+  organization-migrate:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: OrganizationService }
+    restart: "no"
+    command: [--migrate]
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Organization;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      sql-provision: { condition: service_completed_successfully }
+
   identity:
     <<: *backend
     build:
@@ -58,11 +106,14 @@ services:
       args: { SERVICE: IdentityService }
     environment:
       <<: *service-environment
-      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Identity;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Identity;User Id=giveaid_identity;Password=${IDENTITY_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
       Jwt__PrivateKeyPath: /run/secrets/jwt_private.pem
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
       - ./.secrets/jwt_private.pem:/run/secrets/jwt_private.pem:ro
+    depends_on:
+      identity-migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
 
   organization:
     <<: *backend
@@ -72,9 +123,14 @@ services:
       args: { SERVICE: OrganizationService }
     environment:
       <<: *service-environment
-      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Organization;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Organization;User Id=giveaid_organization;Password=${ORGANIZATION_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      Protection__KeyDirectory: /app/keys
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+      - organization-keys:/app/keys
+    depends_on:
+      organization-migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
 
   campaign:
     <<: *backend
@@ -84,7 +140,6 @@ services:
       args: { SERVICE: CampaignService }
     environment:
       <<: *service-environment
-      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Campaign;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
 
@@ -96,7 +151,6 @@ services:
       args: { SERVICE: DonationService }
     environment:
       <<: *service-environment
-      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Donation;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
 
@@ -108,7 +162,6 @@ services:
       args: { SERVICE: VolunteerService }
     environment:
       <<: *service-environment
-      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Volunteer;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
 
@@ -120,7 +173,6 @@ services:
       args: { SERVICE: ContentService }
     environment:
       <<: *service-environment
-      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Content;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
 
@@ -139,5 +191,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  organization-keys:
   sqlserver-data:
   redis-data:

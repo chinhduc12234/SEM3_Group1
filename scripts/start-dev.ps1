@@ -44,5 +44,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Docker build failed.' }
     docker compose up -d --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Docker startup failed.' }
+    docker compose exec -T gateway nginx -s reload
+    if ($LASTEXITCODE -ne 0) { throw 'Gateway reload failed.' }
     Write-Host 'Open http://localhost:8080.'
 } finally { Pop-Location }

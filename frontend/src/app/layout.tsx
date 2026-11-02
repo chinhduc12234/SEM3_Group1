@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./styles.css";
+import { AuthProvider, Navigation } from "@/components/AuthProvider";
 
 // Keep project identity at the app shell; feature pages can replace this starter screen.
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body><AuthProvider><Navigation /><main className="container">{children}</main><footer>Give-AID · Kết nối cộng đồng, vun đắp niềm tin.</footer></AuthProvider></body>
     </html>
   );
 }
