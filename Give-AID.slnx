@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/IdentityService/IdentityService.csproj" />
+    <Project Path="backend/OrganizationService/OrganizationService.csproj" />
+    <Project Path="backend/CampaignService/CampaignService.csproj" />
+    <Project Path="backend/DonationService/DonationService.csproj" />
+    <Project Path="backend/VolunteerService/VolunteerService.csproj" />
+    <Project Path="backend/ContentService/ContentService.csproj" />
+    <Project Path="backend/Shared/Shared.csproj" />
+  </Folder>
+</Solution>

@@ -1,8 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG SERVICE
 WORKDIR /src
+COPY Give-AID.slnx ./
 COPY backend/ ./backend/
-RUN dotnet publish backend/${SERVICE}/${SERVICE}.csproj -c Release -o /app --no-self-contained
+RUN dotnet restore Give-AID.slnx
+ARG SERVICE
+RUN dotnet publish backend/${SERVICE}/${SERVICE}.csproj -c Release -o /app --no-restore --no-self-contained
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ARG SERVICE
 ENV SERVICE_NAME=${SERVICE}

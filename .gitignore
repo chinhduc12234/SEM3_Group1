@@ -1,8 +1,10 @@
 .env
+.secrets/
 **/bin/
 **/obj/
 **/node_modules/
 **/dist/
+**/.next/
 .vs/
 *.user
 artifacts/

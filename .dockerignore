@@ -2,6 +2,8 @@
 **/bin
 **/obj
 **/dist
+**/.next
 .git
+.secrets
 .env
 artifacts

@@ -1,4 +1,4 @@
-using System.Text;
+using System.Security.Cryptography;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -13,8 +13,11 @@ public static class ApiSetup
 {
     public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration config)
     {
-        var key = config["Jwt:Key"] ?? throw new InvalidOperationException("Configure Jwt:Key.");
-        if (Encoding.UTF8.GetByteCount(key) < 32) throw new InvalidOperationException("Jwt:Key must be at least 32 bytes.");
+        var publicKeyPath = config["Jwt:PublicKeyPath"] ?? throw new InvalidOperationException("Configure Jwt:PublicKeyPath.");
+        using var publicKeyFile = File.OpenText(publicKeyPath);
+        var publicKey = RSA.Create();
+        publicKey.ImportFromPem(publicKeyFile.ReadToEnd());
+        var redis = config.GetConnectionString("Redis") ?? "localhost:6379,abortConnect=false";
         services.AddControllers();
         services.AddProblemDetails();
         services.AddExceptionHandler<ApiExceptionHandler>();
@@ -25,14 +28,15 @@ public static class ApiSetup
             {
                 ValidateIssuer = true, ValidateAudience = true, ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = config["Jwt:Issuer"] ?? "sem3-identity",
-                ValidAudience = config["Jwt:Audience"] ?? "sem3-api",
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-                ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                ValidIssuer = config["Jwt:Issuer"] ?? "give-aid-identity",
+                ValidAudience = config["Jwt:Audience"] ?? "give-aid-api",
+                IssuerSigningKey = new RsaSecurityKey(publicKey),
+                ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
                 NameClaimType = "sub", RoleClaimType = "role", ClockSkew = TimeSpan.FromSeconds(10)
             };
         });
         services.AddAuthorization();
+        services.AddStackExchangeRedisCache(options => options.Configuration = redis);
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = 429;
@@ -46,18 +50,6 @@ public static class ApiSetup
     public static WebApplication UseApi(this WebApplication app)
     {
         app.UseExceptionHandler();
-        app.Use(async (context, next) =>
-        {
-            // Cookies are used only for refresh/logout. Same-origin custom header prevents form CSRF.
-            if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)
-                && context.Request.Headers["X-Requested-With"] != "SEM3")
-            {
-                context.Response.StatusCode = 403;
-                await context.Response.WriteAsJsonAsync(new { title = "Missing request protection header." });
-                return;
-            }
-            await next();
-        });
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();

@@ -1,130 +1,115 @@
-# SEM3 Group 01 — Microservices Starter
+# Give-AID
 
-Code base mẫu cho dự án cuối khóa, chưa gắn với đề tài chính thức. **ASP.NET Core 10**, **React + TypeScript + Vite**, **SQL Server 2022**, Docker Compose và Nginx gateway.
+Nền tảng web quản lý tổ chức từ thiện, chiến dịch, quyên góp mô phỏng và hoạt động tình nguyện. Repository này là khung triển khai theo SRS Give-AID 2.0; nghiệp vụ và dữ liệu mẫu đã được gỡ bỏ để nhóm bắt đầu từ các miền đã chốt.
 
-## Chạy nhanh (Windows / OneDrive)
+## Công nghệ
 
-Cần Docker Desktop ở chế độ Linux containers. Hai SQL Server cần khoảng 4 GB RAM tối thiểu; nên cấp Docker 6–8 GB cho toàn stack.
+- Frontend: Next.js, React và TypeScript.
+- Backend: ASP.NET Core Web API trên .NET 10.
+- Dữ liệu: SQL Server; mỗi service có database riêng, dùng chung một SQL Server instance trong môi trường dev.
+- Cache: Redis qua `IDistributedCache`; cache chỉ dùng cho dữ liệu đọc phù hợp, không dùng làm nguồn sự thật cho giao dịch hoặc quyền truy cập.
+- API Gateway: Nginx; trình duyệt chỉ truy cập gateway.
+- Local orchestration: Docker Compose.
+
+## Chạy local
+
+Cần Docker Desktop ở chế độ Linux containers và khoảng 6 GB RAM được cấp cho Docker để chạy SQL Server cùng các service.
 
 ```powershell
-# Từ thư mục gốc repository
 powershell -NoProfile -File scripts/start-dev.ps1
 ```
 
-Script tạo `.env` với secret ngẫu nhiên, copy build context vào `%TEMP%\sem3-group1-docker` để tránh lỗi Docker đọc OneDrive reparse points, build image, chạy migration rồi khởi động. Chạy lại script sau khi đổi code. Không xóa volume dữ liệu.
-
-- Khách hàng: http://localhost:8080
-- Quản trị: http://localhost:8080/admin
-- Email admin: `ADMIN_EMAIL` trong `.env` (mặc định `admin@sem3.local`).
-- Mật khẩu admin: `ADMIN_PASSWORD` trong `.env`. Không có mật khẩu cố định trong source.
-- Đăng ký trên web luôn tạo tài khoản `Customer`; Admin có thể đổi role.
-- Đổi `WEB_PORT` trong `.env` nếu cổng 8080 đã được dùng.
-
-Ngoài OneDrive, có thể dùng trực tiếp:
+Mở http://localhost:8080. Lệnh tạo `.env` và cặp khóa RSA dùng riêng cho môi trường dev khi chưa có, chuẩn bị build context trong `%TEMP%` để tránh vấn đề Docker/OneDrive, build và chạy stack. Có thể chạy trực tiếp ở thư mục không dùng OneDrive:
 
 ```powershell
 powershell -NoProfile -File scripts/init-dev.ps1
-docker compose build
-docker compose up -d --no-build
+docker compose up --build
 ```
 
-Quản lý từ thư mục gốc: `docker compose ps -a`, `docker compose logs --tail 100 identity catalog`, `docker compose stop`. Không dùng `down -v` nếu cần giữ dữ liệu. `.env` và bản sao trong thư mục tạm chứa secret local: không commit/chia sẻ. Đổi ADMIN_PASSWORD trong `.env` không đổi mật khẩu tài khoản đã tồn tại; seed chỉ tạo lần đầu.
+Một số lệnh quản lý:
 
-## Kiến trúc
-
-```mermaid
-flowchart LR
-  Browser[React Client / Admin] --> Gateway[Nginx :8080]
-  Gateway --> Web[React static web]
-  Gateway --> Identity[Identity Service]
-  Gateway --> Catalog[Catalog Service]
-  Identity --> IdentityDB[(SQL Server Identity)]
-  Catalog --> CatalogDB[(SQL Server Catalog)]
-  Catalog -->|Validate active session over HTTP| Identity
+```powershell
+docker compose ps
+docker compose logs -f gateway identity organization
+docker compose down
 ```
 
-Mỗi service nghiệp vụ có project, process, image, migration và database riêng. Không truy cập chéo database. Shared chỉ chứa plumbing JWT/HTTP/phân trang, không chứa entity nghiệp vụ. Gateway chỉ định tuyến.
+Không dùng `docker compose down -v` nếu muốn giữ dữ liệu volume. `.env` chứa secret local và không được commit.
+
+## Cấu trúc và quyền sở hữu dữ liệu
 
 ```text
 backend/
-  Shared/                    JWT, errors, paging contracts
-  IdentityService/
-    Models/                  User, RefreshSession
-    DTOs/                    Request/response + validation
-    Repositories/            EF Core data access
-    Services/                Authentication, token, user management
-    Controllers/             REST API + authorization
-    Data/Migrations/         DbContext + versioned migrations
-  CatalogService/
-    Models/ DTOs/ Repositories/ Services/ Controllers/ Data/Migrations/
-frontend/src/
-  auth/                      Session provider
-  lib/                       API client + refresh retry
-  components/                Header/Footer/Sidebar, pagination
-  pages/                     Client/Admin, login/register, account, users, catalog
-infra/                       Nginx gateway + SPA server
-scripts/                     Setup/startup/integration tests
+  Shared/                 Chỉ plumbing kỹ thuật dùng chung
+  IdentityService/        Tài khoản, xác thực và quyền nền tảng
+  OrganizationService/    Hồ sơ NGO và thành viên tổ chức
+  CampaignService/        Campaign, Beneficiary và quy trình duyệt
+  DonationService/        Donation demo, payment adapter và tài chính
+  VolunteerService/       Đăng ký, lịch, nhiệm vụ và điểm danh
+  ContentService/         Nội dung công khai, truy vấn hỗ trợ, adapter email
+frontend/src/app/         Next.js app router
+infra/gateway.conf        Định tuyến API và health endpoints
+compose.yaml              Hạ tầng dev và các service
 ```
 
-Backend MVC Web API: **Controller → Service → Repository → DbContext/Model**; DTO tách khỏi entity; React là View. Catalog là nghiệp vụ mẫu để thay thế khi nhận đề tài.
+Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev chỉ giúp tiết kiệm tài nguyên; các database vẫn độc lập. Khi chuẩn bị dữ liệu thật, tạo login/database permission riêng cho từng service thay vì dùng `sa` như cấu hình dev hiện tại.
 
-## Chức năng
+## Luồng giao tiếp
 
-- Đăng ký, đăng nhập, đăng xuất, tài khoản hiện tại; role Admin/Customer, kiểm tra tại backend và route guard frontend.
-- JWT access token 5 phút trong memory, không localStorage. Refresh token 7 ngày trong cookie HttpOnly + SameSite Strict; DB chỉ lưu SHA-256.
-- Refresh rotation một lần, SQL rowversion chặn dùng đồng thời một token. Reload web khôi phục qua refresh cookie.
-- ASP.NET Core PasswordHasher, validation mật khẩu; sai 5 lần khóa đăng nhập 15 phút.
-- Đổi quyền/khóa thu hồi phiên. Đăng xuất hiện áp dụng cho **mọi phiên của tài khoản**.
-- Catalog kiểm tra JWT rồi hỏi Identity về trạng thái/version: token bị thu hồi không tiếp tục ghi dữ liệu. Identity không khả dụng thì request cần xác thực bị từ chối.
-- API ghi dữ liệu yêu cầu `X-Requested-With: SEM3`. Không mở CORS; web gọi cùng origin qua gateway/Vite proxy.
-- Admin tìm kiếm/phân trang người dùng, đổi quyền, khóa/mở khóa; không tự hạ quyền/khóa chính mình.
-- Catalog CRUD, nháp/công khai, tìm kiếm/phân trang server-side; khách chỉ thấy sản phẩm công khai.
-- Khung client/admin responsive, loading/error/empty, 403/404.
-- Migrations, seed admin + 24 sản phẩm mẫu (22 công khai), health endpoint kiểm tra SQL.
+```mermaid
+flowchart LR
+  Browser[Next.js browser] --> Gateway[Nginx gateway]
+  Gateway --> Identity[Identity API]
+  Gateway --> Organization[Organization API]
+  Gateway --> Campaign[Campaign API]
+  Gateway --> Donation[Donation API]
+  Gateway --> Volunteer[Volunteer API]
+  Gateway --> Content[Content API]
+  Identity --> IdentityDB[(GiveAid Identity)]
+  Organization --> OrganizationDB[(GiveAid Organization)]
+  Campaign --> CampaignDB[(GiveAid Campaign)]
+  Donation --> DonationDB[(GiveAid Donation)]
+  Volunteer --> VolunteerDB[(GiveAid Volunteer)]
+  Content --> ContentDB[(GiveAid Content)]
+  Identity -. signed access token .-> Gateway
+  Redis[(Redis cache)] -. distributed cache .-> Identity
+  Redis -. distributed cache .-> Organization
+  Redis -. distributed cache .-> Campaign
+  Redis -. distributed cache .-> Donation
+  Redis -. distributed cache .-> Volunteer
+  Redis -. distributed cache .-> Content
+```
 
-## API
+Gateway chỉ định tuyến, không chứa quy tắc nghiệp vụ. Backend xác thực JWT RS256 ở từng API; Identity giữ khóa riêng để ký, các API còn lại chỉ nhận khóa công khai để xác minh. Không gọi Identity trong mỗi request để kiểm tra trạng thái token. Dữ liệu công khai có thể dùng cache-aside với TTL và invalidation rõ ràng. Không cache trạng thái quyền nhạy cảm, khoản quyên góp chưa chốt hoặc dữ liệu nhận dạng Beneficiary. Các tương tác xuyên miền nên bắt đầu bằng API contract có timeout và xử lý lỗi; nếu cần đồng bộ trạng thái giữa nhiều miền, dùng sự kiện/outbox thay cho ghi chéo database. Chưa thêm message broker khi chưa có luồng bất đồng bộ cụ thể.
 
-| Method | Endpoint | Quyền |
-|---|---|---|
-| POST | `/api/auth/register` | Công khai, luôn Customer |
-| POST | `/api/auth/login` | Công khai |
-| POST | `/api/auth/refresh` | Refresh cookie |
-| POST | `/api/auth/logout` | Refresh cookie |
-| GET | `/api/auth/me` | Đăng nhập |
-| GET | `/api/users?page=1&pageSize=10&search=` | Admin |
-| PATCH | `/api/users/{id}` | Admin, body `{role,isActive}` |
-| GET | `/api/products?page=1&pageSize=9&search=` | Công khai; Admin thấy nháp |
-| GET | `/api/products/{id}` | Công khai; nháp chỉ Admin |
-| POST/PUT/DELETE | `/api/products[/{id}]` | Admin |
-| GET | `/health/identity`, `/health/catalog` | Health local |
+## API prefixes
 
-Danh sách trả `{items,totalCount,page,pageSize,totalPages}`. Page >= 1, pageSize 1–100. Lỗi trả ProblemDetails; validation có `errors`. API cần đăng nhập dùng `Authorization: Bearer <accessToken>`.
+| Prefix | Service |
+|---|---|
+| `/api/auth`, `/api/users` | Identity |
+| `/api/organizations` | Organization |
+| `/api/campaigns`, `/api/beneficiaries` | Campaign |
+| `/api/donations` | Donation |
+| `/api/volunteers`, `/api/schedules`, `/api/tasks` | Volunteer |
+| `/api/content`, `/api/queries`, `/api/invitations` | Content |
+| `/health/{service}` | Liveness của từng API |
 
-## Build / kiểm thử
+Các prefix là điểm xuất phát; cập nhật gateway khi nhóm chốt API contract. Gateway trả 404 cho prefix `/api` chưa khai báo.
+
+## Quy ước phát triển
+
+- Giữ controller/API boundary, application service, repository và persistence trong service sở hữu nghiệp vụ đó.
+- `Shared` chỉ chứa cross-cutting plumbing và contract kỹ thuật ổn định; không đưa entity hay quy tắc nghiệp vụ vào đây.
+- Thêm migration trong đúng service và không truy cập database service khác.
+- Không lưu số thẻ, CVV/CVC hoặc PIN. Payment chỉ mô phỏng và cần thể hiện rõ trên giao diện.
+- Cấu hình connection string, SMTP và payment adapter qua environment; khóa JWT dev được giữ trong `.secrets/` và không ghi vào source.
+- Cập nhật SRS khi thay đổi quyết định công nghệ hoặc phạm vi.
+
+## Kiểm tra build
 
 ```powershell
-dotnet build SEM3.slnx -m:1
+dotnet build Give-AID.slnx -m:1
 cd frontend
 npm ci
 npm run build
-cd ..
-# Sau khi stack Docker chạy; cần Python 3
-python scripts/smoke-test.py
 ```
-
-Smoke test gọi HTTP thật qua gateway/SQL Server: đăng ký, email trùng, mật khẩu yếu, role injection, JWT sửa/hết hạn/sai audience, refresh rotation/race, CSRF, 401/403, CRUD, draft visibility, phân trang, thu hồi token xuyên service, logout và lockout. Test xóa sản phẩm tự tạo; giữ tài khoản test ở trạng thái khóa để audit. Không chạy trên production. Auth rate limit hiện 60 request/phút cho toàn instance; đợi một phút giữa các lần test.
-
-## Phát triển tiếp
-
-- Frontend hot reload: `cd frontend; npm run dev`. Vite proxy mặc định Identity tại 5101, Catalog tại 5102. Nếu dùng Docker backend, đổi target proxy trong `vite.config.ts` sang `http://localhost:8080`.
-- Backend local: cấu hình `ConnectionStrings__Database`, `Jwt__Key`, `ASPNETCORE_URLS`, `Identity__BaseUrl` qua environment hoặc user-secrets. SQL Compose không publish port; nếu dùng SSMS/local backend thêm override port localhost riêng.
-- Thêm migration: `dotnet ef migrations add <Name> --project backend/<Service>`; cần cấu hình Jwt__Key khi host khởi tạo. Migration chạy bằng container `*-migrate` trước API, không dùng EnsureCreated.
-- Thêm service: database/DTO riêng, các lớp theo mẫu, thêm route gateway và Compose.
-
-## Phạm vi
-
-Đây là môi trường local: Development, HTTP localhost; cookie Secure bật ngoài Development. Khi deploy thật cần HTTPS, secret manager, tài khoản SQL tối thiểu quyền thay `sa`, rate limit phân tán, audit/backup và quản lý khóa ký (asymmetric/OIDC khi mở rộng). HMAC key chỉ cấp cho hai backend tin cậy, không đưa ra frontend. Refresh session hết hạn hiện được giữ trong DB, cần retention job khi vận hành lâu dài.
-
-Email xác minh/quên mật khẩu và app mobile có trong checklist ảnh nhưng **chưa triển khai trong đợt nền tảng web/auth này**. Chưa có đơn hàng, thanh toán hay nghiệp vụ đề tài.
-
-Tham khảo: [Microsoft — JWT bearer configuration](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/configure-jwt-bearer-authentication?view=aspnetcore-10.0).
