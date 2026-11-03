@@ -108,6 +108,7 @@ services:
       <<: *service-environment
       ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Identity;User Id=giveaid_identity;Password=${IDENTITY_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
       Jwt__PrivateKeyPath: /run/secrets/jwt_private.pem
+      InternalApi__Key: ${INTERNAL_API_KEY:-}
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
       - ./.secrets/jwt_private.pem:/run/secrets/jwt_private.pem:ro
@@ -125,6 +126,16 @@ services:
       <<: *service-environment
       ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Organization;User Id=giveaid_organization;Password=${ORGANIZATION_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
       Protection__KeyDirectory: /app/keys
+      InternalApi__Key: ${INTERNAL_API_KEY:-}
+      InternalApi__IdentityUrl: http://identity:8080/
+      EmailJS__Enabled: ${EMAILJS_ENABLED:-false}
+      EmailJS__ServiceId: ${EMAILJS_SERVICE_ID:-}
+      EmailJS__PublicKey: ${EMAILJS_PUBLIC_KEY:-}
+      EmailJS__PrivateKey: ${EMAILJS_PRIVATE_KEY:-}
+      EmailJS__SubmittedTemplateId: ${EMAILJS_SUBMITTED_TEMPLATE_ID:-}
+      EmailJS__ReviewTemplateId: ${EMAILJS_REVIEW_TEMPLATE_ID:-}
+      EmailJS__SupportEmail: ${EMAILJS_SUPPORT_EMAIL:-}
+      EmailJS__WebsiteUrl: ${EMAILJS_WEBSITE_URL:-http://localhost:8080}
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
       - organization-keys:/app/keys

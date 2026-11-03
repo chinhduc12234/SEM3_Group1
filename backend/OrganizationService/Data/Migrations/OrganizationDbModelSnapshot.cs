@@ -22,6 +22,105 @@ namespace OrganizationService.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("OrganizationService.Data.EmailNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProtectedPayload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.HasIndex("Sequence")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "Sequence");
+
+                    b.HasIndex("State", "NextAttemptAt");
+
+                    b.ToTable("EmailNotifications");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.LegalChangeDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("LegalChangeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("ProtectedContent")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LegalChangeId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("LegalChangeDocument");
+                });
+
             modelBuilder.Entity("OrganizationService.Data.Organization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -73,6 +172,38 @@ namespace OrganizationService.Data.Migrations
                     b.ToTable("Organizations");
                 });
 
+            modelBuilder.Entity("OrganizationService.Data.OrganizationActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "At");
+
+                    b.ToTable("Activities");
+                });
+
             modelBuilder.Entity("OrganizationService.Data.OrganizationDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -115,11 +246,122 @@ namespace OrganizationService.Data.Migrations
                     b.ToTable("Documents");
                 });
 
+            modelBuilder.Entity("OrganizationService.Data.OrganizationInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("InvitedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InvitedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RolesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvitedUserId", "State");
+
+                    b.HasIndex("OrganizationId", "InvitedUserId")
+                        .IsUnique()
+                        .HasFilter("[State] = 'PENDING'");
+
+                    b.ToTable("Invitations");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationLegalChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProtectedPreviousDossier")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProtectedRequest")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReviewReason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasFilter("[State] = 'PENDING'");
+
+                    b.ToTable("LegalChanges");
+                });
+
             modelBuilder.Entity("OrganizationService.Data.OrganizationMember", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
@@ -129,8 +371,17 @@ namespace OrganizationService.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id");
 
@@ -138,6 +389,20 @@ namespace OrganizationService.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Members");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationMemberRole", b =>
+                {
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("MemberId", "Role");
+
+                    b.ToTable("OrganizationMemberRole");
                 });
 
             modelBuilder.Entity("OrganizationService.Data.OrganizationReview", b =>
@@ -170,6 +435,88 @@ namespace OrganizationService.Data.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("OrganizationReview");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationWorkspace", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FocusAreasJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Introduction")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Mission")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("ProtectedCover")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<byte[]>("ProtectedLogo")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Website")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("OrganizationId");
+
+                    b.ToTable("Workspaces");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.EmailNotification", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.LegalChangeDocument", b =>
+                {
+                    b.HasOne("OrganizationService.Data.OrganizationLegalChange", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("LegalChangeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OrganizationService.Data.Organization", b =>
@@ -282,10 +629,37 @@ namespace OrganizationService.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("OrganizationService.Data.OrganizationActivity", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OrganizationService.Data.OrganizationDocument", b =>
                 {
                     b.HasOne("OrganizationService.Data.Organization", null)
                         .WithMany("Documents")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationInvitation", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationLegalChange", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -302,6 +676,15 @@ namespace OrganizationService.Data.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("OrganizationService.Data.OrganizationMemberRole", b =>
+                {
+                    b.HasOne("OrganizationService.Data.OrganizationMember", null)
+                        .WithMany("Roles")
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OrganizationService.Data.OrganizationReview", b =>
                 {
                     b.HasOne("OrganizationService.Data.Organization", null)
@@ -311,11 +694,30 @@ namespace OrganizationService.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("OrganizationService.Data.OrganizationWorkspace", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithOne()
+                        .HasForeignKey("OrganizationService.Data.OrganizationWorkspace", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OrganizationService.Data.Organization", b =>
                 {
                     b.Navigation("Documents");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationLegalChange", b =>
+                {
+                    b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.OrganizationMember", b =>
+                {
+                    b.Navigation("Roles");
                 });
 #pragma warning restore 612, 618
         }

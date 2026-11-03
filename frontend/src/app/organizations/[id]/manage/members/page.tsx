@@ -1,0 +1,4 @@
+"use client";
+import { useWorkspace } from "@/components/OrganizationWorkspaceShell";
+import WorkspaceMembers from "@/components/WorkspaceMembers";
+export default function Page(){const {data,reload}=useWorkspace();return <><p className="eyebrow">CÙNG NHAU VẬN HÀNH</p><h1>Nhân sự & vai trò</h1><WorkspaceMembers id={data.id} canManage={data.canManageMembers} onChange={reload}/></>;}

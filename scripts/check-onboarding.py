@@ -77,6 +77,9 @@ def sql(database, statement, login="sa", password=None):
 
 def main():
     global count
+    enabled = subprocess.run(["docker", "exec", "give-aid-organization-1", "printenv", "EmailJS__Enabled"], capture_output=True, text=True, check=True).stdout.strip()
+    if enabled.lower() == "true":
+        raise RuntimeError("Disable EMAILJS_ENABLED on the organization container before regression checks; these tests use synthetic recipient addresses.")
     user, other, admin, anonymous = Client(), Client(), Client(), Client()
     password = "Ga1!" + secrets.token_hex(18)
     suffix = secrets.token_hex(6)
@@ -187,6 +190,23 @@ def main():
     rejected = other.request(f"/api/organizations/{rejected['id']}/submit", "POST", {"version": rejected["version"]})
     rejected = admin.request(f"/api/organizations/{rejected['id']}/review", "POST", {"decision": "REJECT", "reason": "Ineligible test dossier.", "version": rejected["version"]})
     assert rejected["status"] == "REJECTED"
+    # Atomic email outbox: exactly one entry per committed submit/review, including concurrent approval.
+    for dossier, expected_count in ((active, 4), (rejected, 2)):
+        notification_list = admin.request("/api/organizations/notifications?organizationId=" + dossier["id"])
+        assert notification_list["totalCount"] == expected_count
+        assert all(item["state"] == "PENDING" and item["attempts"] == 0 for item in notification_list["items"])
+        assert len({item["eventId"] for item in notification_list["items"]}) == expected_count
+        dossier_id = str(uuid.UUID(dossier["id"]))
+        assert sql("GiveAid_Organization", f"SET NOCOUNT ON; SELECT COUNT(*) FROM EmailNotifications e JOIN OrganizationReview r ON e.EventId=r.Id WHERE e.OrganizationId='{dossier_id}' AND e.Action=r.Action AND e.ProtectedPayload NOT LIKE '%Test Representative%';") == str(expected_count)
+    user.request("/api/organizations/notifications", expected=403)
+    anonymous.request("/api/organizations/notifications", expected=401)
+    retry_id = str(uuid.UUID(notification_list["items"][0]["id"]))
+    user.request(f"/api/organizations/notifications/{retry_id}/retry", "POST", expected=403)
+    admin.request(f"/api/organizations/notifications/{retry_id}/retry", "POST", expected=409)
+    sql("GiveAid_Organization", f"UPDATE EmailNotifications SET State='FAILED',Attempts=10,LastErrorCode='TEST_ERROR' WHERE Id='{retry_id}';")
+    admin.request(f"/api/organizations/notifications/{retry_id}/retry", "POST", expected=202)
+    assert sql("GiveAid_Organization", f"SET NOCOUNT ON; SELECT COUNT(*) FROM EmailNotifications WHERE Id='{retry_id}' AND State='PENDING' AND Attempts=0 AND LastErrorCode IS NULL;") == "1"
+    anonymous.request("/internal/accounts/00000000-0000-0000-0000-000000000001/notification-recipient", expected=404)
     other.request(f"/api/organizations/{rejected['id']}", "PUT", {**rejected_request, "version": rejected["version"]}, expected=409)
     rejected_id = str(uuid.UUID(rejected["id"]))
     assert sql("GiveAid_Organization", f"SET NOCOUNT ON; SELECT COUNT(*) FROM Members WHERE OrganizationId='{rejected_id}';") == "0"

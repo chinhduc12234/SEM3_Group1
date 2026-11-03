@@ -53,3 +53,11 @@ export async function downloadDocument(path: string, name: string) {
   const link = document.createElement("a"); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export async function apiBlob(path: string): Promise<Blob> {
+  const execute = () => fetch(path, { headers: { Authorization: "Bearer " + accessToken }, credentials: "same-origin", cache: "no-store" });
+  let response = await execute();
+  if (response.status === 401 && await refreshSession()) response = await execute();
+  if (!response.ok) throw new ApiError("Không tải được ảnh tổ chức.", response.status);
+  return response.blob();
+}

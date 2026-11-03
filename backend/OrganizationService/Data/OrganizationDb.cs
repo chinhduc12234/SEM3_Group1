@@ -72,6 +72,11 @@ public sealed class OrganizationMember
     public Organization Organization { get; set; } = null!;
     public Guid UserId { get; set; }
     public string Role { get; set; } = "OWNER";
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public byte[] Version { get; set; } = [];
+    public List<OrganizationMemberRole> Roles { get; set; } = [];
 }
 // Only logical user IDs cross the service boundary; no Identity database reference exists here.
 public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : DbContext(options)
@@ -79,6 +84,11 @@ public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : D
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OrganizationDocument> Documents => Set<OrganizationDocument>();
     public DbSet<OrganizationMember> Members => Set<OrganizationMember>();
+    public DbSet<EmailNotification> EmailNotifications => Set<EmailNotification>();
+    public DbSet<OrganizationWorkspace> Workspaces => Set<OrganizationWorkspace>();
+    public DbSet<OrganizationInvitation> Invitations => Set<OrganizationInvitation>();
+    public DbSet<OrganizationActivity> Activities => Set<OrganizationActivity>();
+    public DbSet<OrganizationLegalChange> LegalChanges => Set<OrganizationLegalChange>();
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Organization>().OwnsOne(x => x.Profile);
@@ -97,6 +107,43 @@ public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : D
         b.Entity<OrganizationReview>().Property(x => x.Reason).HasMaxLength(2000);
         b.Entity<OrganizationMember>().Property(x => x.Role).HasMaxLength(40);
         b.Entity<OrganizationMember>().HasIndex(x => new { x.OrganizationId, x.UserId }).IsUnique();
+        b.Entity<EmailNotification>().Property(x => x.Sequence).UseIdentityColumn();
+        b.Entity<EmailNotification>().HasIndex(x => x.Sequence).IsUnique();
+        b.Entity<EmailNotification>().HasIndex(x => x.EventId).IsUnique();
+        b.Entity<EmailNotification>().HasIndex(x => new { x.State, x.NextAttemptAt });
+        b.Entity<EmailNotification>().HasIndex(x => new { x.OrganizationId, x.Sequence });
+        b.Entity<EmailNotification>().Property(x => x.Action).HasMaxLength(40);
+        b.Entity<EmailNotification>().Property(x => x.State).HasMaxLength(20);
+        b.Entity<EmailNotification>().Property(x => x.LastErrorCode).HasMaxLength(80);
+        b.Entity<EmailNotification>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
+        b.Entity<OrganizationMember>().Property(x => x.Version).IsRowVersion();
+        b.Entity<OrganizationMember>().HasMany(x => x.Roles).WithOne().HasForeignKey(x => x.MemberId);
+        b.Entity<OrganizationMemberRole>().HasKey(x => new { x.MemberId, x.Role });
+        b.Entity<OrganizationMemberRole>().Property(x => x.Role).HasMaxLength(40);
+        b.Entity<OrganizationWorkspace>().HasKey(x => x.OrganizationId);
+        b.Entity<OrganizationWorkspace>().HasOne<Organization>().WithOne().HasForeignKey<OrganizationWorkspace>(x => x.OrganizationId);
+        b.Entity<OrganizationWorkspace>().Property(x => x.Version).IsRowVersion();
+        b.Entity<OrganizationWorkspace>().Property(x => x.DisplayName).HasMaxLength(200);
+        b.Entity<OrganizationInvitation>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
+        b.Entity<OrganizationInvitation>().Property(x => x.State).HasMaxLength(20);
+        b.Entity<OrganizationInvitation>().Property(x => x.Version).IsRowVersion();
+        b.Entity<OrganizationInvitation>().HasIndex(x => new { x.OrganizationId, x.InvitedUserId }).IsUnique().HasFilter("[State] = 'PENDING'");
+        b.Entity<OrganizationInvitation>().HasIndex(x => new { x.InvitedUserId, x.State });
+        b.Entity<OrganizationActivity>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
+        b.Entity<OrganizationActivity>().Property(x => x.Action).HasMaxLength(60);
+        b.Entity<OrganizationActivity>().Property(x => x.Detail).HasMaxLength(2000);
+        b.Entity<OrganizationActivity>().HasIndex(x => new { x.OrganizationId, x.At });
+        b.Entity<OrganizationLegalChange>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
+        b.Entity<OrganizationLegalChange>().Property(x => x.State).HasMaxLength(20);
+        b.Entity<OrganizationLegalChange>().Property(x => x.Reason).HasMaxLength(2000);
+        b.Entity<OrganizationLegalChange>().Property(x => x.ReviewReason).HasMaxLength(2000);
+        b.Entity<OrganizationLegalChange>().Property(x => x.Version).IsRowVersion();
+        b.Entity<OrganizationLegalChange>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter("[State] = 'PENDING'");
+        b.Entity<OrganizationLegalChange>().HasMany(x => x.Documents).WithOne().HasForeignKey(x => x.LegalChangeId);
+        b.Entity<LegalChangeDocument>().Property(x => x.Kind).HasMaxLength(40);
+        b.Entity<LegalChangeDocument>().Property(x => x.FileName).HasMaxLength(120);
+        b.Entity<LegalChangeDocument>().Property(x => x.ContentType).HasMaxLength(80);
+        b.Entity<LegalChangeDocument>().HasIndex(x => new { x.LegalChangeId, x.Kind }).IsUnique();
     }
 }
 public sealed class OrganizationDbFactory : IDesignTimeDbContextFactory<OrganizationDb>

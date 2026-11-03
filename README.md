@@ -4,6 +4,10 @@ Nền tảng web quản lý tổ chức từ thiện, chiến dịch, quyên gó
 
 Hướng dẫn tính năng và API hiện tại: [Tài khoản và xét duyệt tổ chức](docs/ONBOARDING.md). File Word hướng dẫn nhóm trong docs là ảnh chụp bộ khung ban đầu; tài liệu Markdown này mô tả tính năng mới nhất.
 
+Email tiếp nhận hồ sơ và kết quả xét duyệt đã tích hợp qua EmailJS tại OrganizationService, có SQL outbox, retry và theo dõi trong chi tiết hồ sơ admin. Xem [cấu hình và vận hành email](docs/ORGANIZATION-EMAIL.md).
+
+Đã có workspace riêng cho OWNER/thành viên và danh bạ giám sát của admin, gồm hồ sơ vận hành, nhân sự nhiều vai trò, lời mời trong ứng dụng, khóa quyền và xét duyệt thay đổi pháp lý. Xem [API, phân quyền và chia việc](docs/ORGANIZATION-WORKSPACE.md).
+
 ## Công nghệ
 
 - Frontend: Next.js, React và TypeScript.
@@ -52,7 +56,7 @@ backend/
   CampaignService/        Campaign, Beneficiary và quy trình duyệt
   DonationService/        Donation demo, payment adapter và tài chính
   VolunteerService/       Đăng ký, lịch, nhiệm vụ và điểm danh
-  ContentService/         Nội dung công khai, truy vấn hỗ trợ, adapter email
+  ContentService/         Nội dung công khai và truy vấn hỗ trợ (host nền)
 frontend/src/app/         Next.js app router
 infra/gateway.conf        Định tuyến API và health endpoints
 compose.yaml              Hạ tầng dev và các service

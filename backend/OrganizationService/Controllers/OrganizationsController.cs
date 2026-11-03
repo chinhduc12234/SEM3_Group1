@@ -8,6 +8,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using OrganizationService.Data;
 using OrganizationService.Contracts;
+using OrganizationService.Services;
 using static OrganizationService.Services.OrganizationPolicy;
 using Shared;
 
@@ -15,7 +16,7 @@ namespace OrganizationService.Controllers;
 
 
 [ApiController, Authorize, Route("api/organizations"), EnableRateLimiting("organization")]
-public sealed class OrganizationsController(OrganizationDb db, IDataProtectionProvider protection) : ControllerBase
+public sealed class OrganizationsController(OrganizationDb db, IDataProtectionProvider protection, OrganizationEmailQueue emails) : ControllerBase
 {
     private readonly IDataProtector protector = protection.CreateProtector("GiveAid.Organization.PrivateDocuments.v1");
     private Guid Actor => Guid.Parse(User.FindFirstValue("sub")!);
@@ -128,7 +129,11 @@ public sealed class OrganizationsController(OrganizationDb db, IDataProtectionPr
         MatchVersion(organization, request.Version);
         organization.Status = ReviewStatus(organization, Actor, request.Decision, request.Reason);
         if (request.Decision == "APPROVE")
-            db.Members.Add(new OrganizationMember { OrganizationId = id, UserId = organization.ApplicantUserId, Role = "OWNER" });
+        {
+            db.Members.Add(new OrganizationMember { OrganizationId = id, UserId = organization.ApplicantUserId, Role = "OWNER",
+                Roles = [new OrganizationMemberRole { Role = "OWNER" }] });
+            db.Workspaces.Add(WorkspaceAccess.Initial(organization));
+        }
         Audit(organization, request.Decision, request.Reason?.Trim() ?? "");
         // Member creation, review history and state transition commit in one transaction.
         await Save();
@@ -147,6 +152,7 @@ public sealed class OrganizationsController(OrganizationDb db, IDataProtectionPr
         var entry = new OrganizationReview { OrganizationId = organization.Id, ActorUserId = Actor, Action = action, Reason = reason };
         organization.Reviews.Add(entry);
         db.Add(entry);
+        if (action is "SUBMITTED" or "APPROVE" or "REQUEST_CHANGES" or "REJECT") emails.Enqueue(organization, entry);
     }
     private async Task Save()
     {
