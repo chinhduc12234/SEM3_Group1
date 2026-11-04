@@ -1,22 +1,20 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.ComponentModel.DataAnnotations;
-using IdentityService.Data;
+using IdentityService.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace IdentityService.Controllers;
 
 // Not routed through the gateway. Only the organization service receives this credential.
 [ApiController, Route("internal/accounts")]
-public sealed class InternalAccountsController(IdentityDb db, IConfiguration configuration) : ControllerBase
+public sealed class InternalAccountsController(AccountDirectory directory, IConfiguration configuration) : ControllerBase
 {
     [HttpGet("{id:guid}/notification-recipient")]
     public async Task<IActionResult> Recipient(Guid id, CancellationToken cancellationToken)
     {
         if (!AuthorizedService()) return Unauthorized();
-        var account = await db.Users.AsNoTracking().Where(x => x.Id == id && x.IsActive)
-            .Select(x => new { x.Email, x.FullName }).SingleOrDefaultAsync(cancellationToken);
+        var account = await directory.Recipient(id, cancellationToken);
         return account is null ? NotFound() : Ok(account);
     }
 
@@ -25,11 +23,7 @@ public sealed class InternalAccountsController(IdentityDb db, IConfiguration con
     public async Task<IActionResult> Lookup(LookupRequest request, CancellationToken cancellationToken)
     {
         if (!AuthorizedService()) return Unauthorized();
-        var normalized = request.Email.Trim().ToUpperInvariant();
-        var account = await db.Users.AsNoTracking().Where(x => x.NormalizedEmail == normalized && x.IsActive)
-            .Select(x => new { x.Id, x.Email, x.FullName,
-                IsAdmin = db.UserRoles.Any(ur => ur.UserId == x.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == "ADMIN")) })
-            .SingleOrDefaultAsync(cancellationToken);
+        var account = await directory.Lookup(request.Email, cancellationToken);
         return account is null ? NotFound() : Ok(account);
     }
 
@@ -37,8 +31,8 @@ public sealed class InternalAccountsController(IdentityDb db, IConfiguration con
     public async Task<IActionResult> Directory([FromBody, MaxLength(100)] Guid[] ids, CancellationToken cancellationToken)
     {
         if (!AuthorizedService()) return Unauthorized();
-        return Ok(await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id))
-            .Select(x => new { x.Id, x.FullName, x.Email, x.IsActive }).ToListAsync(cancellationToken));
+        var account = await directory.Directory(ids, cancellationToken);
+        return Ok(account);
     }
 
     private bool AuthorizedService()

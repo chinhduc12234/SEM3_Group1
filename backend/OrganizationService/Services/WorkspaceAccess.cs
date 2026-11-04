@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OrganizationService.Data;
+using OrganizationService.Contracts;
 using Shared;
 
 namespace OrganizationService.Services;
@@ -10,7 +10,6 @@ public sealed class WorkspaceAccess(OrganizationDb db)
 {
     public static readonly string[] AssignableRoles = ["ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER", "STAFF"];
     public static readonly string[] FocusAreas = ["EDUCATION", "HEALTH", "POVERTY_RELIEF", "DISASTER_RELIEF", "ENVIRONMENT", "CHILDREN", "ELDERLY", "COMMUNITY"];
-    public static Guid Actor(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue("sub")!);
     public static string[] Roles(OrganizationMember member) => member.Role == "OWNER" ? ["OWNER"] : member.Roles.Select(x => x.Role).Order().ToArray();
     public static string[] ValidateRoles(string[] roles)
     {
@@ -18,13 +17,12 @@ public sealed class WorkspaceAccess(OrganizationDb db)
         if (selected.Length == 0 || selected.Any(x => !AssignableRoles.Contains(x))) throw new ApiException(400, "Vai trò không hợp lệ; không được cấp OWNER hoặc ADMIN từ chức năng nhân sự.");
         return selected;
     }
-    public async Task<Organization> Require(Guid id, ClaimsPrincipal user, bool adminRead = true, params string[] roles)
+    public async Task<Organization> Require(Guid id, OrganizationActor actor, bool adminRead = true, params string[] roles)
     {
         var organization = await db.Organizations.SingleOrDefaultAsync(x => x.Id == id && x.Status == "ACTIVE")
             ?? throw new ApiException(404, "Không tìm thấy tổ chức đang hoạt động.");
-        if (adminRead && user.IsInRole("ADMIN")) return organization;
-        var actor = Actor(user);
-        var member = await db.Members.Include(x => x.Roles).SingleOrDefaultAsync(x => x.OrganizationId == id && x.UserId == actor && x.IsActive);
+        if (adminRead && actor.IsAdmin) return organization;
+        var member = await db.Members.Include(x => x.Roles).SingleOrDefaultAsync(x => x.OrganizationId == id && x.UserId == actor.UserId && x.IsActive);
         if (member is null) throw new ApiException(404, "Bạn không có quyền truy cập tổ chức này.");
         if (roles.Length > 0 && member.Role != "OWNER" && !Roles(member).Intersect(roles).Any()) throw new ApiException(403, "Vai trò hiện tại không được thực hiện thao tác này.");
         return organization;

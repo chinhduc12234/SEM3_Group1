@@ -12,6 +12,13 @@ builder.Services.AddOptions<EmailOptions>().BindConfiguration("EmailJS")
     .Validate(o => !o.Enabled || (builder.Configuration["InternalApi:Key"]?.Length ?? 0) >= 32,
         "Configure InternalApi:Key with at least 32 characters for account recipient lookup.").ValidateOnStart();
 builder.Services.AddScoped<OrganizationEmailQueue>();
+builder.Services.AddScoped<OrganizationApplications>();
+builder.Services.AddScoped<OrganizationWorkspaceService>();
+builder.Services.AddScoped<OrganizationMembers>();
+builder.Services.AddScoped<OrganizationInvitations>();
+builder.Services.AddScoped<OrganizationLegalChanges>();
+builder.Services.AddScoped<OrganizationOversight>();
+builder.Services.AddScoped<EmailNotificationService>();
 builder.Services.AddScoped<WorkspaceAccess>();
 builder.Services.AddScoped<IdentityDirectory>();
 builder.Services.AddScoped<EmailDelivery>();

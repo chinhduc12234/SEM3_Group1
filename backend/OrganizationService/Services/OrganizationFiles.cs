@@ -1,14 +1,16 @@
 using Shared;
+using OrganizationService.Contracts;
 
 namespace OrganizationService.Services;
 
 public static class OrganizationFiles
 {
-    public static async Task<(byte[] Bytes, string ContentType, string Extension)> Read(IFormFile file, bool imageOnly, int maxBytes, CancellationToken cancellationToken)
+    public static async Task<(byte[] Bytes, string ContentType, string Extension)> Read(OrganizationUpload file, bool imageOnly, int maxBytes, CancellationToken cancellationToken)
     {
         if (file.Length <= 0 || file.Length > maxBytes) throw new ApiException(400, $"Tệp vượt dung lượng cho phép ({maxBytes / 1024 / 1024} MB) hoặc rỗng.");
         using var stream = new MemoryStream();
-        await file.CopyToAsync(stream, cancellationToken);
+        using var content = file.OpenReadStream();
+        await content.CopyToAsync(stream, cancellationToken);
         var bytes = stream.ToArray();
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         var type = extension switch

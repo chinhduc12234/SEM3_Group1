@@ -18,6 +18,8 @@ builder.Services.AddIdentityCore<Account>(o =>
 // Identity's PBKDF2 hash includes a random salt; plaintext passwords are never persisted.
 builder.Services.Configure<PasswordHasherOptions>(o => o.IterationCount = 210000);
 builder.Services.AddSingleton<TokenIssuer>();
+builder.Services.AddScoped<AccountAuthentication>();
+builder.Services.AddScoped<AccountDirectory>();
 var app = builder.Build();
 if (args.Contains("--migrate"))
 {
