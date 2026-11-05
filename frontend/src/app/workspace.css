@@ -28,7 +28,7 @@
 .ow-shell.ga-dashboard .ow-topbar>span::before{content:"⌂";margin-right:10px;color:#17664a;font-size:16px}
 .ow-shell.ga-dashboard .ow-topbar a{color:#27493a;font-size:13px;font-weight:600}
 .ow-shell.ga-dashboard .ow-content{max-width:1380px;padding:clamp(22px,3vw,40px)}
-.ow-shell.ga-dashboard .ow-content h1,.ow-shell.ga-dashboard .ow-content h2,.ow-shell.ga-dashboard .ow-content h3{color:var(--dashboard-ink);font-family:Georgia,"Times New Roman",serif;letter-spacing:normal;word-spacing:normal;font-kerning:normal}
+.ow-shell.ga-dashboard .ow-content h1,.ow-shell.ga-dashboard .ow-content h2,.ow-shell.ga-dashboard .ow-content h3{color:var(--dashboard-ink);font-family:Arial,Helvetica,sans-serif;letter-spacing:normal;word-spacing:normal;font-kerning:normal}
 .ow-shell.ga-dashboard .ow-content h1{font-size:clamp(30px,3.7vw,44px);line-height:1.13}
 .ow-shell.ga-dashboard .ow-content h2{font-size:25px;line-height:1.25}
 .ow-shell.ga-dashboard .ow-content > .panel,.ow-shell.ga-dashboard .ow-content .panel,.ow-shell.ga-dashboard .ow-content .card{border:1px solid #e1ebe3;border-radius:18px;background:linear-gradient(145deg,#fff 0%,#fbfefb 100%);box-shadow:0 12px 30px #173d310d,0 2px 6px #173d3106}
