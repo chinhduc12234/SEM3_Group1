@@ -10,10 +10,10 @@ COPY backend/DonationService/DonationService.csproj ./backend/DonationService/
 COPY backend/VolunteerService/VolunteerService.csproj ./backend/VolunteerService/
 COPY backend/ContentService/ContentService.csproj ./backend/ContentService/
 # Preserve dependency restore across feature edits; adding source code does not invalidate this layer.
-RUN dotnet restore Give-AID.slnx
+RUN --mount=type=cache,id=giveaid-nuget,target=/root/.nuget/packages dotnet restore Give-AID.slnx
 COPY backend/ ./backend/
 ARG SERVICE
-RUN dotnet publish backend/${SERVICE}/${SERVICE}.csproj -c Release -o /app --no-restore --no-self-contained
+RUN --mount=type=cache,id=giveaid-nuget,target=/root/.nuget/packages dotnet publish backend/${SERVICE}/${SERVICE}.csproj -c Release -o /app --no-restore --no-self-contained
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ARG SERVICE
 ENV SERVICE_NAME=${SERVICE}

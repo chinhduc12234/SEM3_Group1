@@ -48,6 +48,14 @@ public sealed class OrganizationWorkspaceController(OrganizationWorkspaceService
     public async Task<IActionResult> Roles(Guid id, Guid memberId, MemberRolesRequest request, CancellationToken cancellationToken) =>
         Ok(await organizationMembers.Roles(CurrentActor, id, memberId, request, cancellationToken));
 
+    [HttpPut("{id:guid}/workspace/members/{memberId:guid}/survey-manager")]
+    public async Task<IActionResult> SurveyManager(Guid id, Guid memberId, SurveyManagerRequest request, CancellationToken cancellationToken) =>
+        Ok(await organizationMembers.SurveyManager(CurrentActor, id, memberId, request, cancellationToken));
+
+    [HttpGet("{id:guid}/workspace/survey-managers")]
+    public async Task<IActionResult> SurveyManagers(Guid id, CancellationToken cancellationToken) =>
+        Ok(await organizationMembers.SurveyManagers(CurrentActor, id, cancellationToken));
+
     [HttpPut("{id:guid}/workspace/members/{memberId:guid}/state")]
     public async Task<IActionResult> State(Guid id, Guid memberId, MemberStateRequest request, CancellationToken cancellationToken) =>
         Ok(await organizationMembers.State(CurrentActor, id, memberId, request, cancellationToken));

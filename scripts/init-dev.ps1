@@ -28,7 +28,7 @@ if (-not (Test-Path -LiteralPath $publicKeyPath) -or -not (Test-Path -LiteralPat
 
 # Bootstrap secrets are generated once; restarting never resets the administrator password.
 $envLines = @(Get-Content -LiteralPath $envPath | Where-Object { $_ -notmatch '^JWT_KEY=' })
-foreach ($setting in @('SQL_SA_PASSWORD', 'ADMIN_PASSWORD', 'IDENTITY_DB_PASSWORD', 'ORGANIZATION_DB_PASSWORD', 'INTERNAL_API_KEY')) {
+foreach ($setting in @('SQL_SA_PASSWORD', 'ADMIN_PASSWORD', 'IDENTITY_DB_PASSWORD', 'ORGANIZATION_DB_PASSWORD', 'CAMPAIGN_DB_PASSWORD', 'INTERNAL_API_KEY')) {
     $existing = $envLines | Where-Object { $_ -match ("^" + $setting + "=") }
     if (-not $existing -or $existing -match '=(CHANGE_ME|GENERATE_WITH)') {
         $envLines = @($envLines | Where-Object { $_ -notmatch ("^" + $setting + "=") })

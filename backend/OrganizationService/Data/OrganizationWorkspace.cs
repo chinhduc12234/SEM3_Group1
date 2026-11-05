@@ -31,6 +31,7 @@ public sealed class OrganizationInvitation
     public Guid OrganizationId { get; set; }
     public Guid InvitedUserId { get; set; }
     public Guid InvitedBy { get; set; }
+    public Guid? SurveyManagerUserId { get; set; }
     public string RolesJson { get; set; } = "[]";
     public string State { get; set; } = "PENDING";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

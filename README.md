@@ -1,5 +1,9 @@
 # Give-AID
 
+Nhân viên khảo sát đã có dashboard, báo cáo kèm ảnh riêng tư và luồng gửi đúng Campaign Manager phụ trách để duyệt. Xem [khảo sát, phân quyền và kiểm thử](docs/SURVEY-REPORTS.md).
+
+Campaign đã có luồng `CAMPAIGN_MANAGER` tạo COMBINED → Owner cùng tổ chức xét duyệt → công khai; database và migration riêng. Xem [API, phân quyền và kiểm thử Campaign](docs/CAMPAIGNS.md). Quyết định Owner duyệt thay thế Admin duyệt Campaign trong SRS theo yêu cầu nhóm.
+
 Nền tảng web quản lý tổ chức từ thiện, chiến dịch, quyên góp mô phỏng và hoạt động tình nguyện. Repository triển khai theo SRS Give-AID 2.0. Tính năng đầu tiên đã có: tài khoản USER/ADMIN và đăng ký tổ chức kèm hồ sơ pháp lý để Admin xét duyệt.
 
 Hướng dẫn tính năng và API hiện tại: [Tài khoản và xét duyệt tổ chức](docs/ONBOARDING.md). File Word hướng dẫn nhóm trong docs là ảnh chụp bộ khung ban đầu; tài liệu Markdown này mô tả tính năng mới nhất.
@@ -44,7 +48,7 @@ Không dùng `docker compose down -v` nếu muốn giữ dữ liệu volume. `.e
 
 Lần chạy đầu sinh ADMIN_EMAIL và ADMIN_PASSWORD trong .env; tài khoản Admin được tạo bởi migration job, không có mật khẩu dùng chung trong source. Đăng nhập tại /login và đổi mật khẩu ở /account. Khởi động lại không đặt lại mật khẩu đã đổi.
 
-Identity và Organization có migration riêng. Compose cấp login SQL riêng cho mỗi API, chỉ có quyền dữ liệu trong database của service; container migration dùng tài khoản bootstrap để tạo schema. Hồ sơ pháp lý và số định danh được mã hóa bằng Data Protection, keyring nằm trong volume organization-keys. Sao lưu cả database và keyring; mất keyring sẽ không đọc lại được hồ sơ.
+Identity, Organization và Campaign có migration riêng. Compose cấp login SQL riêng cho mỗi API, chỉ có quyền dữ liệu trong database của service; container migration dùng tài khoản bootstrap để tạo schema. Hồ sơ pháp lý và số định danh được mã hóa bằng Data Protection, keyring nằm trong volume organization-keys. Sao lưu cả database và keyring; mất keyring sẽ không đọc lại được hồ sơ.
 
 ## Cấu trúc và quyền sở hữu dữ liệu
 
@@ -62,7 +66,7 @@ infra/gateway.conf        Định tuyến API và health endpoints
 compose.yaml              Hạ tầng dev và các service
 ```
 
-Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev giúp tiết kiệm tài nguyên. Identity và Organization đã dùng login riêng có quyền đọc/ghi dữ liệu; các service chưa triển khai nghiệp vụ vẫn là host rỗng.
+Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev giúp tiết kiệm tài nguyên. Identity, Organization và Campaign đã dùng login riêng có quyền đọc/ghi dữ liệu; các service chưa triển khai nghiệp vụ vẫn là host rỗng.
 
 ## Luồng giao tiếp
 
