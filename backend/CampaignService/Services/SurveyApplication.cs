@@ -172,12 +172,16 @@ public sealed class SurveyApplication(SurveyRepository repository, OrganizationA
     public async Task<object> Notifications(Guid org, Guid actor, int page, CancellationToken ct)
     {
         await access.Require(org, actor, ["SURVEY_STAFF", "CAMPAIGN_MANAGER"], ct);
-        var q = repository.Notifications.AsNoTracking().Where(n => n.RecipientId == actor
-            && repository.Query.Any(r => r.Id == n.ReportId && r.OrganizationId == org
-                && (r.StaffId == actor || r.ManagerId == actor)));
+        var q = from n in repository.Notifications.AsNoTracking()
+                join r in repository.Query.AsNoTracking() on n.ReportId equals r.Id
+                where n.RecipientId == actor && r.OrganizationId == org
+                    && (r.StaffId == actor || r.ManagerId == actor)
+                select new { Notification = n, Report = r };
         var totalCount = await q.CountAsync(ct);
-        var items = await q.OrderByDescending(n => n.CreatedAt).ThenBy(n => n.Id).Skip((page - 1) * 20).Take(20)
-            .Select(n => new { n.Id, n.ReportId, n.Message, n.CreatedAt, n.ReadAt }).ToListAsync(ct);
+        var items = await q.OrderByDescending(x => x.Notification.CreatedAt).ThenBy(x => x.Notification.Id).Skip((page - 1) * 20).Take(20)
+            .Select(x => new { x.Notification.Id, x.Notification.ReportId, x.Notification.Message,
+                x.Notification.CreatedAt, x.Notification.ReadAt, reportTitle = x.Report.Title,
+                reportStatus = x.Report.Status, x.Report.ReviewNote, x.Report.ReviewedAt }).ToListAsync(ct);
         return new { items, totalCount, page, pageSize = 20 };
     }
     public async Task ReadNotification(Guid notificationId, Guid actor, CancellationToken ct)
