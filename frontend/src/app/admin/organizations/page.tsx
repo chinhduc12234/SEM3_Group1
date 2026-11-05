@@ -2,10 +2,10 @@
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Protected } from "@/components/AuthProvider";
-import { api } from "@/lib/api";
-import { statuses } from "@/lib/organizations";
-import Icon from "@/components/AdminIcon";
+import { Protected } from "@/features/auth/components/AuthProvider";
+import { api } from "@/shared/api/api";
+import { statuses } from "@/features/organizations/types/organizations";
+import Icon from "@/features/dashboard/components/AdminIcon";
 type Result={items:{id:string;legalName:string;registrationNumber:string;status:string;submittedAt:string|null}[];totalCount:number;page:number};
 function Administration(){
  const params=useSearchParams();const initial=params.get("status");const [status,setStatus]=useState(initial!==null&&(initial===""||initial in statuses)?initial:"PENDING_REVIEW");const [search,setSearch]=useState("");const [query,setQuery]=useState("");const [page,setPage]=useState(1);const [refresh,setRefresh]=useState(0);

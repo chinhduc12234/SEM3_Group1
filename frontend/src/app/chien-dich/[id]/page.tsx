@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { Campaign, causes } from "@/lib/campaigns";
+import { api } from "@/shared/api/api";
+import { Campaign, causes } from "@/features/campaigns/types/campaigns";
 import "../campaigns.css";
 
 const date = (value:string) => { const [year, month, day] = value.split("-"); return `${day}/${month}/${year}`; };

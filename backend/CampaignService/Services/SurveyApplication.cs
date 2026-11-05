@@ -8,6 +8,8 @@ namespace CampaignService.Services;
 
 public sealed class SurveyApplication(SurveyRepository repository, OrganizationAccess access, SurveyImageProcessor images)
 {
+    private const int MaxSubmitAttempts = 3;
+    private const string SubmissionNotificationPrefix = "Có báo cáo khảo sát mới cần xử lý:";
     private static void Match(SurveyReport r, string version)
     {
         if (string.IsNullOrEmpty(version) || Convert.ToBase64String(r.Version) != version)
@@ -111,6 +113,9 @@ public sealed class SurveyApplication(SurveyRepository repository, OrganizationA
     public async Task Submit(Guid id, string version, Guid actor, CancellationToken ct)
     {
         var r = await Get(id, ct); await Author(r, actor, ct); Match(r, version); Editable(r);
+        var submitAttempts = await repository.Events.CountAsync(e => e.ReportId == id && e.Action == "SUBMIT", ct);
+        if (submitAttempts >= MaxSubmitAttempts)
+            throw new ApiException(409, "Báo cáo đã được gửi tối đa 3 lần. Hãy tạo báo cáo mới nếu cần xử lý lại.");
         var staff = await access.Require(r.OrganizationId, actor, ["SURVEY_STAFF"], ct);
         var manager = staff.SurveyManagerUserId ?? throw new ApiException(400, "Bạn chưa được gán Quản lý chiến dịch phụ trách. Hãy liên hệ Owner.");
         if (manager == actor) throw new ApiException(400, "Không gửi báo cáo cho chính mình.");
@@ -119,6 +124,7 @@ public sealed class SurveyApplication(SurveyRepository repository, OrganizationA
         // The recipient is resolved server-side from Organization; the client cannot choose a reviewer.
         r.ManagerId = manager; r.Status = "SUBMITTED"; r.SubmittedAt = r.UpdatedAt = DateTimeOffset.UtcNow;
         Audit(r, actor, "SUBMIT", $"Gửi Quản lý chiến dịch {manager}");
+        await repository.RemoveNotifications(id, manager, SubmissionNotificationPrefix, ct);
         repository.Notify(new() { ReportId = id, RecipientId = manager, Message = "Có báo cáo khảo sát mới cần xử lý: " + r.Title });
         await repository.Save(ct);
     }
@@ -172,12 +178,16 @@ public sealed class SurveyApplication(SurveyRepository repository, OrganizationA
     public async Task<object> Notifications(Guid org, Guid actor, int page, CancellationToken ct)
     {
         await access.Require(org, actor, ["SURVEY_STAFF", "CAMPAIGN_MANAGER"], ct);
-        var q = repository.Notifications.AsNoTracking().Where(n => n.RecipientId == actor
-            && repository.Query.Any(r => r.Id == n.ReportId && r.OrganizationId == org
-                && (r.StaffId == actor || r.ManagerId == actor)));
+        var q = from n in repository.Notifications.AsNoTracking()
+                join r in repository.Query.AsNoTracking() on n.ReportId equals r.Id
+                where n.RecipientId == actor && r.OrganizationId == org
+                    && (r.StaffId == actor || r.ManagerId == actor)
+                select new { Notification = n, Report = r };
         var totalCount = await q.CountAsync(ct);
-        var items = await q.OrderByDescending(n => n.CreatedAt).ThenBy(n => n.Id).Skip((page - 1) * 20).Take(20)
-            .Select(n => new { n.Id, n.ReportId, n.Message, n.CreatedAt, n.ReadAt }).ToListAsync(ct);
+        var items = await q.OrderByDescending(x => x.Notification.CreatedAt).ThenBy(x => x.Notification.Id).Skip((page - 1) * 20).Take(20)
+            .Select(x => new { x.Notification.Id, x.Notification.ReportId, x.Notification.Message,
+                x.Notification.CreatedAt, x.Notification.ReadAt, reportTitle = x.Report.Title,
+                reportStatus = x.Report.Status, x.Report.ReviewNote, x.Report.ReviewedAt }).ToListAsync(ct);
         return new { items, totalCount, page, pageSize = 20 };
     }
     public async Task ReadNotification(Guid notificationId, Guid actor, CancellationToken ct)

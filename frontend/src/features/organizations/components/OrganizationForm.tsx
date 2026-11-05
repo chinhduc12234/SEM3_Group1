@@ -2,8 +2,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
-import { documentKinds, emptyProfile, fields, Organization, Profile, statuses } from "@/lib/organizations";
+import { api } from "@/shared/api/api";
+import { documentKinds, emptyProfile, fields, Organization, Profile, statuses } from "@/features/organizations/types/organizations";
 
 export default function OrganizationForm({ id }: { id?: string }) {
   const router = useRouter();

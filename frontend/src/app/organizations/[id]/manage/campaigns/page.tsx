@@ -2,10 +2,10 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useWorkspace } from "@/components/OrganizationWorkspaceShell";
-import { api, downloadDocument } from "@/lib/api";
-import { Campaign, causes, campaignStatuses } from "@/lib/campaigns";
-import { PageResult } from "@/lib/workspace";
+import { useWorkspace } from "@/features/organizations/components/OrganizationWorkspaceShell";
+import { api, downloadDocument } from "@/shared/api/api";
+import { Campaign, causes, campaignStatuses } from "@/features/campaigns/types/campaigns";
+import { PageResult } from "@/features/organizations/types/workspace";
 const fields=[['title','Tên chiến dịch','text'],['description','Mô tả','textarea'],['beneficiaryDescription','Đối tượng thụ hưởng','textarea'],['goalAmount','Mục tiêu quyên góp (VND)','number'],['volunteerTarget','Số tình nguyện viên cần','number'],['startDate','Ngày bắt đầu','date'],['endDate','Ngày kết thúc','date'],['location','Địa điểm','text'],['contactEmail','Email liên hệ','email'],['contactPhone','Điện thoại liên hệ','tel']];
 export default function Page(){
  const {id}=useParams<{id:string}>(); const {data}=useWorkspace();

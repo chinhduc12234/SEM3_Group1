@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Account, acceptSession, api, forgetSession, refreshSession } from "@/lib/api";
+import { Account, acceptSession, api, forgetSession, refreshSession } from "@/shared/api/api";
 const AuthContext = createContext<{ user: Account | null; loading: boolean; login(email: string, password: string): Promise<Account>; logout(): Promise<void> }>(null!);
 
 export function AuthProvider({ children }: { children: ReactNode }) {

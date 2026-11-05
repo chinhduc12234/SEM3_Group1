@@ -1,9 +1,9 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
-import { useWorkspace } from "@/components/OrganizationWorkspaceShell";
-import WorkspaceImage from "@/components/WorkspaceImage";
-import { api } from "@/lib/api";
-import { focusAreas, WorkspaceProfile } from "@/lib/workspace";
+import { useWorkspace } from "@/features/organizations/components/OrganizationWorkspaceShell";
+import WorkspaceImage from "@/features/organizations/components/WorkspaceImage";
+import { api } from "@/shared/api/api";
+import { focusAreas, WorkspaceProfile } from "@/features/organizations/types/workspace";
 
 export default function Page() {
   const {data,reload}=useWorkspace(); const [profile,setProfile]=useState<WorkspaceProfile>(data.profile);

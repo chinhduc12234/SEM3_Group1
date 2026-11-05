@@ -1,6 +1,6 @@
 "use client";
-import { Workspace, focusAreas, labelsForRoles } from "@/lib/workspace";
-import WorkspaceImage from "./WorkspaceImage";
+import { Workspace, focusAreas, labelsForRoles } from "@/features/organizations/types/workspace";
+import WorkspaceImage from "@/features/organizations/components/WorkspaceImage";
 
 export default function WorkspaceSummary({ data }: { data: Workspace }) {
   return <>

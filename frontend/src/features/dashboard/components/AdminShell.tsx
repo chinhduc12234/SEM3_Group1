@@ -2,8 +2,8 @@
 import { ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Protected, useAuth } from "./AuthProvider";
-import Icon from "./AdminIcon";
+import { Protected, useAuth } from "@/features/auth/components/AuthProvider";
+import Icon from "@/features/dashboard/components/AdminIcon";
 import "@/app/admin.css";
 export default function AdminShell({children}:{children:ReactNode}){return <Protected admin><Shell>{children}</Shell></Protected>;}
 function Shell({children}:{children:ReactNode}){

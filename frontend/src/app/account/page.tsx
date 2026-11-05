@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Protected, useAuth } from "@/components/AuthProvider";
-import { api, forgetSession } from "@/lib/api";
+import { Protected, useAuth } from "@/features/auth/components/AuthProvider";
+import { api, forgetSession } from "@/shared/api/api";
 function Account() {
   const { user } = useAuth(); const router = useRouter(); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {

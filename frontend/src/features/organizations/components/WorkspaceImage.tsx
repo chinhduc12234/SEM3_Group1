@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiBlob } from "@/lib/api";
+import { apiBlob } from "@/shared/api/api";
 
 export default function WorkspaceImage({ id, kind, version }: { id: string; kind: "logo" | "cover"; version: string }) {
   const [source, setSource] = useState("");
