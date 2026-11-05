@@ -1,8 +1,8 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { api, downloadDocument } from "@/lib/api";
-import { documentKinds, fields, Organization, Profile } from "@/lib/organizations";
-import { PageResult } from "@/lib/workspace";
+import { api, downloadDocument } from "@/shared/api/api";
+import { documentKinds, fields, Organization, Profile } from "@/features/organizations/types/organizations";
+import { PageResult } from "@/features/organizations/types/workspace";
 
 type Change={id:string;state:string;reason:string;createdAt:string;reviewedAt:string|null;reviewReason:string;version:string};
 type Detail=Change&{proposed:{profile:Profile;identityNumber:string};documents:{id:string;kind:string;fileName:string}[]};

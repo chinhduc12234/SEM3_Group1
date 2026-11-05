@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
-import {apiBlob} from "@/lib/api";
+import {apiBlob} from "@/shared/api/api";
 export default function SurveyImage({path,alt}:{path:string;alt:string}){
  const [url,setUrl]=useState("");const [error,setError]=useState(false);
  useEffect(()=>{let active=true;let current="";setUrl("");setError(false);apiBlob(path).then(blob=>{if(active){current=URL.createObjectURL(blob);setUrl(current);}}).catch(()=>{if(active)setError(true);});return()=>{active=false;if(current)URL.revokeObjectURL(current);};},[path]);

@@ -2,8 +2,8 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "./AuthProvider";
-import { api } from "@/lib/api";
+import { useAuth } from "@/features/auth/components/AuthProvider";
+import { api } from "@/shared/api/api";
 export default function AuthForm({register=false}:{register?:boolean}) {
  const {login}=useAuth(); const router=useRouter();
  const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false); const [done,setDone]=useState(false);

@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Protected, useAuth } from "@/components/AuthProvider";
-import { api, downloadDocument } from "@/lib/api";
-import { documentKinds, fields, Organization, statuses } from "@/lib/organizations";
-import { OrganizationEmailStatus } from "@/components/OrganizationEmailStatus";
+import { Protected, useAuth } from "@/features/auth/components/AuthProvider";
+import { api, downloadDocument } from "@/shared/api/api";
+import { documentKinds, fields, Organization, statuses } from "@/features/organizations/types/organizations";
+import { OrganizationEmailStatus } from "@/features/organizations/components/OrganizationEmailStatus";
 function Detail() {
   const id = useParams<{ id: string }>()?.id; const { user } = useAuth();
   const [data, setData] = useState<Organization | null>(null); const [error, setError] = useState(""); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false);

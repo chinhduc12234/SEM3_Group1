@@ -2,9 +2,9 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Protected, useAuth } from "./AuthProvider";
-import { api } from "@/lib/api";
-import { Workspace, labelsForRoles } from "@/lib/workspace";
+import { Protected, useAuth } from "@/features/auth/components/AuthProvider";
+import { api } from "@/shared/api/api";
+import { Workspace, labelsForRoles } from "@/features/organizations/types/workspace";
 import "@/app/workspace.css";
 
 const Context = createContext<{ data: Workspace; reload: () => Promise<void> }>(null!);

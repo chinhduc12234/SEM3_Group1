@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { Invitation, Member, PageResult, labelsForRoles, memberRoles } from "@/lib/workspace";
+import { api } from "@/shared/api/api";
+import { Invitation, Member, PageResult, labelsForRoles, memberRoles } from "@/features/organizations/types/workspace";
 
 function RolePicker({roles,onChange,disabled,allowed}:{roles:string[];onChange:(roles:string[])=>void;disabled:boolean;allowed?:string[]}) {
   return <div className="ow-checks">{Object.entries(memberRoles).filter(([key])=>key!=="OWNER"&&(!allowed||allowed.includes(key))).map(([key,label])=><label key={key}><input type="checkbox" disabled={disabled} checked={roles.includes(key)} onChange={e=>onChange(e.target.checked?[...roles,key]:roles.filter(x=>x!==key))}/>{label}</label>)}</div>;

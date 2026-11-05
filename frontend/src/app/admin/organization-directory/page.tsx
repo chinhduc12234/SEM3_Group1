@@ -1,8 +1,8 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
-import { focusAreas, PageResult } from "@/lib/workspace";
+import { api } from "@/shared/api/api";
+import { focusAreas, PageResult } from "@/features/organizations/types/workspace";
 type Organization={id:string;legalName:string;representativeName:string;representativeTitle:string;memberCount:number;staffCount:number;mission:string;focusAreas:string[]};
 type LegalRequest={id:string;organizationId:string;organizationName:string;reason:string;createdAt:string};
 export default function Page(){

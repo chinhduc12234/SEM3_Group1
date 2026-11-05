@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./styles.css";
-import { AuthProvider } from "@/components/AuthProvider";
-import SiteFrame from "@/components/SiteFrame";
+import { AuthProvider } from "@/features/auth/components/AuthProvider";
+import SiteFrame from "@/shared/components/SiteFrame";
 import "./giveaid.css";
 import "./slideshow.css";
 

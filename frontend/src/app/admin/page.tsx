@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
-import { api } from "@/lib/api";
-import Icon from "@/components/AdminIcon";
-import AdminOrganizationOverview from "@/components/AdminOrganizationOverview";
+import { useAuth } from "@/features/auth/components/AuthProvider";
+import { api } from "@/shared/api/api";
+import Icon from "@/features/dashboard/components/AdminIcon";
+import AdminOrganizationOverview from "@/features/dashboard/components/AdminOrganizationOverview";
 type Item={id:string;legalName:string;registrationNumber:string;submittedAt:string|null};
 type Result={totalCount:number;items:Item[]};
 const metrics=[{status:"",label:"Tổng hồ sơ",icon:"folder",note:"Tất cả tổ chức đã đăng ký"},{status:"PENDING_REVIEW",label:"Chờ xét duyệt",icon:"clock",note:"Hồ sơ cần được xem xét"},{status:"ACTIVE",label:"Đã phê duyệt",icon:"check",note:"Đã hoàn tất xét duyệt"},{status:"CHANGES_REQUESTED",label:"Cần bổ sung",icon:"edit",note:"Đang chờ tổ chức cập nhật"}] as const;

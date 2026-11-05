@@ -1,7 +1,7 @@
 "use client";
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Header, Footer } from "./SiteChrome";
+import { Header, Footer } from "@/shared/components/SiteChrome";
 export default function SiteFrame({ children }: { children: ReactNode }) {
  const path = usePathname();
  if (/^\/organizations\/[^/]+\/manage(?:\/|$)/.test(path)) return <div className="ga-site">{children}</div>;

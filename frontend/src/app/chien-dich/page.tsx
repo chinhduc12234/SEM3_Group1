@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { CampaignListItem, causes } from "@/lib/campaigns";
-import { PageResult } from "@/lib/workspace";
+import { api } from "@/shared/api/api";
+import { CampaignListItem, causes } from "@/features/campaigns/types/campaigns";
+import { PageResult } from "@/features/organizations/types/workspace";
 import "./campaigns.css";
 
 export default function CampaignsPage() {

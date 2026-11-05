@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/api";
 
 type Notification = {
   id: string; action: string; state: "PENDING" | "SENT" | "FAILED";

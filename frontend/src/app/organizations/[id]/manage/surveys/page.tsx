@@ -1,12 +1,12 @@
 "use client";
 import {FormEvent,useCallback,useEffect,useRef,useState} from "react";
 import {useParams} from "next/navigation";
-import {useWorkspace} from "@/components/OrganizationWorkspaceShell";
-import {useAuth} from "@/components/AuthProvider";
-import SurveyImage from "@/components/SurveyImage";
-import {api} from "@/lib/api";
-import {PageResult} from "@/lib/workspace";
-import {SurveyReport,SurveyDashboard,SurveyNotification,surveyStatuses,surveyCategories,surveySeverities} from "@/lib/surveys";
+import {useWorkspace} from "@/features/organizations/components/OrganizationWorkspaceShell";
+import {useAuth} from "@/features/auth/components/AuthProvider";
+import SurveyImage from "@/features/reports/components/SurveyImage";
+import {api} from "@/shared/api/api";
+import {PageResult} from "@/features/organizations/types/workspace";
+import {SurveyReport,SurveyDashboard,SurveyNotification,surveyStatuses,surveyCategories,surveySeverities} from "@/features/reports/types/surveys";
 import "./surveys.css";
 
 const root="/api/campaigns/surveys";

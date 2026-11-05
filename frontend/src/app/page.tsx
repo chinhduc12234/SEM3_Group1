@@ -1,6 +1,6 @@
 import Link from "next/link";
-import HeroSlideshow from "@/components/HeroSlideshow";
-import JoinButton from "@/components/JoinButton";
+import HeroSlideshow from "@/shared/components/HeroSlideshow";
+import JoinButton from "@/shared/components/JoinButton";
 
 
 const causes = ["Trẻ em", "Giáo dục", "Sức khỏe", "Cộng đồng", "Người lớn tuổi", "Thiên tai"];

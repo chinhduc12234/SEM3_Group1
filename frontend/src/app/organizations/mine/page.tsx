@@ -1,10 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Protected } from "@/components/AuthProvider";
-import { api } from "@/lib/api";
-import { statuses } from "@/lib/organizations";
-import { Invitation, labelsForRoles } from "@/lib/workspace";
+import { Protected } from "@/features/auth/components/AuthProvider";
+import { api } from "@/shared/api/api";
+import { statuses } from "@/features/organizations/types/organizations";
+import { Invitation, labelsForRoles } from "@/features/organizations/types/workspace";
 type Summary = { id: string; legalName: string; status: string; createdAt: string; roles?: string[] };
 function Mine() {
   const [items, setItems] = useState<Summary[]>([]); const [organizations,setOrganizations]=useState<Summary[]>([]); const [invitations,setInvitations]=useState<Invitation[]>([]);
