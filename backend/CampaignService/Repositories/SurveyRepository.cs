@@ -11,6 +11,12 @@ public sealed class SurveyRepository(CampaignDb db)
     public Task<SurveyReport?> Find(Guid id, CancellationToken ct) => Query.SingleOrDefaultAsync(x => x.Id == id, ct);
     public void Add(SurveyReport report) => db.Add(report);
     public void Notify(SurveyNotification notification) => db.Add(notification);
+    public async Task RemoveNotifications(Guid reportId, Guid recipientId, string messagePrefix, CancellationToken ct)
+    {
+        var duplicates = await Notifications.Where(n => n.ReportId == reportId && n.RecipientId == recipientId
+            && n.Message.StartsWith(messagePrefix)).ToListAsync(ct);
+        db.RemoveRange(duplicates);
+    }
     public void RemoveImage(SurveyReportImage image) => db.Remove(image);
     public IQueryable<SurveyReportImage> Images => db.Set<SurveyReportImage>();
     public IQueryable<SurveyReportEvent> Events => db.Set<SurveyReportEvent>();

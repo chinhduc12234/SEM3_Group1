@@ -8,6 +8,8 @@ namespace CampaignService.Services;
 
 public sealed class SurveyApplication(SurveyRepository repository, OrganizationAccess access, SurveyImageProcessor images)
 {
+    private const int MaxSubmitAttempts = 3;
+    private const string SubmissionNotificationPrefix = "Có báo cáo khảo sát mới cần xử lý:";
     private static void Match(SurveyReport r, string version)
     {
         if (string.IsNullOrEmpty(version) || Convert.ToBase64String(r.Version) != version)
@@ -111,6 +113,9 @@ public sealed class SurveyApplication(SurveyRepository repository, OrganizationA
     public async Task Submit(Guid id, string version, Guid actor, CancellationToken ct)
     {
         var r = await Get(id, ct); await Author(r, actor, ct); Match(r, version); Editable(r);
+        var submitAttempts = await repository.Events.CountAsync(e => e.ReportId == id && e.Action == "SUBMIT", ct);
+        if (submitAttempts >= MaxSubmitAttempts)
+            throw new ApiException(409, "Báo cáo đã được gửi tối đa 3 lần. Hãy tạo báo cáo mới nếu cần xử lý lại.");
         var staff = await access.Require(r.OrganizationId, actor, ["SURVEY_STAFF"], ct);
         var manager = staff.SurveyManagerUserId ?? throw new ApiException(400, "Bạn chưa được gán Quản lý chiến dịch phụ trách. Hãy liên hệ Owner.");
         if (manager == actor) throw new ApiException(400, "Không gửi báo cáo cho chính mình.");
@@ -119,6 +124,7 @@ public sealed class SurveyApplication(SurveyRepository repository, OrganizationA
         // The recipient is resolved server-side from Organization; the client cannot choose a reviewer.
         r.ManagerId = manager; r.Status = "SUBMITTED"; r.SubmittedAt = r.UpdatedAt = DateTimeOffset.UtcNow;
         Audit(r, actor, "SUBMIT", $"Gửi Quản lý chiến dịch {manager}");
+        await repository.RemoveNotifications(id, manager, SubmissionNotificationPrefix, ct);
         repository.Notify(new() { ReportId = id, RecipientId = manager, Message = "Có báo cáo khảo sát mới cần xử lý: " + r.Title });
         await repository.Save(ct);
     }
