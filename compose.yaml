@@ -23,6 +23,7 @@ services:
   # One SQL Server instance keeps the local stack small; each service still owns its own database.
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    ports: ["127.0.0.1:1433:1433"]
     environment:
       ACCEPT_EULA: Y
       MSSQL_PID: Developer
@@ -59,6 +60,7 @@ services:
       SQL_SA_PASSWORD: ${SQL_SA_PASSWORD}
       IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       ORGANIZATION_DB_PASSWORD: ${ORGANIZATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
+      CAMPAIGN_DB_PASSWORD: ${CAMPAIGN_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
     volumes:
       - ./infra/provision-databases.sql:/provision.sql:ro
     depends_on:
@@ -143,6 +145,22 @@ services:
       organization-migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
 
+  campaign-migrate:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: CampaignService }
+    restart: "no"
+    command: [--migrate]
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Campaign;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      sql-provision: { condition: service_completed_successfully }
+
   campaign:
     <<: *backend
     build:
@@ -151,8 +169,15 @@ services:
       args: { SERVICE: CampaignService }
     environment:
       <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Campaign;User Id=giveaid_campaign;Password=${CAMPAIGN_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      InternalApi__Key: ${INTERNAL_API_KEY:-}
+      InternalApi__OrganizationUrl: http://organization:8080/
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      campaign-migrate: { condition: service_completed_successfully }
+      organization: { condition: service_started }
+      redis: { condition: service_healthy }
 
   donation:
     <<: *backend

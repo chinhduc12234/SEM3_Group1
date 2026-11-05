@@ -31,6 +31,7 @@ public sealed class OrganizationWorkspaceService(OrganizationDb db, WorkspaceAcc
             id, org.Profile.LegalName, org.Status, org.Profile.OrganizationType, org.Profile.RegistrationNumber,
             org.Profile.RepresentativeName, org.Profile.RepresentativeTitle,
             roles, canEdit = roles.Intersect(new[] { "OWNER", "ORGANIZATION_MANAGER" }).Any(), canManageMembers = roles.Contains("OWNER"),
+            invitableRoles = WorkspaceAccess.InvitableRoles(roles),
             profile = Profile(workspace),
             statistics = new { activeMembers, staffCount = await db.Members.CountAsync(x => x.OrganizationId == id && x.IsActive && x.Role != "OWNER"),
                 pendingInvitations = await db.Invitations.CountAsync(x => x.OrganizationId == id && x.State == "PENDING" && x.ExpiresAt > DateTimeOffset.UtcNow),

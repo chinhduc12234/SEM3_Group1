@@ -8,7 +8,28 @@ namespace OrganizationService.Services;
 
 public sealed class WorkspaceAccess(OrganizationDb db)
 {
-    public static readonly string[] AssignableRoles = ["ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER", "STAFF"];
+    public static readonly string[] AssignableRoles = ["ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER", "STAFF", "SURVEY_STAFF"];
+    public static string[] InvitableRoles(string[] roles) => roles.Contains("OWNER") ? AssignableRoles
+        : roles.Contains("CAMPAIGN_MANAGER") ? ["SURVEY_STAFF"] : [];
+    public async Task<string[]> RequireInvitationRoles(Guid organizationId, Guid actor, CancellationToken ct)
+    {
+        var member = await db.Members.AsNoTracking().Include(x => x.Roles).SingleOrDefaultAsync(
+            x => x.OrganizationId == organizationId && x.UserId == actor && x.IsActive && x.Organization.Status == "ACTIVE", ct);
+        var allowed = member is null ? [] : InvitableRoles(Roles(member));
+        if (allowed.Length == 0) throw new ApiException(403, "Bạn không có quyền mời nhân sự trong tổ chức này.");
+        return allowed;
+    }
+    public static void EnsureInvitable(string[] roles, string[] allowed)
+    {
+        if (roles.Any(role => !allowed.Contains(role)))
+            throw new ApiException(403, "Quản lý chiến dịch chỉ được mời Nhân viên khảo sát (SURVEY_STAFF).");
+    }
+    public async Task RequireSurveyManager(Guid id, Guid managerId, CancellationToken ct)
+    {
+        if (!await db.Members.AnyAsync(x => x.OrganizationId == id && x.UserId == managerId && x.IsActive
+            && x.Organization.Status == "ACTIVE" && x.Roles.Any(r => r.Role == "CAMPAIGN_MANAGER"), ct))
+            throw new ApiException(400, "Người phụ trách phải là Quản lý chiến dịch đang hoạt động trong cùng tổ chức.");
+    }
     public static readonly string[] FocusAreas = ["EDUCATION", "HEALTH", "POVERTY_RELIEF", "DISASTER_RELIEF", "ENVIRONMENT", "CHILDREN", "ELDERLY", "COMMUNITY"];
     public static string[] Roles(OrganizationMember member) => member.Role == "OWNER" ? ["OWNER"] : member.Roles.Select(x => x.Role).Order().ToArray();
     public static string[] ValidateRoles(string[] roles)
