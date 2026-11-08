@@ -6,10 +6,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityService.Controllers;
 
-// Not routed through the gateway. Only the organization service receives this credential.
+// Not routed through the gateway. Trusted backend services receive this credential.
 [ApiController, Route("internal/accounts")]
 public sealed class InternalAccountsController(AccountDirectory directory, IConfiguration configuration) : ControllerBase
 {
+    [HttpGet("administrators")]
+    public async Task<IActionResult> Administrators(CancellationToken ct)
+    {
+        if (!AuthorizedService()) return Unauthorized();
+        return Ok(await directory.Administrators(ct));
+    }
+
     [HttpGet("{id:guid}/notification-recipient")]
     public async Task<IActionResult> Recipient(Guid id, CancellationToken cancellationToken)
     {

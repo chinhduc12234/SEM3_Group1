@@ -9,7 +9,7 @@ using Shared;
 
 namespace OrganizationService.Services;
 
-public sealed class OrganizationApplications(OrganizationDb db, IDataProtectionProvider protection, OrganizationEmailQueue emails)
+public sealed class OrganizationApplications(OrganizationDb db, IDataProtectionProvider protection, OrganizationEmailQueue emails, OrganizationNotificationQueue notifications)
 {
     private readonly IDataProtector protector = protection.CreateProtector("GiveAid.Organization.PrivateDocuments.v1");
 
@@ -135,7 +135,11 @@ public sealed class OrganizationApplications(OrganizationDb db, IDataProtectionP
         var entry = new OrganizationReview { OrganizationId = organization.Id, ActorUserId = userId, Action = action, Reason = reason };
         organization.Reviews.Add(entry);
         db.Add(entry);
-        if (action is "SUBMITTED" or "APPROVE" or "REQUEST_CHANGES" or "REJECT") emails.Enqueue(organization, entry);
+        if (action is "SUBMITTED" or "APPROVE" or "REQUEST_CHANGES" or "REJECT")
+        {
+            emails.Enqueue(organization, entry);
+            notifications.Enqueue(organization, entry);
+        }
     }
     private async Task Save(CancellationToken cancellationToken)
     {

@@ -5,6 +5,10 @@ namespace IdentityService.Services;
 
 public sealed class AccountDirectory(IdentityDb db)
 {
+    public Task<Guid[]> Administrators(CancellationToken ct) => db.Users.AsNoTracking().Where(x => x.IsActive &&
+        db.UserRoles.Any(ur => ur.UserId == x.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == "ADMIN")))
+        .Select(x => x.Id).ToArrayAsync(ct);
+
     public async Task<object?> Recipient(Guid id, CancellationToken cancellationToken)
     {
         var account = await db.Users.AsNoTracking().Where(x => x.Id == id && x.IsActive)

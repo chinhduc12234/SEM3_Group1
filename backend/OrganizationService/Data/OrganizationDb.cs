@@ -86,12 +86,18 @@ public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : D
     public DbSet<OrganizationDocument> Documents => Set<OrganizationDocument>();
     public DbSet<OrganizationMember> Members => Set<OrganizationMember>();
     public DbSet<EmailNotification> EmailNotifications => Set<EmailNotification>();
+    public DbSet<NotificationEvent> NotificationEvents => Set<NotificationEvent>();
     public DbSet<OrganizationWorkspace> Workspaces => Set<OrganizationWorkspace>();
     public DbSet<OrganizationInvitation> Invitations => Set<OrganizationInvitation>();
     public DbSet<OrganizationActivity> Activities => Set<OrganizationActivity>();
     public DbSet<OrganizationLegalChange> LegalChanges => Set<OrganizationLegalChange>();
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<NotificationEvent>().Property(x => x.Sequence).UseIdentityColumn();
+        b.Entity<NotificationEvent>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<NotificationEvent>().HasIndex(x => x.Sequence).IsUnique();
+        b.Entity<NotificationEvent>().HasIndex(x => new { x.DeliveredAt, x.NextAttemptAt });
+        b.Entity<NotificationEvent>().Property(x => x.LastErrorCode).HasMaxLength(80);
         b.Entity<Organization>().OwnsOne(x => x.Profile);
         b.Entity<Organization>().Property(x => x.Version).IsRowVersion();
         b.Entity<Organization>().Property(x => x.RegistrationKey).HasMaxLength(80);

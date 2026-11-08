@@ -28,7 +28,7 @@ if (-not (Test-Path -LiteralPath $publicKeyPath) -or -not (Test-Path -LiteralPat
 
 # Bootstrap secrets are generated once; restarting never resets the administrator password.
 $envLines = @(Get-Content -LiteralPath $envPath | Where-Object { $_ -notmatch '^JWT_KEY=' })
-foreach ($setting in @('SQL_SA_PASSWORD', 'ADMIN_PASSWORD', 'IDENTITY_DB_PASSWORD', 'ORGANIZATION_DB_PASSWORD', 'CAMPAIGN_DB_PASSWORD', 'INTERNAL_API_KEY')) {
+foreach ($setting in @('SQL_SA_PASSWORD', 'ADMIN_PASSWORD', 'IDENTITY_DB_PASSWORD', 'ORGANIZATION_DB_PASSWORD', 'CAMPAIGN_DB_PASSWORD', 'NOTIFICATION_DB_PASSWORD', 'INTERNAL_API_KEY')) {
     $existing = $envLines | Where-Object { $_ -match ("^" + $setting + "=") }
     if (-not $existing -or $existing -match '=(CHANGE_ME|GENERATE_WITH)') {
         $envLines = @($envLines | Where-Object { $_ -notmatch ("^" + $setting + "=") })
@@ -42,3 +42,4 @@ foreach ($setting in @('SQL_SA_PASSWORD', 'ADMIN_PASSWORD', 'IDENTITY_DB_PASSWOR
 if (-not ($envLines | Where-Object { $_ -match '^ADMIN_EMAIL=' })) { $envLines += 'ADMIN_EMAIL=admin@giveaid.local' }
 Set-Content -LiteralPath $envPath -Value $envLines -Encoding utf8
 Write-Host 'Development environment is ready. Keep .env and .secrets private and out of source control.'
+[IO.Directory]::CreateDirectory((Join-Path $secretDirectory 'firebase')) | Out-Null

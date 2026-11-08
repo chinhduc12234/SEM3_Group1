@@ -1,5 +1,16 @@
 -- Migrations use sa; API logins can access only the database owned by their service.
 USE master;
+IF DB_ID(N'GiveAid_Notification') IS NULL CREATE DATABASE GiveAid_Notification;
+IF SUSER_ID(N'giveaid_notification') IS NULL CREATE LOGIN giveaid_notification WITH PASSWORD = '$(NOTIFICATION_DB_PASSWORD)', CHECK_POLICY = ON;
+ELSE IF (SELECT PWDCOMPARE('$(NOTIFICATION_DB_PASSWORD)', password_hash) FROM sys.sql_logins WHERE name=N'giveaid_notification') = 0
+    ALTER LOGIN giveaid_notification WITH PASSWORD = '$(NOTIFICATION_DB_PASSWORD)';
+GO
+USE GiveAid_Notification;
+IF DATABASE_PRINCIPAL_ID(N'giveaid_notification') IS NULL CREATE USER giveaid_notification FOR LOGIN giveaid_notification;
+ALTER ROLE db_datareader ADD MEMBER giveaid_notification;
+ALTER ROLE db_datawriter ADD MEMBER giveaid_notification;
+GO
+USE master;
 IF DB_ID(N'GiveAid_Identity') IS NULL CREATE DATABASE GiveAid_Identity;
 IF DB_ID(N'GiveAid_Organization') IS NULL CREATE DATABASE GiveAid_Organization;
 IF SUSER_ID(N'giveaid_identity') IS NULL CREATE LOGIN giveaid_identity WITH PASSWORD = '$(IDENTITY_DB_PASSWORD)', CHECK_POLICY = ON;

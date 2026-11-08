@@ -24,6 +24,11 @@ if (Test-Path -LiteralPath $gatewayPath -PathType Container) {
     [IO.Directory]::Delete($resolvedGateway, $true)
 }
 $files = @('.env', '.dockerignore', 'Give-AID.slnx', 'compose.yaml', '.secrets/jwt_public.pem', '.secrets/jwt_private.pem')
+$firebaseDirectory = Join-Path $projectRoot '.secrets/firebase'
+[IO.Directory]::CreateDirectory((Join-Path $contextRoot '.secrets/firebase')) | Out-Null
+$stagedFirebaseCredential = Join-Path $contextRoot '.secrets/firebase/firebase-admin.json'
+if (Test-Path -LiteralPath (Join-Path $firebaseDirectory 'firebase-admin.json')) { $files += '.secrets/firebase/firebase-admin.json' }
+elseif (Test-Path -LiteralPath $stagedFirebaseCredential -PathType Leaf) { Remove-Item -LiteralPath $stagedFirebaseCredential }
 foreach ($folder in @('backend', 'frontend', 'infra')) {
     $folderRoot = Join-Path $projectRoot $folder
     Get-ChildItem -LiteralPath $folderRoot -Recurse -File | Where-Object {

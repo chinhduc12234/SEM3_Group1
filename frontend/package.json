@@ -2,12 +2,19 @@
   "name": "give-aid-web",
   "version": "0.1.0",
   "private": true,
+  "overrides": {
+    "@firebase/app": "0.16.2",
+    "@firebase/app-compat": "0.5.18",
+    "@grpc/grpc-js": "1.14.7"
+  },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0"
   },
   "dependencies": {
+    "@microsoft/signalr": "10.0.11",
+    "firebase": "12.19.0",
     "next": "16.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

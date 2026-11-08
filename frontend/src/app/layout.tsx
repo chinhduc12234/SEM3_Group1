@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./styles.css";
 import { AuthProvider } from "@/features/auth/components/AuthProvider";
 import SiteFrame from "@/shared/components/SiteFrame";
+import NotificationProvider from "@/features/notifications/components/NotificationProvider";
+import "./notifications.css";
 import "./giveaid.css";
 import "./slideshow.css";
 
@@ -15,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi">
-      <body><AuthProvider><SiteFrame>{children}</SiteFrame></AuthProvider></body>
+      <body><AuthProvider><NotificationProvider><SiteFrame>{children}</SiteFrame></NotificationProvider></AuthProvider></body>
     </html>
   );
 }

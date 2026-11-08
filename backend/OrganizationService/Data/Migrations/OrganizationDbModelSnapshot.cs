@@ -121,6 +121,53 @@ namespace OrganizationService.Data.Migrations
                     b.ToTable("LegalChangeDocument");
                 });
 
+            modelBuilder.Entity("OrganizationService.Data.NotificationEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("Sequence")
+                        .IsUnique();
+
+                    b.HasIndex("DeliveredAt", "NextAttemptAt");
+
+                    b.ToTable("NotificationEvents");
+                });
+
             modelBuilder.Entity("OrganizationService.Data.Organization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -521,6 +568,15 @@ namespace OrganizationService.Data.Migrations
                     b.HasOne("OrganizationService.Data.OrganizationLegalChange", null)
                         .WithMany("Documents")
                         .HasForeignKey("LegalChangeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.NotificationEvent", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

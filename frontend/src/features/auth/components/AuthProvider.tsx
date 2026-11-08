@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Account, acceptSession, api, forgetSession, refreshSession } from "@/shared/api/api";
+import { disableBrowserPush } from "@/features/notifications/push";
 const AuthContext = createContext<{ user: Account | null; loading: boolean; login(email: string, password: string): Promise<Account>; logout(): Promise<void> }>(null!);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     acceptSession(session); setUser(session.user); return session.user;
   }
   async function logout() {
+    await disableBrowserPush(true);
     const execute = async () => { await api("/api/auth/logout", { method: "POST" }); };
     if ("locks" in navigator) await navigator.locks.request("giveaid-refresh", execute);
     else await execute();

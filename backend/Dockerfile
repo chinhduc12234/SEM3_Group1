@@ -5,6 +5,7 @@ COPY backend/Directory.Build.props ./backend/
 COPY backend/Shared/Shared.csproj ./backend/Shared/
 COPY backend/IdentityService/IdentityService.csproj ./backend/IdentityService/
 COPY backend/OrganizationService/OrganizationService.csproj ./backend/OrganizationService/
+COPY backend/NotificationService/NotificationService.csproj ./backend/NotificationService/
 COPY backend/CampaignService/CampaignService.csproj ./backend/CampaignService/
 COPY backend/DonationService/DonationService.csproj ./backend/DonationService/
 COPY backend/VolunteerService/VolunteerService.csproj ./backend/VolunteerService/
