@@ -10,6 +10,8 @@ Hướng dẫn tính năng và API hiện tại: [Tài khoản và xét duyệt 
 
 Email tiếp nhận hồ sơ và kết quả xét duyệt đã tích hợp qua EmailJS tại OrganizationService, có SQL outbox, retry và theo dõi trong chi tiết hồ sơ admin. Xem [cấu hình và vận hành email](docs/ORGANIZATION-EMAIL.md).
 
+Thông báo hồ sơ đã có service/database riêng, chuông realtime SignalR và Firebase push tùy chọn. Xem [cấu hình, API và kiểm tra notification](docs/NOTIFICATIONS.md). Các thành viên có thể chạy inbox/realtime với `FIREBASE_ENABLED=false`; chỉ bật push khi đã cấu hình file credential riêng.
+
 Đã có workspace riêng cho OWNER/thành viên và danh bạ giám sát của admin, gồm hồ sơ vận hành, nhân sự nhiều vai trò, lời mời trong ứng dụng, khóa quyền và xét duyệt thay đổi pháp lý. Xem [API, phân quyền và chia việc](docs/ORGANIZATION-WORKSPACE.md).
 
 ## Công nghệ
@@ -48,15 +50,16 @@ Không dùng `docker compose down -v` nếu muốn giữ dữ liệu volume. `.e
 
 Lần chạy đầu sinh ADMIN_EMAIL và ADMIN_PASSWORD trong .env; tài khoản Admin được tạo bởi migration job, không có mật khẩu dùng chung trong source. Đăng nhập tại /login và đổi mật khẩu ở /account. Khởi động lại không đặt lại mật khẩu đã đổi.
 
-Identity, Organization và Campaign có migration riêng. Compose cấp login SQL riêng cho mỗi API, chỉ có quyền dữ liệu trong database của service; container migration dùng tài khoản bootstrap để tạo schema. Hồ sơ pháp lý và số định danh được mã hóa bằng Data Protection, keyring nằm trong volume organization-keys. Sao lưu cả database và keyring; mất keyring sẽ không đọc lại được hồ sơ.
+Identity, Organization, Campaign và Notification có migration riêng. Compose cấp login SQL riêng cho mỗi API, chỉ có quyền dữ liệu trong database của service; container migration dùng tài khoản bootstrap để tạo schema. Hồ sơ pháp lý và số định danh được mã hóa bằng Data Protection, keyring nằm trong volume organization-keys. Token push dùng volume notification-keys riêng. Sao lưu cả database và keyring; mất keyring sẽ không đọc lại được dữ liệu đã mã hóa.
 
 ## Cấu trúc và quyền sở hữu dữ liệu
 
 ```text
 backend/
-  Shared/                 Chỉ plumbing kỹ thuật dùng chung
+  Shared/                 Plumbing kỹ thuật và integration contract dùng chung
   IdentityService/        Tài khoản, xác thực và quyền nền tảng
   OrganizationService/    Hồ sơ NGO và thành viên tổ chức
+  NotificationService/    Inbox, SignalR và Firebase push
   CampaignService/        Campaign, Beneficiary và quy trình duyệt
   DonationService/        Donation demo, payment adapter và tài chính
   VolunteerService/       Đăng ký, lịch, nhiệm vụ và điểm danh
@@ -66,7 +69,7 @@ infra/gateway.conf        Định tuyến API và health endpoints
 compose.yaml              Hạ tầng dev và các service
 ```
 
-Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev giúp tiết kiệm tài nguyên. Identity, Organization và Campaign đã dùng login riêng có quyền đọc/ghi dữ liệu; các service chưa triển khai nghiệp vụ vẫn là host rỗng.
+Mỗi service sở hữu model, migration và database riêng. Service khác không đọc database đó và không tạo khóa ngoại xuyên service. Một SQL Server instance trong dev giúp tiết kiệm tài nguyên. Identity, Organization, Campaign và Notification đã dùng login riêng có quyền đọc/ghi dữ liệu; các service chưa triển khai nghiệp vụ vẫn là host rỗng.
 
 ## Luồng giao tiếp
 
@@ -75,6 +78,10 @@ flowchart LR
   Browser[Next.js browser] --> Gateway[Nginx gateway]
   Gateway --> Identity[Identity API]
   Gateway --> Organization[Organization API]
+  Gateway --> Notification[Notification API / SignalR]
+  Organization -. transactional outbox .-> Notification
+  Notification --> NotificationDB[(GiveAid Notification)]
+  Notification --> FCM[Firebase Cloud Messaging]
   Gateway --> Campaign[Campaign API]
   Gateway --> Donation[Donation API]
   Gateway --> Volunteer[Volunteer API]
@@ -88,6 +95,7 @@ flowchart LR
   Identity -. signed access token .-> Gateway
   Redis[(Redis cache)] -. distributed cache .-> Identity
   Redis -. distributed cache .-> Organization
+  Redis -. SignalR backplane .-> Notification
   Redis -. distributed cache .-> Campaign
   Redis -. distributed cache .-> Donation
   Redis -. distributed cache .-> Volunteer
@@ -102,6 +110,7 @@ Gateway chỉ định tuyến, không chứa quy tắc nghiệp vụ. Backend x�
 |---|---|
 | `/api/auth`, `/api/users` | Identity |
 | `/api/organizations` | Organization |
+| `/api/notifications`, `/hubs/notifications` | Notification inbox / SignalR |
 | `/api/campaigns`, `/api/beneficiaries` | Campaign |
 | `/api/donations` | Donation |
 | `/api/volunteers`, `/api/schedules`, `/api/tasks` | Volunteer |

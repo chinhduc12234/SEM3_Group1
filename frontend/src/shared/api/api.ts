@@ -23,6 +23,14 @@ export async function refreshSession(): Promise<Session | null> {
 }
 export function acceptSession(session: Session) { accessToken = session.accessToken; }
 export function forgetSession() { accessToken = null; }
+export async function realtimeAccessToken(): Promise<string> {
+  if (accessToken) {
+    try { if (JSON.parse(atob(accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp * 1000 > Date.now() + 30000) return accessToken; } catch { /* Refresh malformed credentials. */ }
+  }
+  const session = await refreshSession();
+  if (!session) { window.dispatchEvent(new Event("giveaid-session-expired")); throw new Error("Session expired"); }
+  return session.accessToken;
+}
 export class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 
 export async function api<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {

@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, downloadDocument } from "@/shared/api/api";
 import { documentKinds, fields, Organization, Profile } from "@/features/organizations/types/organizations";
 import { PageResult } from "@/features/organizations/types/workspace";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 type Change={id:string;state:string;reason:string;createdAt:string;reviewedAt:string|null;reviewReason:string;version:string};
 type Detail=Change&{proposed:{profile:Profile;identityNumber:string};documents:{id:string;kind:string;fileName:string}[]};
@@ -16,7 +17,7 @@ function ProposalForm({id,onDone}:{id:string;onDone:()=>Promise<void>}) {
     form.append("registration",files.REGISTRATION);form.append("representativeId",files.REPRESENTATIVE_ID);form.append("authorization",files.AUTHORIZATION);
     await api(`/api/organizations/${id}/workspace/legal-changes`,{method:"POST",body:form});await onDone();
   }catch(ex){setError((ex as Error).message);}finally{setBusy(false);}}
-  return <section className="panel"><h2>Yêu cầu cập nhật pháp lý</h2><p className="muted">Tổ chức vẫn hoạt động với hồ sơ đã duyệt. Nội dung mới chỉ có hiệu lực sau khi admin chấp thuận. Gửi đầy đủ giấy tờ mới để admin đối chiếu.</p>
+  return <LocalizedTree><section className="panel"><h2>Yêu cầu cập nhật pháp lý</h2><p className="muted">Tổ chức vẫn hoạt động với hồ sơ đã duyệt. Nội dung mới chỉ có hiệu lực sau khi admin chấp thuận. Gửi đầy đủ giấy tờ mới để admin đối chiếu.</p>
     {profile&&<form onSubmit={submit}><fieldset disabled={busy} style={{border:0,padding:0}}><div className="form-grid">
       <label>Loại hình<select value={profile.organizationType} onChange={e=>setProfile({...profile,organizationType:e.target.value})}>{["NGO","CHARITY","FOUNDATION","ASSOCIATION","SOCIAL_ENTERPRISE"].map(x=><option key={x}>{x}</option>)}</select></label>
       {fields.map(field=><label className={field.type==="textarea"?"full":""} key={field.key}>{field.label}{field.type==="textarea"?<textarea required={!field.optional} rows={3} minLength={field.min} maxLength={field.max} value={profile[field.key]||""} onChange={e=>setProfile({...profile,[field.key]:e.target.value})}/>:<input type={field.type||"text"} required={!field.optional} minLength={field.min} maxLength={field.max} value={profile[field.key]||""} onChange={e=>setProfile({...profile,[field.key]:e.target.value})}/>}</label>)}
@@ -27,7 +28,7 @@ function ProposalForm({id,onDone}:{id:string;onDone:()=>Promise<void>}) {
       <label className="check"><input type="checkbox" required checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>Tôi có quyền đại diện và xác nhận thông tin, giấy tờ được cung cấp là chính xác.</span></label>
       <button disabled={busy||Object.keys(files).length!==3}>{busy?"Đang gửi…":"Gửi admin xét duyệt"}</button></fieldset></form>}
     {error&&<p className="notice error" role="alert">{error}</p>}
-  </section>;
+  </section></LocalizedTree>;
 }
 
 export default function OrganizationLegalChanges({id,canRequest=false,canReview=false,initialChangeId}:{id:string;canRequest?:boolean;canReview?:boolean;initialChangeId?:string}) {
@@ -36,7 +37,7 @@ export default function OrganizationLegalChanges({id,canRequest=false,canReview=
   useEffect(()=>{load().catch(ex=>setError(ex.message));},[load]);
   useEffect(()=>{if(!selected){setDetail(null);return;}setDetail(null);setError("");Promise.all([api<Detail>(`/api/organizations/${id}/workspace/legal-changes/${selected}`),api<Organization>(`/api/organizations/${id}`)]).then(([detail,org])=>{setDetail(detail);setCurrent(org);setReason("");}).catch(ex=>setError(ex.message));},[id,selected]);
   async function review(decision:string){if(!detail||!window.confirm(decision==="APPROVE"?"Chấp thuận thay đổi hồ sơ pháp lý này?":"Từ chối yêu cầu thay đổi này?"))return;setBusy(true);setError("");try{await api(`/api/organizations/${id}/workspace/legal-changes/${detail.id}/review`,{method:"POST",body:JSON.stringify({decision,reason,version:detail.version})});setDetail(null);setSelected("");await load();setMessage("Đã lưu kết quả xét duyệt.");}catch(ex){setError((ex as Error).message);}finally{setBusy(false);}}
-  return <>{canRequest&&<div className="actions"><button className="secondary" onClick={()=>setCreating(!creating)}>{creating?"Đóng biểu mẫu":"Tạo yêu cầu cập nhật pháp lý"}</button></div>}
+  return <LocalizedTree><>{canRequest&&<div className="actions"><button className="secondary" onClick={()=>setCreating(!creating)}>{creating?"Đóng biểu mẫu":"Tạo yêu cầu cập nhật pháp lý"}</button></div>}
     {creating&&<ProposalForm id={id} onDone={async()=>{setCreating(false);await load();setMessage("Đã gửi yêu cầu. Hồ sơ hiện tại vẫn giữ nguyên cho đến khi được duyệt.");}}/>}
     <section className="panel"><h2>Yêu cầu thay đổi pháp lý</h2>{result?.items.map(item=><div className="upload-row" key={item.id}><div><strong>{states[item.state]}</strong><p>{item.reason}</p><small>{new Date(item.createdAt).toLocaleString("vi-VN")}</small>{item.reviewReason&&<p>Phản hồi: {item.reviewReason}</p>}</div><button className="secondary" onClick={()=>setSelected(item.id)}>Xem chi tiết</button></div>)}{result?.totalCount===0&&<p>Chưa có yêu cầu cập nhật pháp lý.</p>}
     {result&&result.totalCount>20&&<div className="ow-pagination"><button className="secondary" disabled={page===1} onClick={()=>setPage(page-1)}>Trang trước</button><span>Trang {page}</span><button className="secondary" disabled={page*20>=result.totalCount} onClick={()=>setPage(page+1)}>Trang sau</button></div>}</section>
@@ -46,5 +47,5 @@ export default function OrganizationLegalChanges({id,canRequest=false,canReview=
       {detail.reviewReason&&<p>Phản hồi admin: {detail.reviewReason}</p>}
     </section>}
     {error&&<p className="notice error" role="alert">{error}</p>}{message&&<p className="notice success" role="status">{message}</p>}
-  </>;
+  </></LocalizedTree>;
 }

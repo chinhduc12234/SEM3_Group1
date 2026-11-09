@@ -12,6 +12,13 @@ builder.Services.AddOptions<EmailOptions>().BindConfiguration("EmailJS")
     .Validate(o => !o.Enabled || (builder.Configuration["InternalApi:Key"]?.Length ?? 0) >= 32,
         "Configure InternalApi:Key with at least 32 characters for account recipient lookup.").ValidateOnStart();
 builder.Services.AddScoped<OrganizationEmailQueue>();
+builder.Services.AddScoped<OrganizationNotificationQueue>();
+builder.Services.AddHttpClient("notifications", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Notifications:Url"] ?? "http://notification:8080/");
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<OrganizationApplications>();
 builder.Services.AddScoped<OrganizationWorkspaceService>();
 builder.Services.AddScoped<OrganizationMembers>();
@@ -33,7 +40,11 @@ builder.Services.AddHttpClient("identity-notifications", client =>
     client.Timeout = TimeSpan.FromSeconds(10);
     client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
-if (!args.Contains("--migrate")) builder.Services.AddHostedService<EmailOutboxWorker>();
+if (!args.Contains("--migrate"))
+{
+    builder.Services.AddHostedService<EmailOutboxWorker>();
+    builder.Services.AddHostedService<NotificationEventWorker>();
+}
 // Keep these keys across deployments and backups; losing them makes encrypted legal records unreadable.
 builder.Services.AddDataProtection().SetApplicationName("GiveAid.Organization")
     .PersistKeysToFileSystem(new DirectoryInfo(builder.Configuration["Protection:KeyDirectory"] ?? Path.Combine(builder.Environment.ContentRootPath, ".keys")));

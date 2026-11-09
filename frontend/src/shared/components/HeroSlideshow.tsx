@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLocale } from "@/shared/i18n/LocaleProvider";
 
 const slides = [
   { src: "/images/slide-1.jpg", alt: "Trao nhu yếu phẩm hỗ trợ người dân sau mưa lũ", label: "Chung tay sẻ chia", title: "Một hành động nhỏ,", accent: "một hy vọng lớn." },
@@ -13,6 +14,7 @@ const slides = [
 ];
 
 export default function HeroSlideshow() {
+  const { t } = useLocale();
   const [index, setIndex] = useState(0);
   const [reduced, setReduced] = useState(true);
 
@@ -36,22 +38,22 @@ export default function HeroSlideshow() {
   const slide = slides[index];
 
   return (
-    <section className="ga-slider" aria-label="Những khoảnh khắc sẻ chia" aria-roledescription="trình chiếu">
+    <section className="ga-slider" aria-label={t("Những khoảnh khắc sẻ chia")} aria-roledescription={t("trình chiếu")}>
       <div className="ga-slider-layout">
         <div className="ga-slider-copy">
-          <p className="ga-overline"><span /> CÙNG NHAU TẠO NÊN THAY ĐỔI</p>
+          <p className="ga-overline"><span /> {t("CÙNG NHAU TẠO NÊN THAY ĐỔI")}</p>
           <div key={index} className="ga-slider-message" aria-live="off">
-            <h1>{slide.title}<br /><em>{slide.accent}</em></h1>
+            <h1>{t(slide.title)}<br /><em>{t(slide.accent)}</em></h1>
           </div>
-          <p>Kết nối những tấm lòng với những câu chuyện cần được sẻ chia. Cùng Give-AID góp sức cho một cộng đồng tốt đẹp hơn.</p>
-          <div className="ga-hero-actions"><Link className="ga-button" href="/chien-dich">Khám phá chiến dịch <span>↗</span></Link><Link className="ga-hero-link" href="/cach-tham-gia">Cách tham gia ↓</Link></div>
+          <p>{t("Kết nối những tấm lòng với những câu chuyện cần được sẻ chia. Cùng Give-AID góp sức cho một cộng đồng tốt đẹp hơn.")}</p>
+          <div className="ga-hero-actions"><Link className="ga-button" href="/chien-dich">{t("Khám phá chiến dịch")} <span>↗</span></Link><Link className="ga-hero-link" href="/cach-tham-gia">{t("Cách tham gia")} ↓</Link></div>
         </div>
         <div className="ga-slider-visual">
-          {slides.map((item, i) => <img key={item.src} className={`ga-slider-photo${i === index ? " is-active" : ""}`} src={item.src} alt={i === index ? item.alt : ""} aria-hidden={i !== index} fetchPriority={i === 0 ? "high" : "auto"} />)}
-          <div className="ga-slider-caption"><span>{slide.label}</span><span>{String(index + 1).padStart(2, "0")} / 06</span></div>
+          {slides.map((item, i) => <img key={item.src} className={`ga-slider-photo${i === index ? " is-active" : ""}`} src={item.src} alt={i === index ? t(item.alt) : ""} aria-hidden={i !== index} fetchPriority={i === 0 ? "high" : "auto"} />)}
+          <div className="ga-slider-caption"><span>{t(slide.label)}</span><span>{String(index + 1).padStart(2, "0")} / 06</span></div>
         </div>
       </div>
-      <div className="ga-slider-dots" aria-label="Chọn trang trình chiếu">{slides.map((item, i) => <button key={item.src} type="button" aria-label={`Xem ảnh ${i + 1}: ${item.label}`} aria-pressed={i === index} className={i === index ? "is-active" : ""} onClick={() => go(i)}><span /></button>)}</div>
+      <div className="ga-slider-dots" aria-label={t("Chọn trang trình chiếu")}>{slides.map((item, i) => <button key={item.src} type="button" aria-label={t(`Xem ảnh ${i + 1}: ${item.label}`)} aria-pressed={i === index} className={i === index ? "is-active" : ""} onClick={() => go(i)}><span /></button>)}</div>
     </section>
   );
 }

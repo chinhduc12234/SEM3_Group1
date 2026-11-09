@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/shared/api/api";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 type Notification = {
   id: string; action: string; state: "PENDING" | "SENT" | "FAILED";
@@ -35,7 +36,7 @@ export function OrganizationEmailStatus({ organizationId }: { organizationId: st
     catch (ex) { setError((ex as Error).message); }
     finally { setBusy(false); }
   }
-  return <section className="panel">
+  return <LocalizedTree><section className="panel">
     <h2>Thông báo email</h2>
     <p className="muted">Email được gửi đến tài khoản nộp hồ sơ. Trạng thái tiếp nhận từ EmailJS chưa xác nhận thư đã vào hộp thư người nhận.</p>
     <button className="secondary" disabled={busy} onClick={() => { void load(); }}>Cập nhật trạng thái</button>
@@ -59,5 +60,5 @@ export function OrganizationEmailStatus({ organizationId }: { organizationId: st
         <button className="secondary" disabled={page * 20 >= result.totalCount || busy} onClick={() => setPage(page + 1)}>Trang sau</button>
       </div>}
     </>}
-  </section>;
+  </section></LocalizedTree>;
 }

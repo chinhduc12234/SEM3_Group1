@@ -23,7 +23,7 @@ services:
   # One SQL Server instance keeps the local stack small; each service still owns its own database.
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    ports: ["127.0.0.1:1433:1433"]
+    ports: ["127.0.0.1:${SQL_PORT:-1433}:1433"]
     environment:
       ACCEPT_EULA: Y
       MSSQL_PID: Developer
@@ -61,6 +61,7 @@ services:
       IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       ORGANIZATION_DB_PASSWORD: ${ORGANIZATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       CAMPAIGN_DB_PASSWORD: ${CAMPAIGN_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
     volumes:
       - ./infra/provision-databases.sql:/provision.sql:ro
     depends_on:
@@ -138,11 +139,62 @@ services:
       EmailJS__ReviewTemplateId: ${EMAILJS_REVIEW_TEMPLATE_ID:-}
       EmailJS__SupportEmail: ${EMAILJS_SUPPORT_EMAIL:-}
       EmailJS__WebsiteUrl: ${EMAILJS_WEBSITE_URL:-http://localhost:8080}
+      Notifications__Enabled: ${NOTIFICATIONS_ENABLED:-true}
+      Notifications__Url: http://notification:8080/
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
       - organization-keys:/app/keys
     depends_on:
       organization-migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  notification-migrate:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: NotificationService }
+    restart: "no"
+    command: [--migrate]
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Notification;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      InternalApi__Key: ${INTERNAL_API_KEY}
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      sql-provision: { condition: service_completed_successfully }
+
+  notification:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: NotificationService }
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Notification;User Id=giveaid_notification;Password=${NOTIFICATION_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      Protection__KeyDirectory: /app/keys
+      InternalApi__Key: ${INTERNAL_API_KEY}
+      InternalApi__IdentityUrl: http://identity:8080/
+      Firebase__Enabled: ${FIREBASE_ENABLED:-false}
+      Firebase__CredentialPath: /run/firebase/firebase-admin.json
+      Firebase__ProjectId: ${FIREBASE_PROJECT_ID:-}
+      Firebase__ApiKey: ${FIREBASE_API_KEY:-}
+      Firebase__AuthDomain: ${FIREBASE_AUTH_DOMAIN:-}
+      Firebase__StorageBucket: ${FIREBASE_STORAGE_BUCKET:-}
+      Firebase__MessagingSenderId: ${FIREBASE_MESSAGING_SENDER_ID:-}
+      Firebase__AppId: ${FIREBASE_APP_ID:-}
+      Firebase__VapidPublicKey: ${FIREBASE_VAPID_PUBLIC_KEY:-}
+      Firebase__WebsiteUrl: ${WEBSITE_URL:-http://localhost:8080}
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+      # Mount the directory so Firebase-disabled clones do not need a credential file.
+      - ./.secrets/firebase:/run/firebase:ro
+      - notification-keys:/app/keys
+    depends_on:
+      notification-migrate: { condition: service_completed_successfully }
+      identity: { condition: service_started }
       redis: { condition: service_healthy }
 
   campaign-migrate:
@@ -227,10 +279,11 @@ services:
     ports: ["127.0.0.1:${WEB_PORT:-8080}:80"]
     volumes:
       - ./infra/gateway.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on: [identity, organization, campaign, donation, volunteer, content, web]
+    depends_on: [identity, organization, notification, campaign, donation, volunteer, content, web]
     restart: unless-stopped
 
 volumes:
   organization-keys:
+  notification-keys:
   sqlserver-data:
   redis-data:
