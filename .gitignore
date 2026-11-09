@@ -12,3 +12,5 @@ artifacts/
 **/TestResults/
 **/*.tsbuildinfo
 **/__pycache__/
+
+uploads/

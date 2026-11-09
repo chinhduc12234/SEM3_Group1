@@ -4,7 +4,7 @@ using Shared;
 
 namespace CampaignService.Repositories;
 
-public sealed class SurveyRepository(CampaignDb db)
+public sealed class SurveyRepository(CampaignDb db) : ISurveyRepository
 {
     public IQueryable<SurveyReport> Query => db.Set<SurveyReport>().Where(x => !x.IsDeleted);
     public IQueryable<SurveyNotification> Notifications => db.Set<SurveyNotification>();

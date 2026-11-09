@@ -8,9 +8,9 @@ namespace OrganizationService.Services;
 
 public sealed class WorkspaceAccess(OrganizationDb db)
 {
-    public static readonly string[] AssignableRoles = ["ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER", "STAFF", "SURVEY_STAFF"];
+    public static readonly string[] AssignableRoles = ["ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER", "STAFF"];
     public static string[] InvitableRoles(string[] roles) => roles.Contains("OWNER") ? AssignableRoles
-        : roles.Contains("CAMPAIGN_MANAGER") ? ["SURVEY_STAFF"] : [];
+        : [];
     public async Task<string[]> RequireInvitationRoles(Guid organizationId, Guid actor, CancellationToken ct)
     {
         var member = await db.Members.AsNoTracking().Include(x => x.Roles).SingleOrDefaultAsync(
@@ -22,7 +22,7 @@ public sealed class WorkspaceAccess(OrganizationDb db)
     public static void EnsureInvitable(string[] roles, string[] allowed)
     {
         if (roles.Any(role => !allowed.Contains(role)))
-            throw new ApiException(403, "Quản lý chiến dịch chỉ được mời Nhân viên khảo sát (SURVEY_STAFF).");
+            throw new ApiException(403, "Vai trò này hiện không được phép mời.");
     }
     public async Task RequireSurveyManager(Guid id, Guid managerId, CancellationToken ct)
     {

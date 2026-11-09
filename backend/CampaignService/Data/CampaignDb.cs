@@ -46,6 +46,7 @@ public sealed class CampaignMedia
     public string FileName { get; set; } = "";
     public string ContentType { get; set; } = "";
     public byte[] Content { get; set; } = [];
+    public string? StoragePath { get; set; }
 }
 public sealed class CampaignDb(DbContextOptions<CampaignDb> options) : DbContext(options)
 {
@@ -77,6 +78,7 @@ public sealed class CampaignDb(DbContextOptions<CampaignDb> options) : DbContext
         b.Entity<CampaignReview>().Property(x => x.Note).HasMaxLength(2000);
         b.Entity<CampaignMedia>().Property(x => x.Kind).HasMaxLength(20);
         b.Entity<CampaignMedia>().Property(x => x.FileName).HasMaxLength(200);
+        b.Entity<CampaignMedia>().Property(x => x.StoragePath).HasMaxLength(200);
         b.Entity<CampaignMedia>().Property(x => x.ContentType).HasMaxLength(60);
     }
 }

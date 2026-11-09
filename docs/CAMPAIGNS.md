@@ -17,7 +17,7 @@ Owner mời tài khoản có sẵn vào tổ chức với role Quản lý chiế
 
 ## Dữ liệu và API
 
-CampaignRequest: organizationId, title (3–200), description (30–10000), campaignType (mặc định COMBINED), cause, beneficiaryDescription (10–4000), goalAmount (decimal 18,2; >0), volunteerTarget (1–1000000), startDate, endDate, location, contactEmail, contactPhone. Update thêm version. ID, người tạo, trạng thái, timestamps, rowversion và lịch sử do server quản lý. Ngày kết thúc không trước ngày bắt đầu hoặc ngày hiện tại.
+CampaignRequest: organizationId, title (3–200), description (30–10000), campaignType (mặc định COMBINED), cause, beneficiaryDescription (1–4000), goalAmount (decimal 18,2; >0), volunteerTarget (1–1000000), startDate, endDate, location, contactEmail (tùy chọn), contactPhone (bắt buộc). Update thêm version. ID, người tạo, trạng thái, timestamps, rowversion và lịch sử do server quản lý. Ngày kết thúc không trước ngày bắt đầu hoặc ngày hiện tại.
 
 | Method | Endpoint | Quyền / kết quả |
 |---|---|---|
@@ -34,7 +34,7 @@ CampaignRequest: organizationId, title (3–200), description (30–10000), camp
 
 Review decision APPROVE → PUBLISHED, REQUEST_CHANGES → NEEDS_REVISION, REJECT → REJECTED. Yêu cầu sửa/từ chối bắt buộc ghi lý do. Đã gửi thì nội dung và tệp bị khóa; yêu cầu sửa cho phép chỉnh sửa và gửi lại. Sau công khai, CAMPAIGN_MANAGER được sửa tên và mô tả trực tiếp; liên hệ, mục tiêu, đối tượng thụ hưởng, danh mục, thời gian, địa điểm và loại chiến dịch bị khóa. Mỗi lần sửa lưu lịch sử CONTENT_UPDATED và kiểm tra rowversion. Từ chối là trạng thái kết thúc trong phiên bản này.
 
-Tệp tối đa 5 MB, 12 tệp/chiến dịch; kiểm tra signature PNG/JPEG/PDF; PDF chỉ dùng DOCUMENT. Tệp lưu SQL bytes trong Campaign DB; URL dùng ID, không có đường dẫn filesystem do client quyết định. Tài liệu tải ở chế độ attachment. Người quản lý xem tên tệp; trang công khai chỉ hiển thị ảnh.
+Tệp tối đa 5 MB, 12 tệp/chiến dịch; kiểm tra signature PNG/JPEG/PDF; PDF chỉ dùng DOCUMENT. Tệp tải mới lưu trong thư mục uploads/campaigns trên máy chạy local; SQL lưu tên đường dẫn. Tệp cũ trong SQL vẫn đọc được; URL dùng ID, không có đường dẫn filesystem do client quyết định. Tài liệu tải ở chế độ attachment. Người quản lý xem tên tệp; trang công khai chỉ hiển thị ảnh.
 
 401: chưa đăng nhập; 403: sai quyền/tổ chức chưa ACTIVE; 404: không tồn tại hoặc chưa công khai; 400: dữ liệu không hợp lệ; 409: trạng thái hoặc version xung đột; 503: chưa xác minh được quyền qua Organization Service.
 
@@ -45,3 +45,15 @@ Tệp tối đa 5 MB, 12 tệp/chiến dịch; kiểm tra signature PNG/JPEG/PDF
 `python scripts/test-campaigns.py` chạy kiểm thử HTTP tích hợp trên localhost:8080, đọc admin bootstrap từ .env. Nếu admin đã đổi mật khẩu cần cập nhật thông tin bootstrap dùng riêng cho lần kiểm thử. Script tạo dữ liệu có tên Campaign TEST và email riêng mỗi lần, không sửa dữ liệu người dùng. Dữ liệu mẫu được giữ để xem xét; kết quả ở artifacts/campaign-tests.json (gitignored). Bao gồm validate dữ liệu, đúng/sai role, sai tổ chức, khóa thành viên, optimistic concurrency, gửi duyệt, yêu cầu sửa/gửi lại, Owner duyệt/từ chối, ảnh/tài liệu, tính riêng tư và khả năng hiển thị công khai.
 
 Sau công khai, CAMPAIGN_MANAGER cùng tổ chức được thay COVER hoặc thêm/thay GALLERY. Upload multipart có replaceId tùy chọn; ảnh đại diện mới tự thay COVER cũ. DOCUMENT vẫn khóa sau duyệt; thao tác dùng rowversion và lưu lịch sử.
+
+## Phạm vi đang triển khai
+
+Giao diện tạo chiến dịch đang triển khai bước 1; bước 2 chỉ hiển thị dữ liệu minh họa, không tạo hoặc lưu chiến dịch. Chức năng khảo sát và cấp vai trò SURVEY_STAFF tạm ngưng; dữ liệu khảo sát hiện có được giữ nguyên.
+
+## Bản đồ lộ trình trong form tạo chiến dịch
+
+Bước 6 sắp xếp hoạt động theo ngày và giờ bắt đầu, tính tuyến ô tô giữa xã/phường liên tiếp bằng thư viện Routes của Maps JavaScript API. Kết quả là quãng đường ước tính giữa các đơn vị hành chính, không dùng địa chỉ cụ thể và chưa xác nhận vị trí thực tế. Cần ít nhất hai hoạt động có xã/phường.
+
+Thiết lập `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` trong `.env`, bật Maps JavaScript API và Routes API, cấu hình thanh toán theo Google Cloud và giới hạn key bằng HTTP referrer của ứng dụng cùng các API được sử dụng. Đây là key phía trình duyệt, không dùng key bí mật phía server. Sau khi đổi key cần chạy lại `scripts/start-dev.ps1` để build lại web. Khi chưa có key form vẫn hiển thị các điểm nhưng không vẽ bản đồ hoặc tính km.
+
+Bước 7 là màn hình xem lại; tạo/gửi chiến dịch và lưu tệp/lịch biểu của luồng mới chưa được kết nối.

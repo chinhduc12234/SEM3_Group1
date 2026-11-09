@@ -3,7 +3,7 @@ using Shared;
 
 namespace CampaignService.Services;
 
-public sealed class SurveyImageProcessor
+public sealed class SurveyImageProcessor : ISurveyImageProcessor
 {
     public async Task<byte[]> Process(IFormFile file, CancellationToken ct)
     {

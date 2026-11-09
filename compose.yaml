@@ -172,8 +172,10 @@ services:
       ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Campaign;User Id=giveaid_campaign;Password=${CAMPAIGN_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
       InternalApi__Key: ${INTERNAL_API_KEY:-}
       InternalApi__OrganizationUrl: http://organization:8080/
+      CampaignUploads__Directory: /app/uploads/campaigns
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+      - ${CAMPAIGN_UPLOAD_DIR:-./uploads/campaigns}:/app/uploads/campaigns
     depends_on:
       campaign-migrate: { condition: service_completed_successfully }
       organization: { condition: service_started }
@@ -216,6 +218,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
     restart: unless-stopped
 
   gateway:

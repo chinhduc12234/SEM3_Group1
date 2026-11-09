@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CampaignService.Controllers;
 
 [ApiController, Route("api/campaigns")]
-public sealed class CampaignsController(CampaignApplication service) : ControllerBase
+public sealed class CampaignsController(ICampaignApplication service) : ControllerBase
 {
     private Guid Actor => Guid.Parse(User.FindFirstValue("sub")!);
     private Guid? OptionalActor => User.Identity?.IsAuthenticated == true ? Actor : null;

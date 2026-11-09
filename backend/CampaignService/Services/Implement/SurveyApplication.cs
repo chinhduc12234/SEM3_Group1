@@ -6,7 +6,7 @@ using Shared;
 
 namespace CampaignService.Services;
 
-public sealed class SurveyApplication(SurveyRepository repository, OrganizationAccess access, SurveyImageProcessor images)
+public sealed class SurveyApplication(ISurveyRepository repository, IOrganizationAccess access, ISurveyImageProcessor images) : ISurveyApplication
 {
     private const int MaxSubmitAttempts = 3;
     private const string SubmissionNotificationPrefix = "Có báo cáo khảo sát mới cần xử lý:";

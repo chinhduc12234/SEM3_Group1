@@ -8,8 +8,8 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace CampaignService.Controllers;
 
-[ApiController, Authorize, Route("api/campaigns/surveys"), EnableRateLimiting("organization")]
-public sealed class SurveysController(SurveyApplication service) : ControllerBase
+[NonController, ApiController, Authorize, Route("api/campaigns/surveys"), EnableRateLimiting("organization")]
+public sealed class SurveysController(ISurveyApplication service) : ControllerBase
 {
     private Guid Actor => Guid.Parse(User.FindFirstValue("sub")!);
     [HttpGet("organizations/{org:guid}/dashboard")]

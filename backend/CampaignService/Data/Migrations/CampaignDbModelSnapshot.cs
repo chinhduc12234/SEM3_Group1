@@ -136,6 +136,10 @@ namespace CampaignService.Data.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<string>("StoragePath")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(200)

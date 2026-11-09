@@ -6,7 +6,7 @@ using Shared;
 
 namespace CampaignService.Services;
 
-public sealed class CampaignApplication(CampaignRepository repository, OrganizationAccess access)
+public sealed class CampaignApplication(ICampaignRepository repository, IOrganizationAccess access, IConfiguration configuration) : ICampaignApplication
 {
     private static readonly string[] Managers = ["CAMPAIGN_MANAGER"];
     private static readonly string[] Readers = ["CAMPAIGN_MANAGER", "OWNER"];
@@ -22,7 +22,7 @@ public sealed class CampaignApplication(CampaignRepository repository, Organizat
     }
     private static void Validate(CampaignRequest r)
     {
-        if (r.Title.Trim().Length < 3 || r.Description.Trim().Length < 30 || r.BeneficiaryDescription.Trim().Length < 10 || r.Location.Trim().Length < 3)
+        if (r.Title.Trim().Length < 3 || r.Description.Trim().Length < 30 || r.BeneficiaryDescription.Trim().Length < 1 || r.Location.Trim().Length < 3)
             throw new ApiException(400, "Vui lòng nhập đầy đủ nội dung chiến dịch.");
         if (r.OrganizationId == Guid.Empty || r.StartDate == default || r.EndDate == default || r.EndDate < r.StartDate)
             throw new ApiException(400, "Tổ chức hoặc khoảng thời gian chiến dịch không hợp lệ.");
@@ -34,7 +34,7 @@ public sealed class CampaignApplication(CampaignRepository repository, Organizat
         c.Title = r.Title.Trim(); c.Description = r.Description.Trim(); c.CampaignType = "COMBINED"; c.Cause = r.Cause;
         c.BeneficiaryDescription = r.BeneficiaryDescription.Trim(); c.GoalAmount = r.GoalAmount; c.VolunteerTarget = r.VolunteerTarget;
         c.StartDate = r.StartDate; c.EndDate = r.EndDate; c.Location = r.Location.Trim();
-        c.ContactEmail = r.ContactEmail.Trim(); c.ContactPhone = r.ContactPhone.Trim(); c.UpdatedAt = DateTimeOffset.UtcNow;
+        c.ContactEmail = (r.ContactEmail?.Trim() ?? ""); c.ContactPhone = r.ContactPhone.Trim(); c.UpdatedAt = DateTimeOffset.UtcNow;
     }
     private static void Audit(Campaign c, Guid actor, string action, string note = "") => c.Reviews.Add(new()
         { CampaignId = c.Id, ActorId = actor, Action = action, Note = note });
@@ -53,7 +53,7 @@ public sealed class CampaignApplication(CampaignRepository repository, Organizat
         {
             if (c.CampaignType != r.CampaignType || c.Cause != r.Cause || c.BeneficiaryDescription != r.BeneficiaryDescription.Trim()
                 || c.GoalAmount != r.GoalAmount || c.VolunteerTarget != r.VolunteerTarget || c.StartDate != r.StartDate || c.EndDate != r.EndDate
-                || c.Location != r.Location.Trim() || c.ContactEmail != r.ContactEmail.Trim() || c.ContactPhone != r.ContactPhone.Trim())
+                || c.Location != r.Location.Trim() || c.ContactEmail != (r.ContactEmail?.Trim() ?? "") || c.ContactPhone != r.ContactPhone.Trim())
                 throw new ApiException(400, "Sau khi duyệt chỉ được sửa tên và mô tả. Thông tin liên hệ, mục tiêu và phạm vi chiến dịch đã khóa.");
             c.Title = r.Title.Trim(); c.Description = r.Description.Trim(); c.UpdatedAt = DateTimeOffset.UtcNow;
             Audit(c, actor, "CONTENT_UPDATED"); await repository.Save(ct); return View(c);
@@ -113,17 +113,43 @@ public sealed class CampaignApplication(CampaignRepository repository, Organizat
             : bytes.AsSpan().StartsWith(new byte[] {255,216,255}) ? "image/jpeg"
             : bytes.AsSpan().StartsWith("%PDF-"u8) ? "application/pdf" : "";
         if (type == "" || (kind != "DOCUMENT" && type == "application/pdf")) throw new ApiException(400, "Chỉ nhận PNG/JPG và PDF cho tài liệu.");
+        var incomingName = Path.GetFileName(file.FileName);
+        if (c.Media.Any(m => m.Id != target?.Id && string.Equals(m.FileName, incomingName, StringComparison.OrdinalIgnoreCase)))
+            throw new ApiException(409, "Tên tệp đã tồn tại trong chiến dịch.");
         var media = target ?? new CampaignMedia { CampaignId = id, Kind = kind };
         media.FileName = Path.GetFileName(file.FileName)[..Math.Min(Path.GetFileName(file.FileName).Length, 200)];
-        media.ContentType = type; media.Content = bytes;
-        if (target is null) c.Media.Add(media);
-        c.UpdatedAt = DateTimeOffset.UtcNow; Audit(c, actor, target is null ? "UPLOAD" : "IMAGE_REPLACED", kind); await repository.Save(ct); return View(c);
+        var root = Path.GetFullPath(configuration["CampaignUploads:Directory"] ?? Path.Combine(AppContext.BaseDirectory, "uploads", "campaigns"));
+        Directory.CreateDirectory(root);
+        var newPath = $"{Guid.NewGuid():N}.bin";
+        var fullPath = Path.Combine(root, newPath);
+        var oldPath = media.StoragePath;
+        await File.WriteAllBytesAsync(fullPath, bytes, ct);
+        try
+        {
+            media.ContentType = type; media.Content = []; media.StoragePath = newPath;
+            if (target is null) c.Media.Add(media);
+            c.UpdatedAt = DateTimeOffset.UtcNow; Audit(c, actor, target is null ? "UPLOAD" : "IMAGE_REPLACED", kind); await repository.Save(ct);
+        }
+        catch { File.Delete(fullPath); throw; }
+        if (oldPath is not null && Path.GetFileName(oldPath) == oldPath)
+        {
+            try { File.Delete(Path.Combine(root, oldPath)); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+        return View(c);
     }
     public async Task<CampaignMedia> Download(Guid id, Guid mediaId, Guid? actor, CancellationToken ct)
     {
         var c = await Get(id, ct); var media = c.Media.SingleOrDefault(x => x.Id == mediaId) ?? throw new ApiException(404, "Không tìm thấy tệp.");
         if (c.Status != "PUBLISHED" || media.Kind == "DOCUMENT")
             await access.Require(c.OrganizationId, actor ?? throw new ApiException(401, "Vui lòng đăng nhập."), Readers, ct);
+        if (media.StoragePath is not null)
+        {
+            if (Path.GetFileName(media.StoragePath) != media.StoragePath) throw new ApiException(404, "Không tìm thấy tệp.");
+            var root = Path.GetFullPath(configuration["CampaignUploads:Directory"] ?? Path.Combine(AppContext.BaseDirectory, "uploads", "campaigns"));
+            var path = Path.Combine(root, media.StoragePath);
+            if (!File.Exists(path)) throw new ApiException(404, "Không tìm thấy tệp.");
+            media.Content = await File.ReadAllBytesAsync(path, ct);
+        }
         return media;
     }
 }
