@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/shared/api/api";
 import { documentKinds, emptyProfile, fields, Organization, Profile, statuses } from "@/features/organizations/types/organizations";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 export default function OrganizationForm({ id }: { id?: string }) {
   const router = useRouter();
@@ -44,10 +45,10 @@ export default function OrganizationForm({ id }: { id?: string }) {
       setOrganization(data); setMessage("Đã lưu giấy tờ.");
     } catch (ex) { setError((ex as Error).message); } finally { setBusy(false); }
   }
-  if (loading) return <p>Đang tải hồ sơ…</p>;
-  if (id && !organization) return <p className="notice error" role="alert">{error || "Không tìm thấy hồ sơ."}</p>;
-  if (!editable) return <div className="notice">Hồ sơ {statuses[organization!.status]}. <Link href={"/organizations/" + id}>Xem chi tiết</Link></div>;
-  return <><div className="page-title"><div><p className="eyebrow">Thông tin đầy đủ · Xét duyệt minh bạch</p><h1>{id ? "Cập nhật hồ sơ tổ chức" : "Đăng ký thành lập tổ chức"}</h1><p className="muted">Đăng ký tổ chức tham gia Give-AID. Hồ sơ được xét duyệt nội bộ, không thay thế thủ tục thành lập pháp nhân.</p></div></div>
+  if (loading) return <LocalizedTree><p>Đang tải hồ sơ…</p></LocalizedTree>;
+  if (id && !organization) return <LocalizedTree><p className="notice error" role="alert">{error || "Không tìm thấy hồ sơ."}</p></LocalizedTree>;
+  if (!editable) return <LocalizedTree><div className="notice">Hồ sơ {statuses[organization!.status]}. <Link href={"/organizations/" + id}>Xem chi tiết</Link></div></LocalizedTree>;
+  return <LocalizedTree><><div className="page-title"><div><p className="eyebrow">Thông tin đầy đủ · Xét duyệt minh bạch</p><h1>{id ? "Cập nhật hồ sơ tổ chức" : "Đăng ký thành lập tổ chức"}</h1><p className="muted">Đăng ký tổ chức tham gia Give-AID. Hồ sơ được xét duyệt nội bộ, không thay thế thủ tục thành lập pháp nhân.</p></div></div>
     {organization?.status === "CHANGES_REQUESTED" && <div className="notice warning">Admin yêu cầu bổ sung: {organization.history.find(h => h.action === "REQUEST_CHANGES")?.reason}</div>}
     <form onSubmit={submit}>
     {["Thông tin pháp lý", "Liên hệ và hoạt động", "Người đại diện"].map((group, index) => <section className="panel" key={group}><h2><span className="step">{index + 1}</span>{group}</h2><div className="form-grid">
@@ -64,5 +65,5 @@ export default function OrganizationForm({ id }: { id?: string }) {
     {error && <p className="notice error" role="alert">{error}</p>}{message && <p className="notice success" role="status">{message}</p>}
     <div className="actions"><button type="submit" value="save" disabled={busy}>{busy ? "Đang xử lý…" : id ? "Lưu thay đổi" : "Lưu và tiếp tục tải giấy tờ"}</button>
     {id && <button className="secondary" type="submit" value="send" disabled={busy || organization?.documents.length !== 3}>Lưu và gửi Admin xét duyệt →</button>}</div>
-    </form></>;
+    </form></></LocalizedTree>;
 }

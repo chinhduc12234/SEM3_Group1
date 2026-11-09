@@ -1,9 +1,10 @@
 "use client";
 import { Workspace, focusAreas, labelsForRoles } from "@/features/organizations/types/workspace";
 import WorkspaceImage from "@/features/organizations/components/WorkspaceImage";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 export default function WorkspaceSummary({ data }: { data: Workspace }) {
-  return <>
+  return <LocalizedTree><>
     {data.profile.hasCover && <WorkspaceImage id={data.id} kind="cover" version={data.profile.version} />}
     <section className="panel ow-identity">
       {data.profile.hasLogo && <WorkspaceImage id={data.id} kind="logo" version={data.profile.version} />}
@@ -25,5 +26,5 @@ export default function WorkspaceSummary({ data }: { data: Workspace }) {
       <div><dt>Địa chỉ liên hệ</dt><dd>{data.profile.address}</dd></div><div><dt>Website</dt><dd>{data.profile.website || "Chưa cập nhật"}</dd></div>
     </dl></section>
     <section className="panel"><h2>Hoạt động và nguồn lực</h2><p className="muted">Thống kê chiến dịch đã thực hiện, sự kiện, số tiền quyên góp, nguồn tài trợ và chiến dịch tiêu biểu sẽ được kết nối khi các phân hệ tương ứng hoàn thành.</p><span className="badge">Chưa có dữ liệu thống kê</span></section>
-  </>;
+  </></LocalizedTree>;
 }

@@ -7,6 +7,7 @@ import SurveyImage from "@/features/reports/components/SurveyImage";
 import {api} from "@/shared/api/api";
 import {PageResult} from "@/features/organizations/types/workspace";
 import {SurveyReport,SurveyDashboard,SurveyNotification,surveyStatuses,surveyCategories,surveySeverities} from "@/features/reports/types/surveys";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import "./surveys.css";
 
 const root="/api/campaigns/surveys";
@@ -39,8 +40,8 @@ export default function SurveyPage(){
    setMessage('Đã lưu báo cáo và ảnh minh chứng. Kiểm tra thông tin rồi gửi Quản lý chiến dịch phụ trách.');
   });
  }
- if(!staff&&!manager)return <p className="notice">Bạn cần role Nhân viên khảo sát hoặc Quản lý chiến dịch để sử dụng chức năng này.</p>;
- return <div className="sv-page"><p className="eyebrow">KHẢO SÁT THỰC ĐỊA · THÔNG TIN NỘI BỘ</p><div className="sv-heading"><div><h1>{mode==='mine'?'Khảo sát & báo cáo của tôi':'Duyệt báo cáo khảo sát'}</h1><p className="muted">Ghi nhận hoàn cảnh thực tế, bổ sung minh chứng và theo dõi kết quả xử lý.</p></div><div className="actions">{staff&&<button disabled={busy} onClick={()=>{setSelected(null);setCreating(true);setMode('mine');setError('');setMessage('');}}>Tạo báo cáo khảo sát</button>}<button className="secondary" disabled={busy} onClick={()=>void act(load)}>Làm mới</button></div></div>
+ if(!staff&&!manager)return <LocalizedTree><p className="notice">Bạn cần role Nhân viên khảo sát hoặc Quản lý chiến dịch để sử dụng chức năng này.</p></LocalizedTree>;
+ return <LocalizedTree><div className="sv-page"><p className="eyebrow">KHẢO SÁT THỰC ĐỊA · THÔNG TIN NỘI BỘ</p><div className="sv-heading"><div><h1>{mode==='mine'?'Khảo sát & báo cáo của tôi':'Duyệt báo cáo khảo sát'}</h1><p className="muted">Ghi nhận hoàn cảnh thực tế, bổ sung minh chứng và theo dõi kết quả xử lý.</p></div><div className="actions">{staff&&<button disabled={busy} onClick={()=>{setSelected(null);setCreating(true);setMode('mine');setError('');setMessage('');}}>Tạo báo cáo khảo sát</button>}<button className="secondary" disabled={busy} onClick={()=>void act(load)}>Làm mới</button></div></div>
  {staff&&manager&&<div className="actions"><button className={mode==='mine'?'':'secondary'} onClick={()=>{setMode('mine');setSelected(null);setCreating(false);setPage(1);}}>Báo cáo của tôi</button><button className={mode==='review'?'':'secondary'} onClick={()=>{setMode('review');setSelected(null);setCreating(false);setPage(1);}}>Báo cáo được gửi cho tôi</button></div>}
  {error&&<p role="alert" className="notice error">{error}</p>}{message&&<p role="status" className="notice success">{message}</p>}
  <section className="sv-metrics" aria-label="Thống kê báo cáo">{[['Đã gửi',stats?.submitted],['Đang chờ duyệt',stats?.pending],['Cần bổ sung',stats?.needsRevision],['Đã duyệt',stats?.approved],['Đã từ chối',stats?.rejected]].map(([label,count])=><article className="panel" key={label}><span>{label}</span><strong>{count??'—'}</strong></article>)}</section>
@@ -55,5 +56,5 @@ export default function SurveyPage(){
  <h3>Lịch sử xử lý</h3><ol className="sv-history">{selected.history.map((event,i)=><li key={i}><strong>{actions[event.action]||event.action}</strong><small>{new Date(event.createdAt).toLocaleString('vi-VN')}</small>{event.note&&<p>{event.note}</p>}</li>)}</ol></>}
  </section>}
  <section className="panel"><h2>Thông báo khảo sát {stats?.unreadNotifications?`(${stats.unreadNotifications} chưa đọc)`:''}</h2><p className="muted">Phản hồi được cập nhật tự động mỗi 30 giây. Bạn cũng có thể nhấn Làm mới.</p>{notifications?.items.length===0&&<p>Chưa có thông báo.</p>}{notifications?.items.map(n=><div className={`sv-notification ${n.readAt?'':'sv-unread'}`} key={n.id}><div><span className={`sv-status sv-status-${n.reportStatus.toLowerCase()}`}>Trạng thái: {surveyStatuses[n.reportStatus]||n.reportStatus}</span><p>{notificationMessage(n)}</p>{isSubmissionNotification(n)&&n.reportStatus!=='SUBMITTED'&&n.reviewNote&&<p className="sv-review-note">Phản hồi: {n.reviewNote}</p>}<small>{new Date(n.createdAt).toLocaleString('vi-VN')} · {n.readAt?'Đã đọc':'Chưa đọc'}{n.reviewedAt&&n.reportStatus!=='SUBMITTED'&&` · Đã xử lý ${new Date(n.reviewedAt).toLocaleString('vi-VN')}`}</small></div><button className="secondary" disabled={busy} onClick={()=>void act(async()=>{await open(n.reportId);await api(`${root}/notifications/${n.id}/read`,{method:'POST'});})}>Xem báo cáo</button></div>)}{notifications&&notifications.totalCount>20&&<div className="actions"><button disabled={notificationPage===1} onClick={()=>setNotificationPage(p=>p-1)}>Trước</button><span>Trang {notificationPage}</span><button disabled={notificationPage*20>=notifications.totalCount} onClick={()=>setNotificationPage(p=>p+1)}>Sau</button></div>}</section>
- </div>;
+ </div></LocalizedTree>;
 }

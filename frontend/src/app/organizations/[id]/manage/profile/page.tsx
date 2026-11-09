@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
 import { useWorkspace } from "@/features/organizations/components/OrganizationWorkspaceShell";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import WorkspaceImage from "@/features/organizations/components/WorkspaceImage";
 import { api } from "@/shared/api/api";
 import { focusAreas, WorkspaceProfile } from "@/features/organizations/types/workspace";
@@ -20,7 +21,7 @@ export default function Page() {
     try {const form=new FormData();form.append("file",file);form.append("version",data.profile.version);await api(`/api/organizations/${data.id}/workspace/media/${kind}`,{method:"POST",body:form});await reload();setMessage("Đã cập nhật ảnh.");}
     catch(ex){setError((ex as Error).message);}finally{setBusy(false);}
   }
-  return <><p className="eyebrow">NHẬN DIỆN & HOẠT ĐỘNG</p><h1>Thông tin tổ chức</h1><p className="muted">Thông tin giới thiệu và liên hệ. Tên pháp lý, số đăng ký và thông tin đại diện chỉ thay đổi qua xét duyệt.</p>
+  return <LocalizedTree><><p className="eyebrow">NHẬN DIỆN & HOẠT ĐỘNG</p><h1>Thông tin tổ chức</h1><p className="muted">Thông tin giới thiệu và liên hệ. Tên pháp lý, số đăng ký và thông tin đại diện chỉ thay đổi qua xét duyệt.</p>
     {!data.canEdit&&<p className="notice">Chỉ chủ tổ chức và quản lý tổ chức được cập nhật phần này.</p>}
     <form onSubmit={save}><section className="panel"><h2>Giới thiệu và liên hệ</h2><fieldset disabled={!data.canEdit||busy} style={{border:0,padding:0,margin:0}}><div className="form-grid">
       <label>Tên hiển thị<input required minLength={3} maxLength={200} value={profile.displayName} onChange={e=>setProfile({...profile,displayName:e.target.value})}/><small>Tên hiển thị không thay thế tên pháp lý.</small></label>
@@ -35,5 +36,5 @@ export default function Page() {
     <section className="panel"><h2>Logo và ảnh bìa</h2><p className="muted">PNG/JPG. Logo tối đa 2 MB, ảnh bìa tối đa 5 MB. Lưu thông tin đang sửa trước khi tải ảnh.</p>
       {(["logo","cover"] as const).map(kind=><div className="upload-row" key={kind}><div><strong>{kind==="logo"?"Logo tổ chức":"Ảnh bìa"}</strong>{(kind==="logo"?data.profile.hasLogo:data.profile.hasCover)&&<WorkspaceImage id={data.id} kind={kind} version={data.profile.version}/>}</div>{data.canEdit&&<input aria-label={kind==="logo"?"Tải logo":"Tải ảnh bìa"} type="file" accept=".png,.jpg,.jpeg" disabled={busy||dirty} onChange={e=>{const file=e.target.files?.[0];if(file)void upload(kind,file);e.target.value="";}}/>}</div>)}
     </section>{error&&<p className="notice error" role="alert">{error}</p>}{message&&<p className="notice success" role="status">{message}</p>}
-  </>;
+  </></LocalizedTree>;
 }
