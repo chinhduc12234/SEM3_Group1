@@ -6,6 +6,7 @@ import NotificationProvider from "@/features/notifications/components/Notificati
 import "./notifications.css";
 import "./giveaid.css";
 import "./slideshow.css";
+import "./info-pages.css";
 import { LocaleProvider } from "@/shared/i18n/LocaleProvider";
 
 // Keep project identity at the app shell; feature pages can replace this starter screen.

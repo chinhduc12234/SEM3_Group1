@@ -8,8 +8,17 @@ using OrganizationService.Services;
 namespace OrganizationService.Controllers;
 
 [ApiController, Authorize(Roles = "ADMIN"), Route("api/organizations/admin"), EnableRateLimiting("organization")]
-public sealed class OrganizationOversightController(OrganizationOversight organizationOversight) : ControllerBase
+public sealed class OrganizationOversightController(OrganizationOversight organizationOversight, OwnerProfileDirectory ownerProfiles) : ControllerBase
 {
+    [HttpGet("owners")]
+    public async Task<IActionResult> Owners([FromQuery, Range(1, 100000)] int page = 1,
+        [FromQuery, MaxLength(100)] string search = "", CancellationToken ct = default) =>
+        Ok(await ownerProfiles.List(page, search, ct));
+
+    [HttpGet("owners/{ownerId:guid}")]
+    public async Task<IActionResult> Owner(Guid ownerId, CancellationToken ct) =>
+        Ok(await ownerProfiles.Detail(ownerId, ct));
+
     [HttpGet("overview")]
     public async Task<IActionResult> Overview() =>
         Ok(await organizationOversight.Overview());

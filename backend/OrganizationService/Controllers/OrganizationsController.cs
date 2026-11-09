@@ -12,6 +12,10 @@ public sealed class OrganizationsController(OrganizationApplications organizatio
 {
     private OrganizationActor CurrentActor => OrganizationActor.From(User);
 
+    [AllowAnonymous, HttpGet("public")]
+    public async Task<IActionResult> PublicDirectory() =>
+        Ok(await organizationApplications.PublicDirectory());
+
     [HttpGet("mine")]
     public async Task<IActionResult> Mine() =>
         Ok(await organizationApplications.Mine(CurrentActor));

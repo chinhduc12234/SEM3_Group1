@@ -16,6 +16,26 @@ public sealed class OrganizationApplications(OrganizationDb db, IDataProtectionP
     public async Task<object> Mine(OrganizationActor actor) => await db.Organizations.AsNoTracking().Where(x => x.ApplicantUserId == actor.UserId)
         .OrderByDescending(x => x.CreatedAt).Select(x => new { x.Id, x.Profile.LegalName, x.Status, x.CreatedAt, x.UpdatedAt }).ToListAsync();
 
+    public async Task<object> PublicDirectory()
+    {
+        var query = db.Organizations.AsNoTracking()
+            .Where(x => x.Status == "ACTIVE" || x.Reviews.Any(r => r.Action == "APPROVE"));
+        var items = await query
+            .OrderByDescending(x => x.Status == "ACTIVE")
+            .ThenByDescending(x => x.CreatedAt)
+            .Take(6)
+            .Select(x => new
+            {
+                x.Id,
+                name = x.Profile.LegalName,
+                type = x.Profile.OrganizationType,
+                province = x.Profile.Province,
+                mission = x.Profile.Mission,
+                status = x.Status == "ACTIVE" ? "ACTIVE" : "PAST"
+            }).ToListAsync();
+        return new { totalCount = await query.CountAsync(), items };
+    }
+
     public async Task<object> List(int page,
         string search, string status)
     {
