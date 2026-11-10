@@ -52,8 +52,8 @@ Giao diện tạo chiến dịch đang triển khai bước 1; bước 2 chỉ h
 
 ## Bản đồ lộ trình trong form tạo chiến dịch
 
-Bước 6 sắp xếp hoạt động theo ngày và giờ bắt đầu, tính tuyến ô tô giữa xã/phường liên tiếp bằng thư viện Routes của Maps JavaScript API. Kết quả là quãng đường ước tính giữa các đơn vị hành chính, không dùng địa chỉ cụ thể và chưa xác nhận vị trí thực tế. Cần ít nhất hai hoạt động có xã/phường.
+Bản thử nghiệm dùng OpenStreetMap, Photon (tìm vị trí xã/phường) và FOSSGIS/OSRM (tuyến ô tô). Không gửi địa chỉ cụ thể hoặc nội dung hoạt động; chỉ gửi tên xã/phường, tỉnh và tọa độ tìm được. Điểm là vị trí ước lượng; dữ liệu hành chính có thể chưa cập nhật nên chỉ dùng kết quả khớp tên và tỉnh. Kết quả tạm cache trong phiên trình duyệt, yêu cầu chỉ phát khi người dùng bấm vẽ; không dùng cho autocomplete.
 
-Thiết lập `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` trong `.env`, bật Maps JavaScript API và Routes API, cấu hình thanh toán theo Google Cloud và giới hạn key bằng HTTP referrer của ứng dụng cùng các API được sử dụng. Đây là key phía trình duyệt, không dùng key bí mật phía server. Sau khi đổi key cần chạy lại `scripts/start-dev.ps1` để build lại web. Khi chưa có key form vẫn hiển thị các điểm nhưng không vẽ bản đồ hoặc tính km.
+Đây là các dịch vụ công cộng có giới hạn tải, không có cam kết hoạt động liên tục: không dùng ở quy mô lớn; khi triển khai thật cần lựa chọn nhà cung cấp phù hợp hoặc tự vận hành, cấu hình và giới hạn tập trung. Bản đồ hiển thị ghi nguồn OpenStreetMap.
 
-Bước 7 là màn hình xem lại; tạo/gửi chiến dịch và lưu tệp/lịch biểu của luồng mới chưa được kết nối.
+Bước 8 là màn hình xem lại; tạo/gửi chiến dịch và lưu tệp/lịch biểu của luồng mới chưa được kết nối.

@@ -71,3 +71,35 @@
 .ow-schedule-activities{border-top:1px solid #dce7df;margin-top:20px;padding-top:4px}.ow-schedule-activity{border:1px solid #dce7df;border-radius:8px;padding:16px;margin:12px 0;background:#fff}.ow-schedule-activity label:last-child{margin-bottom:0}
 
 .ow-route-map{height:360px;margin:20px 0;border-radius:10px;overflow:hidden;background:#edf3ed}.ow-route-stops{padding-left:24px}.ow-route-stops li{padding:9px 0}.ow-route-stops small,.ow-route-stops span{display:block;margin-top:4px}.ow-review-block{border:1px solid #dce7df;border-radius:10px;padding:16px 18px;margin:14px 0;overflow-wrap:anywhere}.ow-review-block p{white-space:pre-wrap}.ow-campaign-steps{overflow-x:auto;padding-bottom:8px}.ow-campaign-steps li{min-width:110px}
+.ow-route-day-tooltip{background:#fff;border:1px solid #205c43;border-radius:6px;color:#174a36;font-size:12px;font-weight:700;box-shadow:0 2px 8px #163b2b40;padding:4px 7px}.ow-route-day-tooltip:before{border-top-color:#205c43}
+
+/* Keep the seven creation steps readable without squeezing their labels. */
+.ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{width:min(1320px,100%)}
+.ow-campaign-steps{gap:0;align-items:flex-start;overflow-x:auto;overscroll-behavior-x:contain}
+.ow-campaign-steps li,.ow-campaign-steps li:last-child{flex:1 0 165px;min-width:165px;gap:9px;align-items:flex-start}
+.ow-campaign-steps li>div{flex:0 0 auto;width:100px;min-width:0}
+.ow-campaign-steps li>div strong{white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.35}
+.ow-campaign-steps li>div small{white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.35}
+.ow-campaign-steps li:not(:last-child):after{align-self:flex-start;margin:18px 8px 0;min-width:12px}
+.ow-campaign-steps li:last-child{flex:0 0 145px;min-width:145px}
+@media(max-width:600px){.ow-campaign-steps li,.ow-campaign-steps li:last-child{flex:0 0 135px;min-width:135px}.ow-campaign-steps li>div{width:85px}.ow-campaign-steps li:not(:last-child):after{margin-top:14px}.ow-campaign-steps li>div strong{font-size:12px}}
+
+/* Native-sized choices in the campaign form; keep a compact keyboard focus cue. */
+.ga-site .ow-campaign-dialog .ow-funding-options input[type="checkbox"],
+.ga-site .ow-campaign-dialog .ow-volunteer-mode input[type="radio"]{appearance:auto;-webkit-appearance:auto;box-sizing:border-box;display:inline-block;width:16px;height:16px;min-width:16px;min-height:16px;padding:0;margin:0;border:0;background:transparent;box-shadow:none;accent-color:#205c43;outline:none;flex:0 0 16px}
+.ga-site .ow-campaign-dialog .ow-funding-options input[type="checkbox"]:focus-visible,
+.ga-site .ow-campaign-dialog .ow-volunteer-mode input[type="radio"]:focus-visible{outline:2px solid #648665;outline-offset:2px}
+
+.ow-activity-schedule{border:1px solid #dce7df;border-radius:10px;margin:12px 0;background:#fbfdfb}.ow-activity-schedule summary{cursor:pointer;padding:16px 18px;color:#205c43;display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none}.ow-activity-schedule summary::-webkit-details-marker{display:none}.ow-activity-schedule summary:after{content:"⌄";font-size:20px}.ow-activity-schedule[open] summary:after{transform:rotate(180deg)}.ow-activity-schedule summary small{display:block;margin-top:5px;color:#64746b;font-weight:400}.ow-activity-schedule>.ow-schedule-activities{padding:4px 18px 18px;margin:0}
+
+/* Constrain the form independently from the horizontally scrolling timeline. */
+.ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{max-width:100%;overflow-x:hidden}
+.ow-campaign-dialog form,.ow-campaign-dialog fieldset,.ow-campaign-dialog .ow-campaign-steps,.ow-campaign-dialog .form-grid,.ow-campaign-dialog .form-grid label{min-width:0;max-width:100%}
+.ow-campaign-dialog .ow-campaign-steps{width:100%}
+.ow-campaign-dialog .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ow-campaign-dialog input,.ow-campaign-dialog textarea,.ow-campaign-dialog select{min-width:0;max-width:100%}
+@media(max-width:600px){.ow-campaign-dialog .form-grid{grid-template-columns:minmax(0,1fr)}}
+
+.ow-activity-schedule summary{justify-content:flex-start}.ow-activity-schedule summary:after{margin-left:auto}.ow-day-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:6px;padding:8px 12px;background:#205c43;color:#fff;font-weight:700;white-space:nowrap}.ow-day-heading{min-width:0}.ow-day-heading strong{display:block;overflow-wrap:anywhere}.ow-day-info{margin:0 18px;padding:14px 0;border-top:1px solid #dce7df}.ow-day-info p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.ow-review-images{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0}.ow-review-images figure{width:150px;margin:0}.ow-review-images img{display:block;width:150px;height:120px;object-fit:contain;border:1px solid #dce7df;border-radius:8px;background:#f6faf6}.ow-review-images figcaption{font-size:12px;overflow-wrap:anywhere;margin-top:5px}.ow-review-block ol{padding-left:22px}.ow-review-block li{padding:5px 0}
