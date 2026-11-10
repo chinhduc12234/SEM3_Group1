@@ -6,7 +6,7 @@ public sealed class CampaignRequest
 {
     public Guid OrganizationId { get; set; }
     [Required, StringLength(200, MinimumLength = 3)] public string Title { get; set; } = "";
-    [Required, StringLength(10000, MinimumLength = 30)] public string Description { get; set; } = "";
+    [Required, StringLength(10000)] public string Description { get; set; } = "";
     [Required, RegularExpression("^COMBINED$")] public string CampaignType { get; set; } = "COMBINED";
     [Required, RegularExpression("^(CHILDREN|EDUCATION|DISABLED|WOMEN|YOUTH|ELDERLY|HEALTH|DISASTER_RELIEF|ENVIRONMENT|COMMUNITY)$")]
     public string Cause { get; set; } = "";

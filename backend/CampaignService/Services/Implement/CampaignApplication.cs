@@ -22,7 +22,7 @@ public sealed class CampaignApplication(ICampaignRepository repository, IOrganiz
     }
     private static void Validate(CampaignRequest r)
     {
-        if (r.Title.Trim().Length < 3 || r.Description.Trim().Length < 30 || r.BeneficiaryDescription.Trim().Length < 1 || r.Location.Trim().Length < 3)
+        if (r.Title.Trim().Length < 3 || r.Description.Trim().Length < 1 || r.BeneficiaryDescription.Trim().Length < 1 || r.Location.Trim().Length < 3)
             throw new ApiException(400, "Vui lòng nhập đầy đủ nội dung chiến dịch.");
         if (r.OrganizationId == Guid.Empty || r.StartDate == default || r.EndDate == default || r.EndDate < r.StartDate)
             throw new ApiException(400, "Tổ chức hoặc khoảng thời gian chiến dịch không hợp lệ.");
