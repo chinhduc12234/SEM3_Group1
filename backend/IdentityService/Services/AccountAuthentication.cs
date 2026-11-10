@@ -81,6 +81,89 @@ public sealed class AccountAuthentication(UserManager<Account> users, IdentityDb
         return account is null || !account.IsActive ? null : await UserInfo(account);
     }
 
+    public async Task<AccountInfo> UpdateProfile(string userId, ProfileRequest request)
+    {
+        var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");
+        var email = request.Email.Trim();
+        var name = request.FullName.Trim();
+        if (name.Length < 2) throw new ApiException(400, "Họ tên cần ít nhất 2 ký tự.");
+        var existing = await users.FindByEmailAsync(email);
+        if (existing is not null && existing.Id != account.Id) throw new ApiException(409, "Email này đã được tài khoản khác sử dụng.");
+        account.FullName = name;
+        account.Email = email;
+        account.UserName = email;
+        var result = await users.UpdateAsync(account);
+        if (!result.Succeeded) throw new ApiException(400, "Không thể cập nhật hồ sơ tài khoản.");
+        return await UserInfo(account);
+    }
+
+    public async Task<UserProfileInfo> GetUserProfile(string userId)
+    {
+        var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");
+        return ProfileInfo(account, await db.AccountAvatars.AnyAsync(x => x.UserId == account.Id));
+    }
+
+    public async Task<UserProfileInfo> UpdateUserProfile(string userId, UserProfileRequest request)
+    {
+        var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");
+        var email = request.Email.Trim();
+        var name = request.FullName.Trim();
+        if (name.Length < 2) throw new ApiException(400, "Họ tên cần ít nhất 2 ký tự.");
+        if (request.DateOfBirth is { } birth && (birth > DateOnly.FromDateTime(DateTime.UtcNow) || birth < DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-120)))
+            throw new ApiException(400, "Ngày sinh không hợp lệ.");
+        var existing = await users.FindByEmailAsync(email);
+        if (existing is not null && existing.Id != account.Id) throw new ApiException(409, "Email này đã được tài khoản khác sử dụng.");
+        account.FullName = name;
+        account.Email = email;
+        account.UserName = email;
+        account.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+        account.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        account.DateOfBirth = request.DateOfBirth;
+        var result = await users.UpdateAsync(account);
+        if (!result.Succeeded) throw new ApiException(400, "Không thể cập nhật hồ sơ tài khoản.");
+        return ProfileInfo(account, await db.AccountAvatars.AnyAsync(x => x.UserId == account.Id));
+    }
+
+    public async Task UploadAvatar(string userId, Stream source)
+    {
+        var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");
+        await using var buffer = new MemoryStream();
+        await source.CopyToAsync(buffer);
+        var bytes = buffer.ToArray();
+        if (bytes.Length is 0 or > 5 * 1024 * 1024) throw new ApiException(400, "Ảnh đại diện phải nhỏ hơn 5 MB.");
+        var type = AvatarType(bytes);
+        if (type is null) throw new ApiException(400, "Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP hợp lệ.");
+        var avatar = await db.AccountAvatars.SingleOrDefaultAsync(x => x.UserId == account.Id);
+        if (avatar is null) db.AccountAvatars.Add(new AccountAvatar { UserId = account.Id, Content = bytes, ContentType = type });
+        else { avatar.Content = bytes; avatar.ContentType = type; }
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<AvatarContent?> GetAvatar(string userId)
+    {
+        if (!Guid.TryParse(userId, out var id)) return null;
+        var avatar = await db.AccountAvatars.AsNoTracking().SingleOrDefaultAsync(x => x.UserId == id);
+        return avatar is null ? null : new AvatarContent(avatar.Content, avatar.ContentType);
+    }
+
+    public async Task RemoveAvatar(string userId)
+    {
+        var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");
+        var avatar = await db.AccountAvatars.SingleOrDefaultAsync(x => x.UserId == account.Id);
+        if (avatar is not null) { db.AccountAvatars.Remove(avatar); await db.SaveChangesAsync(); }
+    }
+
+    private static UserProfileInfo ProfileInfo(Account account, bool hasAvatar) =>
+        new(account.Id, account.Email, account.FullName, account.PhoneNumber, account.Address, account.DateOfBirth, hasAvatar);
+
+    private static string? AvatarType(byte[] bytes)
+    {
+        if (bytes.Length >= 3 && bytes[0] == 0xff && bytes[1] == 0xd8 && bytes[2] == 0xff) return "image/jpeg";
+        if (bytes.Length >= 8 && bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) return "image/png";
+        if (bytes.Length >= 12 && bytes.AsSpan(0, 4).SequenceEqual("RIFF"u8) && bytes.AsSpan(8, 4).SequenceEqual("WEBP"u8)) return "image/webp";
+        return null;
+    }
+
     public async Task ChangePassword(string userId, PasswordRequest request)
     {
         var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");

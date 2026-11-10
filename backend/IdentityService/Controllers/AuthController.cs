@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using IdentityService.Contracts;
 using IdentityService.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +43,45 @@ public sealed class AuthController(AccountAuthentication authentication, IWebHos
     {
         var account = await authentication.Me(User.FindFirstValue("sub")!);
         return account is null ? Unauthorized() : Ok(account);
+    }
+
+    [Authorize, HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile(ProfileRequest request)
+    {
+        var account = await authentication.UpdateProfile(User.FindFirstValue("sub")!, request);
+        return Ok(account);
+    }
+
+    [Authorize, HttpGet("profile/details")]
+    public async Task<IActionResult> UserProfile() => Ok(await authentication.GetUserProfile(User.FindFirstValue("sub")!));
+
+    [Authorize, HttpPut("profile/details")]
+    public async Task<IActionResult> UpdateUserProfile(UserProfileRequest request) =>
+        Ok(await authentication.UpdateUserProfile(User.FindFirstValue("sub")!, request));
+
+    [Authorize, HttpGet("profile/avatar")]
+    public async Task<IActionResult> Avatar()
+    {
+        var avatar = await authentication.GetAvatar(User.FindFirstValue("sub")!);
+        if (avatar is null) return NotFound();
+        Response.Headers.CacheControl = "private, no-store";
+        return File(avatar.Content, avatar.ContentType);
+    }
+
+    [Authorize, HttpPut("profile/avatar"), RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<IActionResult> UploadAvatar([FromForm, Required] IFormFile avatar)
+    {
+        if (avatar.Length > 5 * 1024 * 1024) return BadRequest(new { title = "Ảnh đại diện phải nhỏ hơn 5 MB." });
+        await using var stream = avatar.OpenReadStream();
+        await authentication.UploadAvatar(User.FindFirstValue("sub")!, stream);
+        return NoContent();
+    }
+
+    [Authorize, HttpDelete("profile/avatar")]
+    public async Task<IActionResult> RemoveAvatar()
+    {
+        await authentication.RemoveAvatar(User.FindFirstValue("sub")!);
+        return NoContent();
     }
 
     [Authorize, HttpPost("password")]

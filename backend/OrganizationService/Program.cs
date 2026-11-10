@@ -25,6 +25,7 @@ builder.Services.AddScoped<OrganizationMembers>();
 builder.Services.AddScoped<OrganizationInvitations>();
 builder.Services.AddScoped<OrganizationLegalChanges>();
 builder.Services.AddScoped<OrganizationOversight>();
+builder.Services.AddScoped<OwnerProfileDirectory>();
 builder.Services.AddScoped<EmailNotificationService>();
 builder.Services.AddScoped<WorkspaceAccess>();
 builder.Services.AddScoped<IdentityDirectory>();

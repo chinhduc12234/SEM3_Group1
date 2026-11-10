@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Account, acceptSession, api, forgetSession, refreshSession } from "@/shared/api/api";
 import { disableBrowserPush } from "@/features/notifications/push";
-const AuthContext = createContext<{ user: Account | null; loading: boolean; login(email: string, password: string): Promise<Account>; logout(): Promise<void> }>(null!);
+const AuthContext = createContext<{ user: Account | null; loading: boolean; login(email: string, password: string): Promise<Account>; logout(): Promise<void>; updateUser(user: Account): void }>(null!);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Account | null>(null);
@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else await execute();
     forgetSession(); setUser(null);
   }
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, logout, updateUser: setUser }}>{children}</AuthContext.Provider>;
 }
 export const useAuth = () => useContext(AuthContext);
 export function Protected({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
@@ -40,7 +40,7 @@ export function Navigation() {
   const { user, loading, logout } = useAuth(); const router = useRouter();
   const [error, setError] = useState("");
   return <><header className="topbar"><Link className="brand" href="/">Give<span>AID</span><small>Kết nối những điều tốt đẹp</small></Link>
-    <nav>{user ? <><Link href="/organizations/mine">Hồ sơ tổ chức</Link>{user.roles.includes("ADMIN") && <Link href="/admin/organizations">Quản trị tổ chức</Link>}
+    <nav>{user ? <>{user.roles.includes("ADMIN") && <Link href="/admin/organizations">Quản trị tổ chức</Link>}
     <Link href="/account">{user.fullName}</Link><button className="quiet" onClick={async () => { try { await logout(); router.push("/"); } catch { setError("Chưa đăng xuất được. Vui lòng thử lại."); } }}>Đăng xuất</button></>
     : !loading && <><Link href="/login">Đăng nhập</Link><Link className="button small" href="/register">Tạo tài khoản</Link></>}</nav></header>
     {error && <div className="notice error" role="alert">{error}<button className="quiet" onClick={() => setError("")}>Đóng</button></div>}</>;
