@@ -26,7 +26,7 @@ async function geocode(ward:string,province:string,signal:AbortSignal):Promise<P
  const point={lon,lat,label:match.properties.name||ward};geocodeCache.set(cacheKey,point);return point;
 }
 
-export default function CampaignRouteMap({stops,province}:{stops:RouteStop[];province:string}) {
+export default function CampaignRouteMap({stops,province,autoShow=true}:{stops:RouteStop[];province:string;autoShow?:boolean}) {
  const mapRef=useRef<HTMLDivElement>(null),mapInstance=useRef<Leaflet.Map|null>(null),abortRef=useRef<AbortController|null>(null);
  const [status,setStatus]=useState(''),[busy,setBusy]=useState(false);
  const stopKey=JSON.stringify({stops,province});
@@ -56,10 +56,11 @@ export default function CampaignRouteMap({stops,province}:{stops:RouteStop[];pro
     grouped.forEach(({point,stops:items})=>{const marker=L.circleMarker([point.lat,point.lon],{radius:8,color:'#205c43',weight:3,fillColor:'#fff',fillOpacity:1}).addTo(map);const content=document.createElement('div');items.forEach(stop=>{const line=document.createElement('div');line.textContent=`Ngày ${stop.day} · Hoạt động ${stop.activity}: ${stop.ward} (${stop.start})`;content.appendChild(line);});marker.bindPopup(content);marker.bindTooltip(items.map(stop=>`Ngày ${stop.day} · HĐ ${stop.activity}`).join(', '),{direction:'top'});});
     map.fitBounds(L.latLngBounds(points.map(({point})=>[point.lat,point.lon] as Leaflet.LatLngTuple)),{padding:[35,35],maxZoom:14});
    }
-   setStatus(missing.length?`Không tìm được vị trí: ${missing.map(stop=>`ngày ${stop.day}, hoạt động ${stop.activity} (${stop.ward})`).join('; ')}. Vui lòng thử lại hoặc kiểm tra dữ liệu địa điểm.`:'Đã đánh dấu các địa điểm. Nhấn vào điểm để xem hoạt động.');
+   setStatus(missing.length?`Không tìm được vị trí: ${missing.map(stop=>`ngày ${stop.day}, hoạt động ${stop.activity} (${stop.ward})`).join('; ')}. Vui lòng kiểm tra tên địa điểm.`:'Đã hiển thị các địa điểm hoạt động trên bản đồ.');
   }catch{if(!controller.signal.aborted)setStatus('Không thể hiển thị bản đồ. Vui lòng thử lại.');}finally{if(!controller.signal.aborted)setBusy(false);}
  }
- return <div><p className="muted">Các điểm là vị trí xã/phường ước lượng, chưa phải địa chỉ cụ thể.</p>{stops.length===0?<p className="notice">Chưa có hoạt động có địa điểm để hiển thị.</p>:<button type="button" onClick={()=>void showLocations()} disabled={busy}>{busy?'Đang tìm địa điểm…':'Hiển thị địa điểm trên bản đồ'}</button>}
- <ol className="ow-route-stops">{stops.map((stop,i)=><li key={i}><strong>Ngày {stop.day} · Hoạt động {stop.activity}: {stop.ward}, {province}</strong><small>{stop.date} · {stop.start} · {stop.detail}</small></li>)}</ol>{status&&<p className="notice" role="status">{status}</p>}<div ref={mapRef} className="ow-route-map" hidden={!stops.length} aria-label="Bản đồ địa điểm hoạt động"/><small>Dữ liệu © OpenStreetMap contributors; tìm vị trí bằng Photon. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noreferrer">Góp ý dữ liệu bản đồ</a>.</small></div>;
+ useEffect(()=>{if(autoShow)void showLocations();},[autoShow,stopKey]);
+ return <div><p className="muted">Các điểm là vị trí xã/phường ước lượng, chưa phải địa chỉ cụ thể.</p>{stops.length===0&&<p className="notice">Chưa có hoạt động có địa điểm để hiển thị.</p>}
+ <ol className="ow-route-stops">{stops.map((stop,i)=><li key={i}><strong>Ngày {stop.day} · Hoạt động {stop.activity}: {stop.ward}, {province}</strong><small>{stop.date} · {stop.start} · {stop.detail}</small></li>)}</ol>{status&&<p className="notice" role="status">{status}</p>}<div ref={mapRef} className="ow-route-map" hidden={!stops.length} aria-label="Bản đồ địa điểm hoạt động"/><small>Dữ liệu © OpenStreetMap contributors. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noreferrer">Góp ý dữ liệu bản đồ</a>.</small></div>;
 }
 
