@@ -16,8 +16,14 @@ public sealed class CampaignRequest
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     [Required, StringLength(400, MinimumLength = 3)] public string Location { get; set; } = "";
-    [EmailAddress, MaxLength(256)] public string? ContactEmail { get; set; }
+    private string? contactEmail;
+    [EmailAddress, MaxLength(256)] public string? ContactEmail
+    {
+        get => contactEmail;
+        set => contactEmail = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
     [Required, RegularExpression(@"^\+?[0-9 ()-]{8,25}$")] public string ContactPhone { get; set; } = "";
+    [MaxLength(2000000)] public string AdditionalDetails { get; set; } = "{}";
     public string Version { get; set; } = "";
 }
 public sealed record VersionRequest([Required] string Version);
@@ -28,4 +34,4 @@ public sealed record CampaignView(Guid Id, Guid OrganizationId, Guid CreatedBy, 
     string CampaignType, string Cause, string BeneficiaryDescription, decimal GoalAmount, int VolunteerTarget,
     DateOnly StartDate, DateOnly EndDate, string Location, string ContactEmail, string ContactPhone,
     string Status, string Version, DateTimeOffset CreatedAt, DateTimeOffset? SubmittedAt, DateTimeOffset? PublishedAt,
-    object[] Media, object[] Reviews);
+    object[] Media, object[] Reviews, string AdditionalDetails);

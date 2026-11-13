@@ -4,7 +4,7 @@ using Shared;
 
 namespace CampaignService.Services;
 
-public sealed record OrganizationPermission(Guid OrganizationId, string OrganizationName, bool IsActive, string[] Roles, Guid? SurveyManagerUserId = null);
+public sealed record OrganizationPermission(Guid OrganizationId, string OrganizationName, bool IsActive, string[] Roles);
 public sealed class OrganizationAccess(IHttpClientFactory clients) : IOrganizationAccess
 {
     public async Task<OrganizationPermission> Require(Guid org, Guid actor, string[] allowed, CancellationToken ct)

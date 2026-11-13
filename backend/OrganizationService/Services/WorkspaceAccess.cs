@@ -24,12 +24,6 @@ public sealed class WorkspaceAccess(OrganizationDb db)
         if (roles.Any(role => !allowed.Contains(role)))
             throw new ApiException(403, "Vai trò này hiện không được phép mời.");
     }
-    public async Task RequireSurveyManager(Guid id, Guid managerId, CancellationToken ct)
-    {
-        if (!await db.Members.AnyAsync(x => x.OrganizationId == id && x.UserId == managerId && x.IsActive
-            && x.Organization.Status == "ACTIVE" && x.Roles.Any(r => r.Role == "CAMPAIGN_MANAGER"), ct))
-            throw new ApiException(400, "Người phụ trách phải là Quản lý chiến dịch đang hoạt động trong cùng tổ chức.");
-    }
     public static readonly string[] FocusAreas = ["EDUCATION", "HEALTH", "POVERTY_RELIEF", "DISASTER_RELIEF", "ENVIRONMENT", "CHILDREN", "ELDERLY", "COMMUNITY"];
     public static string[] Roles(OrganizationMember member) => member.Role == "OWNER" ? ["OWNER"] : member.Roles.Select(x => x.Role).Order().ToArray();
     public static string[] ValidateRoles(string[] roles)

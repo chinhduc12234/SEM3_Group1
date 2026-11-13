@@ -52,7 +52,7 @@ Giao diện tạo chiến dịch đang triển khai bước 1; bước 2 chỉ h
 
 ## Bản đồ lộ trình trong form tạo chiến dịch
 
-Bản thử nghiệm dùng OpenStreetMap, Photon (tìm vị trí xã/phường) và FOSSGIS/OSRM (tuyến ô tô). Không gửi địa chỉ cụ thể hoặc nội dung hoạt động; chỉ gửi tên xã/phường, tỉnh và tọa độ tìm được. Điểm là vị trí ước lượng; dữ liệu hành chính có thể chưa cập nhật nên chỉ dùng kết quả khớp tên và tỉnh. Kết quả tạm cache trong phiên trình duyệt, yêu cầu chỉ phát khi người dùng bấm vẽ; không dùng cho autocomplete.
+Bản thử nghiệm dùng OpenStreetMap và Photon để tìm vị trí xã/phường và đánh dấu các hoạt động trên bản đồ; không tính tuyến đường hoặc quãng đường. Không gửi địa chỉ cụ thể hoặc nội dung hoạt động; chỉ gửi tên xã/phường, tỉnh và tọa độ tìm được. Điểm là vị trí ước lượng; dữ liệu hành chính có thể chưa cập nhật nên chỉ dùng kết quả khớp tên và tỉnh. Kết quả tạm cache trong phiên trình duyệt, yêu cầu chỉ phát khi người dùng bấm vẽ; không dùng cho autocomplete.
 
 Đây là các dịch vụ công cộng có giới hạn tải, không có cam kết hoạt động liên tục: không dùng ở quy mô lớn; khi triển khai thật cần lựa chọn nhà cung cấp phù hợp hoặc tự vận hành, cấu hình và giới hạn tập trung. Bản đồ hiển thị ghi nguồn OpenStreetMap.
 

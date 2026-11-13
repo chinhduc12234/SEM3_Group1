@@ -11,9 +11,6 @@ builder.Services.AddDbContext<CampaignDb>(o => o.UseSqlServer(builder.Configurat
 builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<ICampaignApplication, CampaignApplication>();
 builder.Services.AddScoped<IOrganizationAccess, OrganizationAccess>();
-builder.Services.AddScoped<ISurveyRepository, SurveyRepository>();
-builder.Services.AddScoped<ISurveyApplication, SurveyApplication>();
-builder.Services.AddSingleton<ISurveyImageProcessor, SurveyImageProcessor>();
 builder.Services.AddHttpClient("organization", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["InternalApi:OrganizationUrl"] ?? "http://organization:8080/");
