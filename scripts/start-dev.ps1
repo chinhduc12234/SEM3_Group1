@@ -4,6 +4,8 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 & (Join-Path $PSScriptRoot 'init-dev.ps1')
 # Docker BuildKit cannot read some OneDrive reparse-point files. Materialize
 # a build context with normal bytes in TEMP; source and database volumes stay intact.
+$env:CAMPAIGN_UPLOAD_DIR = Join-Path $projectRoot 'uploads/campaigns'
+[IO.Directory]::CreateDirectory($env:CAMPAIGN_UPLOAD_DIR) | Out-Null
 $contextRoot = Join-Path ([IO.Path]::GetTempPath()) 'sem3-group1-docker'
 [IO.Directory]::CreateDirectory($contextRoot) | Out-Null
 $resolvedContext = (Resolve-Path -LiteralPath $contextRoot).Path

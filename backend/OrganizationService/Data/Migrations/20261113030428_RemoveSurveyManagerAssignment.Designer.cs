@@ -12,8 +12,8 @@ using OrganizationService.Data;
 namespace OrganizationService.Data.Migrations
 {
     [DbContext(typeof(OrganizationDb))]
-    [Migration("20261103160924_SurveyManagerAssignment")]
-    partial class SurveyManagerAssignment
+    [Migration("20261113030428_RemoveSurveyManagerAssignment")]
+    partial class RemoveSurveyManagerAssignment
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -122,6 +122,53 @@ namespace OrganizationService.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("LegalChangeDocument");
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.NotificationEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("Sequence")
+                        .IsUnique();
+
+                    b.HasIndex("DeliveredAt", "NextAttemptAt");
+
+                    b.ToTable("NotificationEvents");
                 });
 
             modelBuilder.Entity("OrganizationService.Data.Organization", b =>
@@ -279,9 +326,6 @@ namespace OrganizationService.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<Guid?>("SurveyManagerUserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -376,9 +420,6 @@ namespace OrganizationService.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
-
-                    b.Property<Guid?>("SurveyManagerUserId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -524,6 +565,15 @@ namespace OrganizationService.Data.Migrations
                     b.HasOne("OrganizationService.Data.OrganizationLegalChange", null)
                         .WithMany("Documents")
                         .HasForeignKey("LegalChangeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrganizationService.Data.NotificationEvent", b =>
+                {
+                    b.HasOne("OrganizationService.Data.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

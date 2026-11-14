@@ -23,8 +23,8 @@ function Shell({ children }: { children: ReactNode }) {
   useEffect(() => { setData(null); reload().catch(ex => setError(ex.message)); }, [reload]);
   const links = [[root,t("Tổng quan")], [root+"/profile",t("Thông tin tổ chức")], [root+"/members",t("Nhân sự & vai trò")],
     ...(data?.roles.some(r => ["OWNER","CAMPAIGN_MANAGER"].includes(r)) ? [[root+"/campaigns",t("Chiến dịch")]] : []),
-    ...(data?.roles.some(r => ["SURVEY_STAFF","CAMPAIGN_MANAGER"].includes(r)) ? [[root+"/surveys",t(data.roles.includes("SURVEY_STAFF")?"Khảo sát & báo cáo":"Duyệt báo cáo khảo sát")]] : []),
     ...(data?.canManageMembers ? [[root+"/legal",t("Hồ sơ pháp lý")], [root+"/activity",t("Nhật ký hoạt động")]] : [])];
+
   return <div className="ow-shell ga-dashboard">
     <aside className="ow-sidebar"><Link className="ga-logo" href="/organizations/mine" aria-label="Give-AID, không gian tổ chức"><img className="ga-logo-image" src="/giveaid-logo-transparent.png" alt="Give-AID"/></Link><p className="eyebrow">{t("KHÔNG GIAN TỔ CHỨC")}</p><h2>{data?.profile.displayName || t("Tổ chức của bạn")}</h2>
       <p className="ow-role">{data ? t(labelsForRoles(data.roles) || "Giám sát hệ thống") : t("Đang kiểm tra quyền…")}</p>

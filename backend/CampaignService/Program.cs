@@ -8,12 +8,9 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApi(builder.Configuration);
 builder.Services.AddDbContext<CampaignDb>(o => o.UseSqlServer(builder.Configuration.GetConnectionString("Database")));
-builder.Services.AddScoped<CampaignRepository>();
-builder.Services.AddScoped<CampaignApplication>();
-builder.Services.AddScoped<OrganizationAccess>();
-builder.Services.AddScoped<SurveyRepository>();
-builder.Services.AddScoped<SurveyApplication>();
-builder.Services.AddSingleton<SurveyImageProcessor>();
+builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
+builder.Services.AddScoped<ICampaignApplication, CampaignApplication>();
+builder.Services.AddScoped<IOrganizationAccess, OrganizationAccess>();
 builder.Services.AddHttpClient("organization", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["InternalApi:OrganizationUrl"] ?? "http://organization:8080/");

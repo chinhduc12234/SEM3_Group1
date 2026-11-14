@@ -20,6 +20,7 @@ public sealed class Campaign
     public string Location { get; set; } = "";
     public string ContactEmail { get; set; } = "";
     public string ContactPhone { get; set; } = "";
+    public string AdditionalDetails { get; set; } = "{}";
     public string Status { get; set; } = "DRAFT";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -46,6 +47,7 @@ public sealed class CampaignMedia
     public string FileName { get; set; } = "";
     public string ContentType { get; set; } = "";
     public byte[] Content { get; set; } = [];
+    public string? StoragePath { get; set; }
 }
 public sealed class CampaignDb(DbContextOptions<CampaignDb> options) : DbContext(options)
 {
@@ -54,7 +56,6 @@ public sealed class CampaignDb(DbContextOptions<CampaignDb> options) : DbContext
     public DbSet<CampaignMedia> Media => Set<CampaignMedia>();
     protected override void OnModelCreating(ModelBuilder b)
     {
-        SurveySchema.Configure(b);
         var c = b.Entity<Campaign>();
         c.HasIndex(x => new { x.OrganizationId, x.Status });
         c.HasIndex(x => new { x.Status, x.StartDate, x.EndDate });
@@ -69,6 +70,7 @@ public sealed class CampaignDb(DbContextOptions<CampaignDb> options) : DbContext
         c.Property(x => x.Location).HasMaxLength(400);
         c.Property(x => x.ContactEmail).HasMaxLength(256);
         c.Property(x => x.ContactPhone).HasMaxLength(25);
+        c.Property(x => x.AdditionalDetails).HasColumnType("nvarchar(max)");
         c.HasMany(x => x.Reviews).WithOne().HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.Restrict);
         c.HasMany(x => x.Media).WithOne().HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<CampaignReview>().Property(x => x.Action).HasMaxLength(30);
@@ -77,6 +79,7 @@ public sealed class CampaignDb(DbContextOptions<CampaignDb> options) : DbContext
         b.Entity<CampaignReview>().Property(x => x.Note).HasMaxLength(2000);
         b.Entity<CampaignMedia>().Property(x => x.Kind).HasMaxLength(20);
         b.Entity<CampaignMedia>().Property(x => x.FileName).HasMaxLength(200);
+        b.Entity<CampaignMedia>().Property(x => x.StoragePath).HasMaxLength(200);
         b.Entity<CampaignMedia>().Property(x => x.ContentType).HasMaxLength(60);
     }
 }

@@ -12,9 +12,8 @@ public sealed record WorkspaceRequest(
     [MaxLength(300)] string Website,
     [Required, StringLength(400, MinimumLength = 10)] string Address,
     [Required] string Version);
-public sealed record InviteMemberRequest([Required, EmailAddress, MaxLength(256)] string Email, [Required, MinLength(1), MaxLength(6)] string[] Roles, Guid? SurveyManagerUserId = null);
-public sealed record SurveyManagerRequest(Guid SurveyManagerUserId, [Required] string Version);
-public sealed record MemberRolesRequest([Required, MinLength(1), MaxLength(6)] string[] Roles, [Required] string Version);
+public sealed record InviteMemberRequest([Required, EmailAddress, MaxLength(256)] string Email, [Required, MinLength(1), MaxLength(5)] string[] Roles);
+public sealed record MemberRolesRequest([Required, MinLength(1), MaxLength(5)] string[] Roles, [Required] string Version);
 public sealed record MemberStateRequest(bool IsActive, [Required] string Version);
 public sealed record InvitationResponseRequest(bool Accept, [Required] string Version);
 public sealed record LegalChangeReviewRequest([Required, RegularExpression("^(APPROVE|REJECT)$")] string Decision,

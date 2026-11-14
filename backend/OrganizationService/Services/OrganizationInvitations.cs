@@ -41,12 +41,6 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
         var allowed = await access.RequireInvitationRoles(id, actor.UserId, cancellationToken);
         var roles = WorkspaceAccess.ValidateRoles(request.Roles);
         WorkspaceAccess.EnsureInvitable(roles, allowed);
-        Guid? surveyManager = null;
-        if (roles.Contains("SURVEY_STAFF"))
-        {
-            surveyManager = allowed.Length == 1 ? actor.UserId : request.SurveyManagerUserId;
-            if (surveyManager.HasValue) await access.RequireSurveyManager(id, surveyManager.Value, cancellationToken);
-        }
         var account = await directory.Lookup(request.Email, cancellationToken);
         if (account.IsAdmin || account.Id == actor.UserId) throw new ApiException(400, "Không mời tài khoản admin hệ thống hoặc chính mình làm nhân sự.");
         if (await db.Members.AnyAsync(x => x.OrganizationId == id && x.UserId == account.Id, cancellationToken))
@@ -55,9 +49,8 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Invitations.Where(x => x.OrganizationId == id && x.InvitedUserId == account.Id && x.State == "PENDING" && x.ExpiresAt <= DateTimeOffset.UtcNow)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.State, "EXPIRED"), cancellationToken);
-        if (surveyManager == account.Id) throw new ApiException(400, "Không tự làm người phụ trách khảo sát của chính mình.");
         var invitation = new OrganizationInvitation { OrganizationId = id, InvitedUserId = account.Id, InvitedBy = actor.UserId,
-            SurveyManagerUserId = surveyManager, RolesJson = JsonSerializer.Serialize(roles) };
+            RolesJson = JsonSerializer.Serialize(roles) };
         db.Invitations.Add(invitation);
         access.Audit(id, actor.UserId, "MEMBER_INVITED", new { invitationId = invitation.Id, userId = account.Id, roles });
         await access.Save(cancellationToken);
@@ -79,10 +72,8 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
             var roles = WorkspaceAccess.ValidateRoles(JsonSerializer.Deserialize<string[]>(invitation.RolesJson) ?? []);
             var allowed = await access.RequireInvitationRoles(invitation.OrganizationId, invitation.InvitedBy, cancellationToken);
             WorkspaceAccess.EnsureInvitable(roles, allowed);
-            if (invitation.SurveyManagerUserId.HasValue)
-                await access.RequireSurveyManager(invitation.OrganizationId, invitation.SurveyManagerUserId.Value, cancellationToken);
             if (await db.Members.AnyAsync(x => x.OrganizationId == invitation.OrganizationId && x.UserId == actor.UserId, cancellationToken)) throw new ApiException(409, "Bạn đã có tư cách thành viên.");
-            db.Members.Add(new OrganizationMember { OrganizationId = invitation.OrganizationId, UserId = actor.UserId, Role = roles[0], SurveyManagerUserId = invitation.SurveyManagerUserId,
+            db.Members.Add(new OrganizationMember { OrganizationId = invitation.OrganizationId, UserId = actor.UserId, Role = roles[0],
                 Roles = roles.Select(r => new OrganizationMemberRole { Role = r }).ToList() });
         }
         access.Audit(invitation.OrganizationId, actor.UserId, request.Accept ? "INVITATION_ACCEPTED" : "INVITATION_DECLINED", new { invitation.Id });

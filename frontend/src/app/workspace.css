@@ -47,4 +47,197 @@
 @media(max-width:1000px){.ow-shell.ga-dashboard .ow-sidebar{width:190px;padding-inline:13px}.ow-shell.ga-dashboard .ow-content{padding:24px}}
 @media(max-width:700px){.ow-shell.ga-dashboard .ow-sidebar{position:relative;width:100%;height:auto;padding:18px}.ow-shell.ga-dashboard .ow-sidebar nav{gap:5px}.ow-shell.ga-dashboard .ow-sidebar nav a{padding:9px}.ow-shell.ga-dashboard .ow-content{padding:20px 14px}.ow-shell.ga-dashboard .ow-content .ow-identity{padding:22px}.ow-shell.ga-dashboard .ow-topbar{padding:12px 16px}}
 .ga-site .ow-shell{padding:0;min-height:100vh}.ga-site .ow-shell button:not(.quiet),.ga-site .ow-shell .button{background:#17583c;border-color:#17583c;color:white;border-radius:6px}.ga-site .ow-shell button.secondary,.ga-site .ow-shell .button.secondary{background:white;color:#244c38;border-color:#cbd8cf}.ga-site .ow-shell button.danger{background:#a63737;border-color:#a63737;color:white}.ow-topbar a{overflow-wrap:anywhere}
+
+.ow-campaign-steps{display:flex;list-style:none;padding:0;margin:24px 0 32px;gap:16px}.ow-campaign-steps li{display:flex;align-items:center;gap:12px;flex:1;color:#73887b}.ow-campaign-steps li:first-child:after{content:"";height:2px;background:#dbe8de;flex:1;margin-left:8px}.ow-campaign-steps li>span{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#edf3ee;color:#668273;font-weight:700;flex-shrink:0}.ow-campaign-steps li[aria-current=step]{color:#19583d}.ow-campaign-steps li[aria-current=step]>span{background:#205c43;color:white}.ow-campaign-steps strong,.ow-campaign-steps small{display:block}.ow-campaign-steps small{margin-top:4px;font-size:12px}@media(max-width:600px){.ow-campaign-steps li:first-child:after{display:none}.ow-campaign-steps small{display:none}.ow-campaign-steps strong{font-size:12px}}
+
+.ow-campaign-overlay{position:fixed;inset:0;z-index:1000;background:rgba(12,35,26,.58);display:flex;align-items:center;justify-content:center;padding:20px}.ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{position:relative;width:min(1000px,100%);max-height:calc(100vh - 40px);overflow-y:auto;margin:0;padding:32px 36px;border-radius:16px;box-shadow:0 24px 70px #102b2066}.ow-campaign-close{position:absolute;right:24px;top:24px;min-height:36px;width:36px;padding:0}.ow-campaign-dialog h2{padding-right:45px}@media(max-width:600px){.ow-campaign-overlay{padding:10px}.ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{padding:24px 20px;max-height:calc(100vh - 20px)}.ow-campaign-close{right:16px;top:16px}}
+
+.ow-required{color:#ba3b32}.ow-campaign-dialog label>span small{font-weight:400}
+.ow-shell.ga-dashboard .ow-content .ow-campaign-page{position:relative;width:100%;max-width:1440px;margin:0 auto;padding:36px 44px;border-radius:16px;box-shadow:0 12px 36px #102b201a}.ow-campaign-page h2{padding-right:48px}
+.ow-shell.ga-dashboard .ow-content:has(.ow-campaign-page){max-width:none;width:100%;box-sizing:border-box}.ow-shell.ga-dashboard .ow-content .ow-campaign-page{width:100%;max-width:none;box-sizing:border-box;background:transparent;border:0;border-radius:0;box-shadow:none;padding:12px 0}.ow-campaign-page form,.ow-campaign-page fieldset,.ow-campaign-page .form-grid,.ow-campaign-page .form-grid label{min-width:0;max-width:100%;box-sizing:border-box}.ow-campaign-page input:not([type=checkbox]):not([type=radio]),.ow-campaign-page select,.ow-campaign-page textarea{box-sizing:border-box;max-width:100%}.ow-campaign-page .ow-campaign-steps{width:100%;max-width:100%;box-sizing:border-box}.ow-campaign-page .ow-campaign-close{position:static;width:auto;padding:8px 16px;margin-bottom:20px}
+.ow-campaign-page .ow-create-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:24px 0}.ow-campaign-page .ow-create-wide{grid-column:1/-1}.ow-campaign-page .ow-create-card{min-width:0;overflow:hidden;background:#fff;border:1px solid #dce7e0;border-radius:10px;box-shadow:0 2px 8px #173d300c}.ow-campaign-page .ow-create-card h4{margin:0;padding:12px 18px;background:#edf6f0;color:#174f37;font-size:15px}.ow-campaign-page .ow-create-card-body{padding:16px 18px}.ow-campaign-page .ow-create-card-body label{margin:0}.ow-campaign-page .ow-create-card textarea{min-height:96px}.ow-campaign-page [data-campaign-step-one]>.actions{justify-content:flex-end}.ow-campaign-page .ow-campaign-steps{margin:28px 0 24px;padding:0 0 12px;border-bottom:1px solid #dce7e0}.ow-campaign-page .ow-campaign-steps li,.ow-campaign-page .ow-campaign-steps li:last-child{flex:1 0 130px;min-width:130px}.ow-campaign-page .ow-campaign-steps li>div{width:auto;min-width:0}.ow-campaign-page .ow-campaign-steps li>div small{display:none}.ow-campaign-page .ow-campaign-steps li:not(:last-child):after{flex:1;min-width:12px;margin-top:16px}.ow-campaign-page [data-campaign-step-two],.ow-campaign-page [data-campaign-step-three],.ow-campaign-page [data-campaign-step-four],.ow-campaign-page [data-campaign-step-five],.ow-campaign-page [data-campaign-step-six]{max-width:1100px;margin:0 auto}.ow-campaign-page .ow-expense,.ow-campaign-page .ow-review-block{background:#fff}
+@media(max-width:700px){.ow-campaign-page .ow-create-grid{grid-template-columns:minmax(0,1fr)}.ow-campaign-page .ow-create-wide{grid-column:auto}.ow-campaign-page .ow-create-card-body{padding:14px}}
+@media(max-width:700px){.ow-shell.ga-dashboard .ow-content .ow-campaign-page{padding:28px 18px;border-radius:12px}}
+
+.ow-expense{border:1px solid #dce7df;border-radius:10px;padding:18px;margin:14px 0;background:#fbfdfb}.ow-expense label:last-child{margin-bottom:0}.ow-expense-heading,.ow-expense-total{display:flex;align-items:center;justify-content:space-between;gap:16px}.ow-expense-heading{margin-bottom:16px}.ow-expense-remove{color:#a13d35}.ow-expense-add{width:100%}.ow-expense-total{padding:22px 0;border-bottom:1px solid #e2ebe4}.ow-funding-options{display:grid;gap:12px}.ow-funding-options label{display:flex;flex-direction:row;align-items:center;gap:10px;margin:0;font-weight:500}.ow-funding-options input{width:18px;min-height:18px;height:18px;accent-color:#205c43}
+
+.ow-transparency{border-top:1px solid #e2ebe4;margin-top:24px;padding-top:8px}.ow-transparency input[type=file]{border:1px dashed #b9cdbd;background:#f8fbf8}.ow-transparency li{overflow-wrap:anywhere}
+
+.ow-document-title{font-size:14px;font-weight:600;margin-bottom:8px}.ow-transparency .ow-document-picker{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;gap:7px;min-height:155px;padding:20px;border:1px dashed #a8c5b0;border-radius:10px;background:#f8fbf8;cursor:pointer;color:#285640}.ow-transparency .ow-document-picker:hover{background:#edf6ee;border-color:#43815d}.ow-transparency .ow-document-picker:focus-within{outline:2px solid #648665;outline-offset:2px}.ow-transparency .ow-document-picker input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}.ow-document-icon{font-size:27px;line-height:1}.ow-document-picker small{font-size:12px;font-weight:400}
+
+.ow-campaign-qr:not([hidden]){display:flex;flex-direction:column;align-items:center;gap:12px;margin:20px 0;padding:20px;border:1px dashed #b9cdbd;border-radius:10px;background:#f8fbf8;text-align:center}.ow-campaign-qr img{display:block;width:min(100%,300px);height:auto;border-radius:8px}.ow-campaign-qr small{font-size:12px}
+
+.ow-qr-picker{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border:1px solid #b9cdbd;border-radius:7px;background:white;color:#205c43;cursor:pointer;margin:0;overflow:hidden}.ow-qr-picker input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.ow-qr-picker:focus-within{outline:2px solid #648665;outline-offset:2px}
+
+.ow-volunteer-mode{border:0;padding:0;margin:20px 0}.ow-volunteer-mode legend{font-weight:700;margin-bottom:12px}.ow-volunteer-mode label{flex-direction:row;align-items:center;gap:9px;margin:0 0 12px;font-weight:500}.ow-volunteer-mode input{width:18px;height:18px;min-height:18px;accent-color:#205c43}.ow-volunteer-file{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;min-height:155px;padding:20px;border:1px dashed #a8c5b0;border-radius:10px;background:#f8fbf8;cursor:pointer}.ow-volunteer-file input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}.ow-volunteer-file:focus-within{outline:2px solid #648665;outline-offset:2px}
+
+.ow-campaign-steps li:not(:last-child):after{content:"";height:2px;background:#dbe8de;flex:1;min-width:12px;margin-left:8px}.ow-campaign-steps li:last-child{flex:0 1 auto}.ow-campaign-images{margin:22px 0}.ow-image-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}.ow-image-previews figure{margin:0;padding:10px;border:1px solid #dce7df;border-radius:8px;min-width:0}.ow-image-previews img{display:block;width:100%;height:100px;object-fit:cover;border-radius:5px}.ow-image-previews figcaption{font-size:12px;overflow-wrap:anywhere;margin:8px 0}.ow-image-previews button{min-height:32px;padding:6px 10px}@media(max-width:600px){.ow-campaign-steps{gap:6px}.ow-campaign-steps li:not(:last-child):after{display:block;min-width:6px;margin-left:0}.ow-campaign-steps li>span{width:30px;height:30px}.ow-campaign-steps li{gap:4px}.ow-campaign-steps strong{font-size:10px}}
+
+.ow-schedule-activities{border-top:1px solid #dce7df;margin-top:20px;padding-top:4px}.ow-schedule-activity{border:1px solid #dce7df;border-radius:8px;padding:16px;margin:12px 0;background:#fff}.ow-schedule-activity label:last-child{margin-bottom:0}
+
+.ow-route-map{height:360px;margin:20px 0;border-radius:10px;overflow:hidden;background:#edf3ed}.ow-route-stops{padding-left:24px}.ow-route-stops li{padding:9px 0}.ow-route-stops small,.ow-route-stops span{display:block;margin-top:4px}.ow-review-block{border:1px solid #dce7df;border-radius:10px;padding:16px 18px;margin:14px 0;overflow-wrap:anywhere}.ow-review-block p{white-space:pre-wrap}.ow-campaign-steps{overflow-x:auto;padding-bottom:8px}.ow-campaign-steps li{min-width:110px}
+.ow-route-day-tooltip{background:#fff;border:1px solid #205c43;border-radius:6px;color:#174a36;font-size:12px;font-weight:700;box-shadow:0 2px 8px #163b2b40;padding:4px 7px}.ow-route-day-tooltip:before{border-top-color:#205c43}
+
+/* Keep the seven creation steps readable without squeezing their labels. */
+.ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{width:min(1320px,100%)}
+.ow-campaign-steps{gap:0;align-items:flex-start;overflow-x:auto;overscroll-behavior-x:contain}
+.ow-campaign-steps li,.ow-campaign-steps li:last-child{flex:1 0 165px;min-width:165px;gap:9px;align-items:flex-start}
+.ow-campaign-steps li>div{flex:0 0 auto;width:100px;min-width:0}
+.ow-campaign-steps li>div strong{white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.35}
+.ow-campaign-steps li>div small{white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.35}
+.ow-campaign-steps li:not(:last-child):after{align-self:flex-start;margin:18px 8px 0;min-width:12px}
+.ow-campaign-steps li:last-child{flex:0 0 145px;min-width:145px}
+@media(max-width:600px){.ow-campaign-steps li,.ow-campaign-steps li:last-child{flex:0 0 135px;min-width:135px}.ow-campaign-steps li>div{width:85px}.ow-campaign-steps li:not(:last-child):after{margin-top:14px}.ow-campaign-steps li>div strong{font-size:12px}}
+
+/* Native-sized choices in the campaign form; keep a compact keyboard focus cue. */
+.ga-site .ow-campaign-dialog .ow-funding-options input[type="checkbox"],
+.ga-site .ow-campaign-dialog .ow-volunteer-mode input[type="radio"]{appearance:auto;-webkit-appearance:auto;box-sizing:border-box;display:inline-block;width:16px;height:16px;min-width:16px;min-height:16px;padding:0;margin:0;border:0;background:transparent;box-shadow:none;accent-color:#205c43;outline:none;flex:0 0 16px}
+.ga-site .ow-campaign-dialog .ow-funding-options input[type="checkbox"]:focus-visible,
+.ga-site .ow-campaign-dialog .ow-volunteer-mode input[type="radio"]:focus-visible{outline:2px solid #648665;outline-offset:2px}
+
+.ow-activity-schedule{border:1px solid #dce7df;border-radius:10px;margin:12px 0;background:#fbfdfb}.ow-activity-schedule summary{cursor:pointer;padding:16px 18px;color:#205c43;display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none}.ow-activity-schedule summary::-webkit-details-marker{display:none}.ow-activity-schedule summary:after{content:"⌄";font-size:20px}.ow-activity-schedule[open] summary:after{transform:rotate(180deg)}.ow-activity-schedule summary small{display:block;margin-top:5px;color:#64746b;font-weight:400}.ow-activity-schedule>.ow-schedule-activities{padding:4px 18px 18px;margin:0}
+
+/* Constrain the form independently from the horizontally scrolling timeline. */
+.ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{max-width:100%;overflow-x:hidden}
+.ow-campaign-dialog form,.ow-campaign-dialog fieldset,.ow-campaign-dialog .ow-campaign-steps,.ow-campaign-dialog .form-grid,.ow-campaign-dialog .form-grid label{min-width:0;max-width:100%}
+.ow-campaign-dialog .ow-campaign-steps{width:100%}
+.ow-campaign-dialog .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ow-campaign-dialog input,.ow-campaign-dialog textarea,.ow-campaign-dialog select{min-width:0;max-width:100%}
+@media(max-width:600px){.ow-campaign-dialog .form-grid{grid-template-columns:minmax(0,1fr)}}
+
+.ow-activity-schedule summary{justify-content:flex-start}.ow-activity-schedule summary:after{margin-left:auto}.ow-day-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:6px;padding:8px 12px;background:#205c43;color:#fff;font-weight:700;white-space:nowrap}.ow-day-heading{min-width:0}.ow-day-heading strong{display:block;overflow-wrap:anywhere}.ow-day-info{margin:0 18px;padding:14px 0;border-top:1px solid #dce7df}.ow-day-info p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.ow-review-images{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0}.ow-review-images figure{width:150px;margin:0}.ow-review-images img{display:block;width:150px;height:120px;object-fit:contain;border:1px solid #dce7df;border-radius:8px;background:#f6faf6}.ow-review-images figcaption{font-size:12px;overflow-wrap:anywhere;margin-top:5px}.ow-review-block ol{padding-left:22px}.ow-review-block li{padding:5px 0}
+
+
 .owner-account-page{display:grid;gap:20px;max-width:900px;margin:0 auto}.owner-account-page>h1,.owner-account-page>p{margin-top:0;margin-bottom:0}.owner-account-page>.panel{padding:26px}.owner-account-page .panel h2{margin-top:0}.owner-account-page .panel form{display:grid;gap:20px}.owner-account-identity{display:flex;align-items:center;gap:18px;background:linear-gradient(110deg,#fff,#edf7ef)!important}.owner-account-identity h2{margin:3px 0;font-size:21px!important}.owner-account-identity .eyebrow{margin:0;color:#bb4937}.owner-account-avatar{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:#dcefe0;color:#17583c;font-size:26px;font-weight:700}.owner-account-badge{margin-left:auto;padding:7px 12px;border-radius:20px;background:#e5f3e8;color:#22603e;font-size:12px;font-weight:700;letter-spacing:.08em}@media(max-width:600px){.owner-account-page>.panel{padding:20px}.owner-account-identity{align-items:flex-start;flex-wrap:wrap}.owner-account-badge{margin-left:82px}}
+
+.ow-bank-account:not([hidden]){margin:20px 0;padding:20px;border:1px solid #d9e6dc;border-radius:10px;background:#f8fbf8}.ow-bank-account h4{margin:0 0 16px}.ow-bank-account label{display:block;margin-top:14px}
+.ow-bank-account label[hidden]{display:none}
+
+.ow-bank-options{border:0;padding:0;margin:0;min-width:0}.ow-bank-options legend{font-weight:600;margin-bottom:8px}.ow-bank-list{max-height:280px;overflow-y:auto;border:1px solid #c5d8c9;border-radius:8px;background:white}.ow-bank-account .ow-bank-option{display:flex;align-items:center;gap:12px;margin:0;padding:8px 12px;cursor:pointer;border-bottom:1px solid #edf2ee}.ow-bank-option:last-child{border-bottom:0}.ow-bank-option:hover,.ow-bank-option:has(input:checked){background:#edf6ef}.ow-bank-account .ow-bank-option input{width:auto;min-height:0;margin:0}.ow-bank-option img{width:84px;height:34px;object-fit:contain}.ow-bank-option img[hidden]{display:none}.ow-bank-option span{flex:1}
+
+.ow-bank-dropdown{position:relative}.ow-bank-dropdown summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:10px 14px;border:1px solid #b9cdbd;border-radius:7px;background:white;cursor:pointer;list-style:none}.ow-bank-dropdown summary::-webkit-details-marker{display:none}.ow-bank-dropdown summary::after{content:"⌄";font-size:18px}.ow-bank-dropdown[open] summary::after{content:"⌃"}.ow-bank-dropdown .ow-bank-list{position:absolute;z-index:5;top:calc(100% + 4px);left:0;right:0;box-shadow:0 8px 24px #173d3126}.ow-shell.ga-dashboard .ow-content .ow-bank-account .ow-bank-option{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:12px;margin:0;padding:8px 12px;text-align:left}.ow-shell.ga-dashboard .ow-content .ow-bank-account .ow-bank-option input{flex:0 0 auto;width:auto;min-height:0;margin:0}.ow-shell.ga-dashboard .ow-content .ow-bank-account .ow-bank-option img{display:block;flex:0 0 72px;width:72px;height:32px;max-width:72px;object-fit:contain}.ow-shell.ga-dashboard .ow-content .ow-bank-account .ow-bank-option img[hidden]{display:none}.ow-bank-option span{min-width:0}
+
+.ow-bank-message{margin:0;padding:12px 14px;font-size:13px;color:#536b5c}
+
+.ow-bank-search{position:sticky;top:0;z-index:1;padding:10px;background:#fff;border-bottom:1px solid #edf2ee}.ow-shell.ga-dashboard .ow-content .ow-bank-account .ow-bank-option[hidden]{display:none}
+
+
+.ow-campaign-list{margin-top:24px;padding:24px}.ow-campaign-list-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}.ow-campaign-list-head h2{margin:0}.ow-campaign-list-head p{margin:6px 0 0;color:#66796f}.ow-campaign-filters{display:flex;gap:10px;min-width:min(460px,50%)}.ow-campaign-filters input,.ow-campaign-filters select{margin:0}.ow-campaign-row{display:grid;grid-template-columns:150px minmax(220px,1fr) 160px auto;gap:18px;align-items:center;padding:16px 0;border-top:1px solid #e3ebe5}.ow-campaign-cover{position:relative;height:92px;border-radius:10px;overflow:hidden;background:#edf4ef;display:grid;place-items:center;color:#71847a;font-size:12px}.ow-campaign-cover img{width:100%;height:100%;object-fit:cover}.ow-campaign-cover small{position:absolute;left:8px;top:8px;background:#e7f5eb;color:#17643f;border-radius:20px;padding:4px 9px}.ow-campaign-summary{min-width:0}.ow-campaign-summary strong{font-size:16px;color:#173d2e}.ow-campaign-summary p{margin:6px 0;color:#607269;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.ow-campaign-summary small,.ow-campaign-goal small{color:#66796f}.ow-campaign-goal{display:grid;text-align:center;padding:12px;border-radius:12px;background:#eff8f1}.ow-campaign-goal strong{color:#16824d;font-size:18px}.ow-campaign-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap}.ow-campaign-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;flex:0 0 auto}.ow-campaign-actions button svg{display:block;flex:0 0 16px}@media(max-width:900px){.ow-campaign-row{grid-template-columns:120px 1fr 130px}.ow-campaign-actions{grid-column:2/-1;justify-content:flex-start}.ow-campaign-filters{min-width:0}}@media(max-width:600px){.ow-campaign-list-head{align-items:stretch;flex-direction:column}.ow-campaign-filters{flex-direction:column}.ow-campaign-row{grid-template-columns:90px 1fr;gap:12px}.ow-campaign-cover{height:78px}.ow-campaign-goal{grid-column:1}.ow-campaign-actions{grid-column:1/-1;justify-content:flex-start}}
+
+/* Responsive sizing for organization workspace pages and campaign forms. */
+.ow-shell.ga-dashboard,
+.ow-shell.ga-dashboard .ow-main,
+.ow-shell.ga-dashboard .ow-content,
+.ow-shell.ga-dashboard .ow-content>*{min-width:0}
+.ow-shell.ga-dashboard .ow-content img,
+.ow-shell.ga-dashboard .ow-content video,
+.ow-shell.ga-dashboard .ow-content iframe{max-width:100%}
+.ow-shell.ga-dashboard .ow-content .form-grid>*,
+.ow-shell.ga-dashboard .ow-content .detail-grid>*,
+.ow-shell.ga-dashboard .ow-content .ow-create-grid>*{min-width:0}
+.ow-shell.ga-dashboard .ow-content input,
+.ow-shell.ga-dashboard .ow-content select,
+.ow-shell.ga-dashboard .ow-content textarea{max-width:100%;min-width:0}
+.ow-shell.ga-dashboard .ow-content pre,
+.ow-shell.ga-dashboard .ow-content code{max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap}
+.ow-shell.ga-dashboard .ow-route-map{height:clamp(260px,42vh,420px)}
+.ow-shell.ga-dashboard .ow-review-images figure,
+.ow-shell.ga-dashboard .ow-review-images img{width:min(100%,180px)}
+.ow-shell.ga-dashboard .ow-review-images img{height:clamp(100px,18vw,140px)}
+
+@media(max-width:1150px){
+  .ow-shell.ga-dashboard .ow-campaign-row{grid-template-columns:110px minmax(0,1fr) 132px;gap:14px}
+  .ow-shell.ga-dashboard .ow-campaign-actions{grid-column:2/-1;justify-content:flex-start}
+  .ow-shell.ga-dashboard .ow-campaign-filters{min-width:0}
+}
+@media(max-width:900px){
+  .ow-shell.ga-dashboard{display:block}
+  .ow-shell.ga-dashboard .ow-sidebar{position:relative;top:auto;width:100%;height:auto;padding:18px clamp(16px,3vw,28px)}
+  .ow-shell.ga-dashboard .ow-sidebar nav{display:flex;flex-wrap:wrap}
+  .ow-shell.ga-dashboard .ow-sidebar-footer{display:flex;align-items:center;flex-wrap:wrap;margin:0;padding-top:8px}
+  .ow-shell.ga-dashboard .ow-main{width:100%}
+  .ow-shell.ga-dashboard .ow-topbar{position:relative;padding:12px clamp(16px,3vw,28px);flex-wrap:wrap}
+  .ow-shell.ga-dashboard .ow-content{padding:clamp(18px,3vw,28px)}
+  .ow-shell.ga-dashboard .ow-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+  .ow-shell.ga-dashboard .ow-campaign-list-head{align-items:flex-start;flex-wrap:wrap}
+  .ow-shell.ga-dashboard .ow-campaign-filters{width:min(100%,460px)}
+}
+@media(max-width:700px){
+  .ow-shell.ga-dashboard .ow-content{padding:20px 16px}
+  .ow-shell.ga-dashboard .ow-content .panel,
+  .ow-shell.ga-dashboard .ow-content .card{padding:20px;border-radius:14px}
+  .ow-shell.ga-dashboard .ow-content h1{font-size:clamp(27px,7vw,36px)}
+  .ow-shell.ga-dashboard .ow-content h2{font-size:clamp(20px,5vw,24px)}
+  .ow-shell.ga-dashboard .ow-identity{align-items:flex-start;flex-wrap:wrap;gap:14px;padding:20px}
+  .ow-shell.ga-dashboard .ow-identity h1{font-size:clamp(22px,6vw,28px)}
+  .ow-shell.ga-dashboard .ow-legal-comparison{grid-template-columns:minmax(0,1fr)}
+  .ow-shell.ga-dashboard .ow-member-top{align-items:flex-start;flex-wrap:wrap}
+  .ow-shell.ga-dashboard .ow-pagination{flex-wrap:wrap}
+  .ow-shell.ga-dashboard .ow-campaign-list{padding:18px}
+  .ow-shell.ga-dashboard .ow-campaign-list-head{align-items:stretch;flex-direction:column;gap:12px}
+  .ow-shell.ga-dashboard .ow-campaign-filters{width:100%;flex-direction:column}
+  .ow-shell.ga-dashboard .ow-campaign-filters>*{width:100%;min-width:0}
+  .ow-shell.ga-dashboard .ow-campaign-row{grid-template-columns:88px minmax(0,1fr);gap:12px}
+  .ow-shell.ga-dashboard .ow-campaign-cover{height:76px}
+  .ow-shell.ga-dashboard .ow-campaign-summary strong{font-size:14px;overflow-wrap:anywhere}
+  .ow-shell.ga-dashboard .ow-campaign-goal{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;padding:10px 14px}
+  .ow-shell.ga-dashboard .ow-campaign-goal strong{font-size:16px}
+  .ow-shell.ga-dashboard .ow-campaign-actions{grid-column:1/-1;justify-content:flex-start}
+  .ow-shell.ga-dashboard .ow-campaign-overlay{padding:10px}
+  .ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{width:100%;max-height:calc(100dvh - 20px);padding:22px 18px}
+  .ow-shell.ga-dashboard .ow-content .ow-campaign-page{padding:20px 0}
+  .ow-shell.ga-dashboard .ow-campaign-page .ow-create-grid{grid-template-columns:minmax(0,1fr)}
+  .ow-shell.ga-dashboard .ow-campaign-page .ow-create-wide{grid-column:auto}
+  .ow-shell.ga-dashboard .ow-campaign-steps{max-width:100%}
+  .ow-shell.ga-dashboard .ow-schedule-activity,
+  .ow-shell.ga-dashboard .ow-review-block{padding:14px}
+}
+@media(max-width:480px){
+  .ow-shell.ga-dashboard .ow-content{padding:16px 12px}
+  .ow-shell.ga-dashboard .ow-content .panel,
+  .ow-shell.ga-dashboard .ow-content .card{padding:16px;border-radius:12px}
+  .ow-shell.ga-dashboard .ow-sidebar{padding:16px 12px}
+  .ow-shell.ga-dashboard .ow-sidebar nav a{padding:8px 9px;font-size:12px}
+  .ow-shell.ga-dashboard .ow-topbar{padding:10px 12px;gap:8px}
+  .ow-shell.ga-dashboard .ow-content .ow-campaign-list{padding:14px}
+  .ow-shell.ga-dashboard .ow-campaign-row{grid-template-columns:88px minmax(0,1fr);gap:10px}
+  .ow-shell.ga-dashboard .ow-campaign-cover{height:78px}
+  .ow-shell.ga-dashboard .ow-campaign-cover small{left:4px;right:4px;top:4px;padding:3px 4px;font-size:9px;line-height:1.2;text-align:center;white-space:normal}
+  .ow-shell.ga-dashboard .ow-campaign-summary p{font-size:12px}
+  .ow-shell.ga-dashboard .ow-campaign-summary small{font-size:10px}
+  .ow-shell.ga-dashboard .ow-campaign-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:8px}
+  .ow-shell.ga-dashboard .ow-campaign-actions button{min-width:0;padding:10px 8px;font-size:12px;gap:5px}
+  .ow-shell.ga-dashboard .ow-campaign-actions button svg{flex-basis:14px;width:14px;height:14px}
+  .ow-shell.ga-dashboard .ow-expense-heading,
+  .ow-shell.ga-dashboard .ow-expense-total{align-items:flex-start;flex-wrap:wrap}
+  .ow-shell.ga-dashboard .ow-campaign-page .ow-create-card h4{padding:11px 13px}
+  .ow-shell.ga-dashboard .ow-campaign-page .ow-create-card-body{padding:12px}
+  .ow-shell.ga-dashboard .ow-day-info{margin-inline:12px}
+  .ow-shell.ga-dashboard .ow-day-badge{padding:7px 9px;font-size:12px}
+}
+@media(max-width:360px){
+  .ow-shell.ga-dashboard .ow-content{padding-inline:10px}
+  .ow-shell.ga-dashboard .ow-sidebar nav a{padding:7px;font-size:11px}
+  .ow-shell.ga-dashboard .ow-campaign-list{padding:12px}
+  .ow-shell.ga-dashboard .ow-campaign-row{grid-template-columns:minmax(0,1fr)}
+  .ow-shell.ga-dashboard .ow-campaign-cover{height:125px}
+  .ow-shell.ga-dashboard .ow-campaign-goal{grid-column:1}
+  .ow-shell.ga-dashboard .ow-campaign-actions{grid-column:1}
+  .ow-shell.ga-dashboard .ow-campaign-actions button{font-size:11px;padding:9px 5px}
+  .ow-shell.ga-dashboard .ow-content .ow-campaign-dialog{padding:18px 14px}
+}
+
+.ow-campaign-view-steps{position:sticky;top:0;z-index:5;display:flex;align-items:stretch;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;margin:16px 0;padding:10px 0;background:#fff;border-bottom:1px solid #e1ebe3}
+.ow-campaign-view-steps button{display:flex;flex:0 0 auto;align-items:center;gap:8px;min-height:40px;padding:8px 12px;background:#f1f6f2;border-color:#d8e5db;color:#315640;font-size:12px}
+.ow-campaign-view-steps button.active{background:#205c43;border-color:#205c43;color:#fff}
+.ow-campaign-view-steps button strong{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff3;color:inherit}
+.ow-campaign-view-only fieldset:disabled{opacity:1}
+.ow-campaign-view-only fieldset:disabled input:not([type=checkbox]):not([type=radio]),
+.ow-campaign-view-only fieldset:disabled select,
+.ow-campaign-view-only fieldset:disabled textarea{color:#20362d;background:#f7faf8;opacity:1}
+.ow-campaign-view-only fieldset .actions{display:none}
+.ow-campaign-view-controls{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:12px 0;background:#fff;border-top:1px solid #e1ebe3}
+.ow-campaign-view-controls span{color:#63786e;font-size:13px;font-weight:600}
+@media(max-width:480px){.ow-campaign-view-steps{gap:6px}.ow-campaign-view-steps button{min-height:38px;padding:7px 9px;font-size:11px}.ow-campaign-view-controls button{padding:10px 9px;font-size:12px}}

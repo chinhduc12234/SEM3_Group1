@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CampaignService.Data.Migrations
 {
     [DbContext(typeof(CampaignDb))]
-    [Migration("20261103161356_SurveyReports")]
-    partial class SurveyReports
+    [Migration("20261110034155_CampaignAdditionalSubmissionDetails")]
+    partial class CampaignAdditionalSubmissionDetails
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -30,6 +30,10 @@ namespace CampaignService.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AdditionalDetails")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("BeneficiaryDescription")
                         .IsRequired()
@@ -148,6 +152,10 @@ namespace CampaignService.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StoragePath")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 

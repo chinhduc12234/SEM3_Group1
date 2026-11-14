@@ -71,7 +71,6 @@ public sealed class OrganizationMember
     public Guid OrganizationId { get; set; }
     public Organization Organization { get; set; } = null!;
     public Guid UserId { get; set; }
-    public Guid? SurveyManagerUserId { get; set; }
     public string Role { get; set; } = "OWNER";
     public bool IsActive { get; set; } = true;
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;

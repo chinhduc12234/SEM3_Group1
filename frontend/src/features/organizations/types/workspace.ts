@@ -17,6 +17,6 @@ export type Workspace = {
   pendingLegalChange: string | null;
 };
 export type PageResult<T> = { items: T[]; totalCount: number; page: number; pageSize: number };
-export type Member = { id: string; userId: string; fullName: string; email: string | null; roles: string[]; isActive: boolean; accountActive: boolean; surveyManagerUserId: string | null; joinedAt: string; version: string };
+export type Member = { id: string; userId: string; fullName: string; email: string | null; roles: string[]; isActive: boolean; accountActive: boolean; joinedAt: string; version: string };
 export type Invitation = { id: string; organizationId: string; organizationName: string; rolesJson: string; roles: string[]; fullName: string; email: string; state: string; expiresAt: string; version: string };
 export const labelsForRoles = (roles: string[]) => roles.map(r => memberRoles[r] || r).join(" · ");

@@ -21,32 +21,8 @@ public sealed class OrganizationMembers(OrganizationDb db, WorkspaceAccess acces
             x.Id, x.UserId, fullName = accounts.GetValueOrDefault(x.UserId)?.FullName ?? "Tài khoản không còn tồn tại",
             email = owner ? accounts.GetValueOrDefault(x.UserId)?.Email : null,
             accountActive = accounts.GetValueOrDefault(x.UserId)?.IsActive ?? false,
-            roles = WorkspaceAccess.Roles(x), x.IsActive, x.SurveyManagerUserId, x.JoinedAt, version = Convert.ToBase64String(x.Version)
+            roles = WorkspaceAccess.Roles(x), x.IsActive, x.JoinedAt, version = Convert.ToBase64String(x.Version)
         }) };
-    }
-
-    public async Task<object> SurveyManager(OrganizationActor actor, Guid id, Guid memberId, SurveyManagerRequest request, CancellationToken cancellationToken)
-    {
-        await access.Require(id, actor, false, "OWNER");
-        var member = await EditableMember(id, memberId, actor.UserId);
-        WorkspaceAccess.Match(member.Version, request.Version);
-        if (!WorkspaceAccess.Roles(member).Contains("SURVEY_STAFF")) throw new Shared.ApiException(400, "Thành viên chưa có role Nhân viên khảo sát.");
-        if (member.UserId == request.SurveyManagerUserId) throw new Shared.ApiException(400, "Không tự quản lý khảo sát của chính mình.");
-        await access.RequireSurveyManager(id, request.SurveyManagerUserId, cancellationToken);
-        member.SurveyManagerUserId = request.SurveyManagerUserId;
-        member.UpdatedAt = DateTimeOffset.UtcNow;
-        access.Audit(id, actor.UserId, "SURVEY_MANAGER_ASSIGNED", new { member.UserId, member.SurveyManagerUserId });
-        await access.Save(cancellationToken);
-        return new { version = Convert.ToBase64String(member.Version) };
-    }
-
-    public async Task<object> SurveyManagers(OrganizationActor actor, Guid id, CancellationToken cancellationToken)
-    {
-        await access.Require(id, actor, false, "OWNER", "CAMPAIGN_MANAGER", "SURVEY_STAFF");
-        var members = await db.Members.AsNoTracking().Where(x => x.OrganizationId == id && x.IsActive
-            && x.Roles.Any(r => r.Role == "CAMPAIGN_MANAGER")).Select(x => x.UserId).ToListAsync(cancellationToken);
-        var accounts = await directory.Read(members, cancellationToken);
-        return members.Where(x => accounts.ContainsKey(x)).Select(x => new { userId = x, fullName = accounts[x].FullName });
     }
 
     public async Task<object> Roles(OrganizationActor actor, Guid id, Guid memberId, MemberRolesRequest request, CancellationToken cancellationToken)

@@ -24,7 +24,6 @@ public sealed class InternalCampaignAccessController(OrganizationDb db, IConfigu
         var member = await db.Members.AsNoTracking().Include(x => x.Roles)
             .SingleOrDefaultAsync(x => x.OrganizationId == id && x.UserId == userId && x.IsActive, ct);
         return Ok(new { organizationId = id, organizationName = org.Profile.LegalName,
-            isActive = org.Status == "ACTIVE", roles = member is null ? Array.Empty<string>() : WorkspaceAccess.Roles(member),
-            surveyManagerUserId = member?.SurveyManagerUserId });
+            isActive = org.Status == "ACTIVE", roles = member is null ? Array.Empty<string>() : WorkspaceAccess.Roles(member) });
     }
 }
