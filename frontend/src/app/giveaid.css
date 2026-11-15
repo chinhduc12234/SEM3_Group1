@@ -39,6 +39,9 @@
 .ga-dashboard .page-title{padding-bottom:24px;border-bottom:1px solid #d9dfd7}
 .ga-dashboard .table-wrap{border-radius:3px}.ga-dashboard .detail-grid dd{overflow-wrap:anywhere}
 .ga-site .ga-org-invite{background:#e9eee5;padding:24px 0}.ga-org-invite>div{display:flex;align-items:center;justify-content:space-between;gap:24px}.ga-org-invite p{margin:0;color:var(--muted);font-size:14px}.ga-org-invite strong{display:block;color:var(--ink);font:24px "Times New Roman",serif;margin-bottom:5px}
+.ga-mobile-menu>summary{display:grid;min-width:42px;min-height:42px;place-items:center;list-style:none;cursor:pointer}
+.ga-mobile-menu>summary::-webkit-details-marker{display:none}
+.ga-mobile-menu>summary::marker{content:""}
 @media(max-width:1100px){.ga-site .ga-nav,.ga-site .ga-header-actions{display:none}.ga-site .ga-mobile-menu{display:block;margin-left:auto}}
 @media(max-width:600px){.ga-org-invite>div{align-items:flex-start;flex-direction:column}.ga-dashboard{padding-top:30px}.ga-dashboard .filters{flex-direction:column}.ga-dashboard .filters select{width:100%}}
 
@@ -304,6 +307,30 @@
 @media(max-width:900px){.ga-user .ga-header-inner{gap:12px}.ga-user .ga-header-actions{display:none}.ga-user .ga-mobile-menu{margin-left:auto}.ga-user .ga-mobile-menu nav{gap:0}.ga-user .ga-auth{grid-template-columns:1fr}.ga-user .ga-auth-photo{min-height:340px}.ga-user .ga-auth-box{margin-top:44px}}
 @media(max-width:600px){.ga-user .ga-page-head{padding:58px 0}.ga-user .ga-page-head .ga-lead{font-size:15px}.ga-user .ga-auth{min-height:0}.ga-user .ga-auth-photo{min-height:300px;padding:42px 22px}.ga-user .ga-auth-main{padding:28px 22px 54px}.ga-user .ga-auth-box{margin-top:36px}.ga-user .ga-dashboard{padding-top:28px;padding-bottom:54px}.ga-user .ow-content{padding:22px 16px}.ga-user .ga-footer-top{padding-top:42px;padding-bottom:32px}}
 @media(prefers-reduced-motion:reduce){.ga-user :where(button,a,input,select,textarea){transition:none!important}}
+
+/* Balance the desktop header around the page center while keeping the brand
+   and account controls aligned to opposite edges of the same content frame. */
+@media(min-width:1440px){
+  .ga-user.ga-user .ga-header-inner{width:min(1400px,calc(100% - 64px));max-width:1400px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .ga-user.ga-user .ga-header-inner>.ga-logo{justify-self:start}
+  .ga-user.ga-user .ga-nav{justify-content:center}
+  .ga-user.ga-user .ga-header-actions{justify-self:center;gap:6px}
+  .ga-user.ga-user .ga-header-actions .ga-language-switch{gap:3px;padding-inline:5px}
+  .ga-user.ga-user .ga-header-actions .ga-language-switch button{padding-inline:5px}
+  .ga-user.ga-user .ga-header-actions .ga-account-name{display:inline-flex;align-items:center;gap:6px;max-width:145px;flex:0 1 145px}
+  .ga-user.ga-user .ga-header-actions .ga-button-small{padding-inline:10px;gap:6px}
+}
+
+/* Refined desktop site header: clearer hierarchy and a visually grouped account area. */
+.ga-user .ga-header{position:relative;z-index:20;min-height:84px;background:rgba(255,255,255,.97);border-bottom:1px solid #e5eae3;box-shadow:0 5px 20px rgba(27,53,40,.055)}
+.ga-user .ga-nav a{position:relative;padding:9px 2px;color:#52645a;font-size:13px;font-weight:650;transition:color .18s ease}
+.ga-user .ga-nav a:hover{color:#b94d36;text-decoration:none}
+.ga-user .ga-nav a:after{position:absolute;right:50%;bottom:1px;left:50%;height:2px;border-radius:2px;background:#c94d35;content:"";transition:left .18s ease,right .18s ease}
+.ga-user .ga-nav a:hover:after{right:2px;left:2px}
+.ga-user .ga-header-actions{padding:5px 7px;border:1px solid #edf0ea;border-radius:16px;background:#fafbf8}
+.ga-user .ga-header-actions .ga-button-small{box-shadow:0 4px 10px rgba(157,63,43,.16)}
+@media(max-width:1100px){.ga-user .ga-header-actions{padding:0;border:0;background:transparent}}
+@media(prefers-reduced-motion:reduce){.ga-user .ga-nav a:after{transition:none}}
 
 /* Auth pages: brighter community photo and an elevated form surface. */
 .ga-user .ga-auth-photo{background-image:url('/images/auth-children.jpg');background-position:center 42%;background-size:cover}

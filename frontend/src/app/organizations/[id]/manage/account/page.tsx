@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/features/auth/components/AuthProvider";
 import { useWorkspace } from "@/features/organizations/components/OrganizationWorkspaceShell";
@@ -14,7 +15,7 @@ export default function OwnerAccountPage() {
   const [message, setMessage] = useState("");
   useEffect(() => { setName(user?.fullName ?? ""); setEmail(user?.email ?? ""); }, [user]);
 
-  if (!data.roles.includes("OWNER")) return <p className="notice error">Chỉ chủ tổ chức mới có thể quản lý hồ sơ tài khoản Owner.</p>;
+  if (!data.roles.includes("OWNER")) return <LocalizedTree><p className="notice error">Chỉ chủ tổ chức mới có thể quản lý hồ sơ tài khoản Owner.</p></LocalizedTree>;
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
@@ -36,7 +37,7 @@ export default function OwnerAccountPage() {
     } catch (ex) { setError((ex as Error).message); setBusy(false); }
   }
 
-  return <div className="owner-account-page">
+  return <LocalizedTree><div className="owner-account-page">
     <p className="eyebrow">TÀI KHOẢN & BẢO MẬT</p>
     <h1>Hồ sơ tài khoản Owner</h1>
     <p className="muted">Quản lý thông tin đăng nhập và bảo mật cho tài khoản của bạn.</p>
@@ -73,5 +74,5 @@ export default function OwnerAccountPage() {
     </section>
     {error && <p className="notice error" role="alert">{error}</p>}
     {message && <p className="notice success" role="status">{message}</p>}
-  </div>;
+  </div></LocalizedTree>;
 }

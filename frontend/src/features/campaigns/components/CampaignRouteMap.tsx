@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import { useEffect, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -60,7 +61,7 @@ export default function CampaignRouteMap({stops,province,autoShow=true}:{stops:R
   }catch{if(!controller.signal.aborted)setStatus('Không thể hiển thị bản đồ. Vui lòng thử lại.');}finally{if(!controller.signal.aborted)setBusy(false);}
  }
  useEffect(()=>{if(autoShow)void showLocations();},[autoShow,stopKey]);
- return <div><p className="muted">Các điểm là vị trí xã/phường ước lượng, chưa phải địa chỉ cụ thể.</p>{stops.length===0&&<p className="notice">Chưa có hoạt động có địa điểm để hiển thị.</p>}
- <ol className="ow-route-stops">{stops.map((stop,i)=><li key={i}><strong>Ngày {stop.day} · Hoạt động {stop.activity}: {stop.ward}, {province}</strong><small>{stop.date} · {stop.start} · {stop.detail}</small></li>)}</ol>{status&&<p className="notice" role="status">{status}</p>}<div ref={mapRef} className="ow-route-map" hidden={!stops.length} aria-label="Bản đồ địa điểm hoạt động"/><small>Dữ liệu © OpenStreetMap contributors. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noreferrer">Góp ý dữ liệu bản đồ</a>.</small></div>;
+ return <LocalizedTree><div><p className="muted">Các điểm là vị trí xã/phường ước lượng, chưa phải địa chỉ cụ thể.</p>{stops.length===0&&<p className="notice">Chưa có hoạt động có địa điểm để hiển thị.</p>}
+ <ol className="ow-route-stops">{stops.map((stop,i)=><li key={i}><strong>Ngày {stop.day} · Hoạt động {stop.activity}: {stop.ward}, {province}</strong><small>{stop.date} · {stop.start} · {stop.detail}</small></li>)}</ol>{status&&<p className="notice" role="status">{status}</p>}<div ref={mapRef} className="ow-route-map" hidden={!stops.length} aria-label="Bản đồ địa điểm hoạt động"/><small>Dữ liệu © OpenStreetMap contributors. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noreferrer">Góp ý dữ liệu bản đồ</a>.</small></div></LocalizedTree>;
 }
 

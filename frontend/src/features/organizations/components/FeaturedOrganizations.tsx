@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/shared/api/api";
@@ -29,7 +30,7 @@ export default function FeaturedOrganizations() {
   const active = directory?.items.filter(item => item.status === "ACTIVE").length ?? 0;
   const past = directory?.items.filter(item => item.status === "PAST").length ?? 0;
 
-  return <section className="ga-section ga-featured-orgs" aria-labelledby="featured-orgs-title">
+  return <LocalizedTree><section className="ga-section ga-featured-orgs" aria-labelledby="featured-orgs-title">
     <div className="ga-container">
       <div className="ga-featured-orgs-heading">
         <div><p className="ga-kicker">CỘNG ĐỒNG GIVE-AID</p><h2 id="featured-orgs-title">Những tổ chức<br/><em>đang tạo nên thay đổi.</em></h2></div>
@@ -48,5 +49,5 @@ export default function FeaturedOrganizations() {
 
       {directory?.items.length ? <div className="ga-featured-orgs-legend"><span><i className="is-active"/> {active} đang hoạt động</span><span><i className="is-past"/> {past} từng đồng hành</span><p>Thông tin hiển thị dựa trên trạng thái hồ sơ được Give-AID xét duyệt.</p></div> : null}
     </div>
-  </section>;
+  </section></LocalizedTree>;
 }

@@ -3,7 +3,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, downloadDocument } from "@/shared/api/api";
 import { documentKinds, fields, Organization, Profile } from "@/features/organizations/types/organizations";
 import { PageResult } from "@/features/organizations/types/workspace";
-import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
+import { LocalizedTree, useLocale } from "@/shared/i18n/LocaleProvider";
 
 type Change={id:string;state:string;reason:string;createdAt:string;reviewedAt:string|null;reviewReason:string;version:string};
 type Detail=Change&{proposed:{profile:Profile;identityNumber:string};documents:{id:string;kind:string;fileName:string}[]};
@@ -32,11 +32,12 @@ function ProposalForm({id,onDone}:{id:string;onDone:()=>Promise<void>}) {
 }
 
 export default function OrganizationLegalChanges({id,canRequest=false,canReview=false,initialChangeId}:{id:string;canRequest?:boolean;canReview?:boolean;initialChangeId?:string}) {
+  const { t } = useLocale();
   const [result,setResult]=useState<PageResult<Change>|null>(null);const [page,setPage]=useState(1);const [selected,setSelected]=useState(initialChangeId||"");const [detail,setDetail]=useState<Detail|null>(null);const [current,setCurrent]=useState<Organization|null>(null);const [creating,setCreating]=useState(false);const [reason,setReason]=useState("");const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [message,setMessage]=useState("");
   const load=useCallback(async()=>{setResult(await api<PageResult<Change>>(`/api/organizations/${id}/workspace/legal-changes?page=${page}`));},[id,page]);
   useEffect(()=>{load().catch(ex=>setError(ex.message));},[load]);
   useEffect(()=>{if(!selected){setDetail(null);return;}setDetail(null);setError("");Promise.all([api<Detail>(`/api/organizations/${id}/workspace/legal-changes/${selected}`),api<Organization>(`/api/organizations/${id}`)]).then(([detail,org])=>{setDetail(detail);setCurrent(org);setReason("");}).catch(ex=>setError(ex.message));},[id,selected]);
-  async function review(decision:string){if(!detail||!window.confirm(decision==="APPROVE"?"Chấp thuận thay đổi hồ sơ pháp lý này?":"Từ chối yêu cầu thay đổi này?"))return;setBusy(true);setError("");try{await api(`/api/organizations/${id}/workspace/legal-changes/${detail.id}/review`,{method:"POST",body:JSON.stringify({decision,reason,version:detail.version})});setDetail(null);setSelected("");await load();setMessage("Đã lưu kết quả xét duyệt.");}catch(ex){setError((ex as Error).message);}finally{setBusy(false);}}
+  async function review(decision:string){if(!detail||!window.confirm(t(decision==="APPROVE"?"Chấp thuận thay đổi hồ sơ pháp lý này?":"Từ chối yêu cầu thay đổi này?")))return;setBusy(true);setError("");try{await api(`/api/organizations/${id}/workspace/legal-changes/${detail.id}/review`,{method:"POST",body:JSON.stringify({decision,reason,version:detail.version})});setDetail(null);setSelected("");await load();setMessage("Đã lưu kết quả xét duyệt.");}catch(ex){setError((ex as Error).message);}finally{setBusy(false);}}
   return <LocalizedTree><>{canRequest&&<div className="actions"><button className="secondary" onClick={()=>setCreating(!creating)}>{creating?"Đóng biểu mẫu":"Tạo yêu cầu cập nhật pháp lý"}</button></div>}
     {creating&&<ProposalForm id={id} onDone={async()=>{setCreating(false);await load();setMessage("Đã gửi yêu cầu. Hồ sơ hiện tại vẫn giữ nguyên cho đến khi được duyệt.");}}/>}
     <section className="panel"><h2>Yêu cầu thay đổi pháp lý</h2>{result?.items.map(item=><div className="upload-row" key={item.id}><div><strong>{states[item.state]}</strong><p>{item.reason}</p><small>{new Date(item.createdAt).toLocaleString("vi-VN")}</small>{item.reviewReason&&<p>Phản hồi: {item.reviewReason}</p>}</div><button className="secondary" onClick={()=>setSelected(item.id)}>Xem chi tiết</button></div>)}{result?.totalCount===0&&<p>Chưa có yêu cầu cập nhật pháp lý.</p>}

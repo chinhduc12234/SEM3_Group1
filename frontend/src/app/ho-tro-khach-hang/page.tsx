@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 const helpTopics = [
   { icon: "◉", title: "Tài khoản cá nhân", text: "Cập nhật họ tên, ảnh đại diện và thông tin liên hệ trong khu vực hồ sơ.", href: "/account", action: "Mở hồ sơ" },
@@ -16,7 +17,7 @@ const faqs = [
 ];
 
 export default function CustomerSupportPage() {
-  return <main className="info-page support-page">
+  return <LocalizedTree><main className="info-page support-page">
     <section className="support-hero"><div className="info-container support-hero-grid"><div><p className="info-eyebrow"><span/> TRUNG TÂM HỖ TRỢ GIVE-AID</p><h1>Chúng tôi ở đây<br/><em>để giúp bạn.</em></h1><p className="support-hero-copy">Tìm câu trả lời, chọn đúng hướng dẫn và tiếp tục hành trình sẻ chia của bạn.</p><a className="info-button" href="#cau-hoi">Xem câu hỏi thường gặp <span>↓</span></a></div><div className="support-hero-art" aria-hidden="true"><div className="support-art-orbit orbit-one"/><div className="support-art-orbit orbit-two"/><div className="support-art-orbit orbit-three"/><div className="support-art-center">✳</div><span className="support-art-label label-one">LẮNG NGHE</span><span className="support-art-label label-two">ĐỒNG HÀNH</span><span className="support-art-label label-three">SẺ CHIA</span></div></div></section>
 
     <section className="info-container support-topics"><div className="info-section-heading"><div><p className="info-eyebrow">BẠN ĐANG CẦN GÌ?</p><h2>Chọn chủ đề<br/><em>để được hướng dẫn.</em></h2></div><p>Các lối tắt dưới đây đưa bạn đến đúng khu vực trong Give-AID.</p></div><div className="support-topic-grid">{helpTopics.map(item=><article key={item.title}><span className="support-topic-icon" aria-hidden="true">{item.icon}</span><h3>{item.title}</h3><p>{item.text}</p><Link href={item.href}>{item.action}<span>↗</span></Link></article>)}</div></section>
@@ -24,5 +25,5 @@ export default function CustomerSupportPage() {
     <section className="support-faq" id="cau-hoi"><div className="info-container support-faq-grid"><div className="support-faq-intro"><p className="info-eyebrow">CÂU TRẢ LỜI RÕ RÀNG</p><h2>Câu hỏi<br/><em>thường gặp.</em></h2><p>Chọn một câu hỏi để xem hướng dẫn chi tiết.</p><div className="support-faq-aside"><span>✦</span><p>Give-AID sẽ không bao giờ yêu cầu bạn cung cấp mật khẩu qua email hoặc tin nhắn.</p></div></div><div className="support-faq-list">{faqs.map((item,index)=><details key={item.q} open={index===0}><summary><span className="info-number">{String(index+1).padStart(2,"0")}</span><strong>{item.q}</strong><i aria-hidden="true">＋</i></summary><div className="support-faq-answer">{item.a}</div></details>)}</div></div></section>
 
     <section className="info-container support-contact"><div><p className="info-eyebrow">VẪN CẦN TRỢ GIÚP?</p><h2>Hãy cho chúng tôi biết<br/><em>bạn đang tìm điều gì.</em></h2><p>Chưa tìm thấy câu trả lời? Mở thông báo để xem các cập nhật mới nhất từ Give-AID hoặc quay lại khám phá nội dung trên nền tảng.</p></div><div className="support-contact-actions"><Link className="info-button" href="/notifications">Mở thông báo <span>↗</span></Link><Link className="info-text-link" href="/">Quay về trang chủ <span>→</span></Link></div></section>
-  </main>;
+  </main></LocalizedTree>;
 }

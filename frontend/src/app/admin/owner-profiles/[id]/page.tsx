@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -17,7 +18,7 @@ const actionLabels: Record<string, string> = { CREATED: "Tạo hồ sơ", UPDATE
 const date = (value: string) => value.includes("T") ? new Date(value).toLocaleDateString("vi-VN") : new Date(value + "T00:00:00").toLocaleDateString("vi-VN");
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
-  return <div className="ad-owner-field"><dt>{label}</dt><dd>{value?.trim() || "Chưa cung cấp"}</dd></div>;
+  return <LocalizedTree><div className="ad-owner-field"><dt>{label}</dt><dd>{value?.trim() || "Chưa cung cấp"}</dd></div></LocalizedTree>;
 }
 
 export default function OwnerProfileDetailPage() {
@@ -40,11 +41,11 @@ export default function OwnerProfileDetailPage() {
     finally { setBusy(""); }
   }
 
-  if (error) return <><Link className="ad-owner-back" href="/admin/owner-profiles">← Danh sách Owner</Link><div className="notice error" role="alert">{error}</div></>;
-  if (!data) return <p className="ad-loading">Đang tải hồ sơ Owner…</p>;
+  if (error) return <LocalizedTree><><Link className="ad-owner-back" href="/admin/owner-profiles">← Danh sách Owner</Link><div className="notice error" role="alert">{error}</div></></LocalizedTree>;
+  if (!data) return <LocalizedTree><p className="ad-loading">Đang tải hồ sơ Owner…</p></LocalizedTree>;
 
   const initial = data.account.fullName.trim().charAt(0).toLocaleUpperCase("vi-VN");
-  return <>
+  return <LocalizedTree><>
     <Link className="ad-owner-back" href="/admin/owner-profiles">← Danh sách Owner</Link>
     <div className="ad-page-heading ad-owner-heading"><div><p className="ad-eyebrow">HỒ SƠ TÀI KHOẢN OWNER</p><h1>{data.account.fullName}</h1><p>Thông tin tài khoản và các hồ sơ tổ chức đã đăng ký.</p></div></div>
     <section className="ad-owner-profile-card"><span className="ad-owner-avatar is-large">{initial}</span><div className="ad-owner-profile-main"><span className={`ad-owner-state ${data.account.isActive ? "is-active" : "is-inactive"}`}>{data.account.isActive ? "Tài khoản đang hoạt động" : "Tài khoản đã khóa"}</span><h2>{data.account.fullName}</h2><a href={`mailto:${data.account.email}`}>{data.account.email}</a></div><div className="ad-owner-profile-meta"><span>VAI TRÒ</span><strong>OWNER</strong><span>OWNER TỪ</span><strong>{date(data.ownerSince)}</strong></div></section>
@@ -62,5 +63,5 @@ export default function OwnerProfileDetailPage() {
       </div>
       <div className="ad-owner-info-block"><h4>Lịch sử hồ sơ</h4>{org.history.length ? <div className="ad-owner-history">{org.history.map((event, index) => <div key={`${event.at}-${index}`}><span className="ad-owner-history-dot"/><strong>{actionLabels[event.action] || event.action}</strong><time>{new Date(event.at).toLocaleString("vi-VN")}</time>{event.reason && <p>{event.reason}</p>}</div>)}</div> : <p className="muted">Chưa có lịch sử cập nhật.</p>}</div>
     </article>)}
-  </>;
+  </></LocalizedTree>;
 }

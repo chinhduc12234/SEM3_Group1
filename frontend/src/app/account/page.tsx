@@ -2,6 +2,7 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import { Protected, useAuth } from "@/features/auth/components/AuthProvider";
 import { api, apiBlob } from "@/shared/api/api";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 type UserProfile = { id: string; email: string | null; fullName: string; phoneNumber: string | null; address: string | null; dateOfBirth: string | null; hasAvatar: boolean };
 
@@ -77,7 +78,7 @@ function AccountPage() {
 
   const displayName = profile?.fullName || user?.fullName || "Người dùng";
   const initials = displayName.trim().split(/\s+/).slice(-2).map(part => part[0]).join("").toUpperCase();
-  return <div className="user-profile-page">
+  return <LocalizedTree><div className="user-profile-page">
     <div className="user-profile-heading"><div><p className="eyebrow">KHÔNG GIAN CỦA BẠN</p><h1>Hồ sơ cá nhân</h1><p>Quản lý thông tin liên hệ và cách bạn xuất hiện trên Give-AID.</p></div><span className="user-profile-private">🔒 Chỉ bạn xem được thông tin cá nhân</span></div>
 
     <section className="user-profile-cover" aria-label="Ảnh bìa hồ sơ"><div className="user-profile-cover-orbit"/><span>GIVE-AID · KẾT NỐI NHỮNG ĐIỀU TỐT ĐẸP</span></section>
@@ -112,7 +113,7 @@ function AccountPage() {
     {error && <p className="user-profile-alert error" role="alert">{error}</p>}
     {message && <p className="user-profile-alert success" role="status">{message}</p>}
     <p className="user-profile-footnote">Give-AID · Thông tin cá nhân của bạn luôn được bảo vệ.</p>
-  </div>;
+  </div></LocalizedTree>;
 }
 
 export default function Page() { return <Protected><AccountPage /></Protected>; }

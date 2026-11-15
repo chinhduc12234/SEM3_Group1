@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/shared/api/api";
@@ -26,7 +27,7 @@ export default function OwnerProfilesPage() {
     return () => { live = false; };
   }, [page, query, refresh]);
 
-  return <>
+  return <LocalizedTree><>
     <div className="ad-page-heading ad-owner-heading"><div><p className="ad-eyebrow">TÀI KHOẢN & QUYỀN SỞ HỮU</p><h1>Hồ sơ Owner</h1><p>Tra cứu tài khoản Owner và các hồ sơ tổ chức được liên kết.</p></div><button className="secondary ad-refresh" disabled={loading} onClick={() => setRefresh(x => x + 1)}><Icon name="refresh" size={17}/>Làm mới</button></div>
     <section className="ad-owner-intro"><div className="ad-owner-intro-icon"><Icon name="shield" size={24}/></div><div><strong>Thông tin tài khoản được bảo vệ</strong><p>Trang này hiển thị họ tên, email, trạng thái tài khoản và hồ sơ tổ chức Owner đã nộp. Mật khẩu không được hiển thị.</p></div><span>{result?.totalCount ?? "—"}<small>OWNER</small></span></section>
     <section className="ad-directory ad-owner-directory">
@@ -41,5 +42,5 @@ export default function OwnerProfilesPage() {
         <td><Link className="ad-row-link" href={`/admin/owner-profiles/${owner.id}`}>Xem hồ sơ <Icon name="arrow" size={16}/></Link></td>
       </tr>)}</tbody></table><div className="ad-pagination"><span>{result.totalCount ? `${(page - 1) * result.pageSize + 1}–${Math.min(page * result.pageSize, result.totalCount)} / ${result.totalCount} Owner` : "0 Owner"}</span><div><button className="secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>← Trước</button><span>Trang {page}</span><button className="secondary" disabled={page * result.pageSize >= result.totalCount} onClick={() => setPage(page + 1)}>Sau →</button></div></div></div> : <div className="ad-owner-empty"><span><Icon name="user" size={24}/></span><h3>{query ? "Không tìm thấy Owner phù hợp" : "Chưa có hồ sơ Owner"}</h3><p>{query ? "Thử tìm bằng họ tên, email hoặc tên tổ chức khác." : "Owner sẽ xuất hiện sau khi hồ sơ tổ chức được phê duyệt."}</p></div>}
     </section>
-  </>;
+  </></LocalizedTree>;
 }

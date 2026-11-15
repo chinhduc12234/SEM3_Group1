@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 
 const principles = [
   { number: "01", title: "Minh bạch", text: "Thông tin chiến dịch và tổ chức được trình bày rõ ràng để cộng đồng có thêm cơ sở tìm hiểu trước khi đồng hành." },
@@ -7,7 +8,7 @@ const principles = [
 ];
 
 export default function AboutPage() {
-  return <main className="info-page about-page">
+  return <LocalizedTree><main className="info-page about-page">
     <section className="info-hero about-hero">
       <div className="info-hero-image" role="img" aria-label="Tình nguyện viên cùng cộng đồng" />
       <div className="info-container info-hero-content">
@@ -29,5 +30,5 @@ export default function AboutPage() {
     <section className="info-container about-steps"><p className="info-eyebrow">BẮT ĐẦU TỪ MỘT KẾT NỐI</p><h2>Mỗi người đều có thể<br/><em>chung tay theo cách riêng.</em></h2><div className="about-step-list"><article><span>01</span><div><h3>Lắng nghe câu chuyện</h3><p>Tìm hiểu mục tiêu, hoạt động và thông tin của chiến dịch hoặc tổ chức.</p></div></article><article><span>02</span><div><h3>Chọn cách đồng hành</h3><p>Khám phá những cơ hội phù hợp với thời gian, khả năng và điều bạn quan tâm.</p></div></article><article><span>03</span><div><h3>Lan tỏa điều tốt đẹp</h3><p>Cùng cộng đồng góp sức và theo dõi thông tin hoạt động được cập nhật trên nền tảng.</p></div></article></div></section>
 
     <section className="info-cta"><div className="info-container info-cta-inner"><div><p className="info-eyebrow">CÙNG GIVE-AID</p><h2>Một hành động nhỏ<br/><em>có thể mở ra hy vọng.</em></h2></div><Link className="info-button info-button-light" href="/chien-dich">Bắt đầu khám phá <span>↗</span></Link></div></section>
-  </main>;
+  </main></LocalizedTree>;
 }

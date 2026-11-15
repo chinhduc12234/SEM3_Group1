@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
 import { useEffect, useState } from "react";
 import { apiBlob } from "@/shared/api/api";
 
@@ -13,5 +14,5 @@ export default function WorkspaceImage({ id, kind, version }: { id: string; kind
     }).catch(() => { if (live) setError(true); });
     return () => { live = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [id, kind, version]);
-  return source ? <img className={"ow-image ow-" + kind} src={source} alt={kind === "logo" ? "Logo tổ chức" : "Ảnh bìa tổ chức"} /> : <span className="muted">{error ? "Chưa tải được ảnh" : "Đang tải ảnh…"}</span>;
+  return <LocalizedTree>source ? <img className={"ow-image ow-" + kind} src={source} alt={kind === "logo" ? "Logo tổ chức" : "Ảnh bìa tổ chức"} /> : <span className="muted">{error ? "Chưa tải được ảnh" : "Đang tải ảnh…"}</span></LocalizedTree>;
 }

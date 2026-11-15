@@ -6,13 +6,14 @@ import { Protected, useAuth } from "@/features/auth/components/AuthProvider";
 import { api, downloadDocument } from "@/shared/api/api";
 import { documentKinds, fields, Organization, statuses } from "@/features/organizations/types/organizations";
 import { OrganizationEmailStatus } from "@/features/organizations/components/OrganizationEmailStatus";
-import { LocalizedTree } from "@/shared/i18n/LocaleProvider";
+import { LocalizedTree, useLocale } from "@/shared/i18n/LocaleProvider";
 function Detail() {
   const id = useParams<{ id: string }>()?.id; const { user } = useAuth();
+  const { t } = useLocale();
   const [data, setData] = useState<Organization | null>(null); const [error, setError] = useState(""); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false);
   useEffect(() => { api<Organization>("/api/organizations/" + id).then(setData).catch(ex => setError(ex.message)); }, [id]);
   async function review(decision: string) {
-    if (!data || !window.confirm("Xác nhận xử lý hồ sơ: " + ({ APPROVE: "Phê duyệt", REJECT: "Từ chối", REQUEST_CHANGES: "Yêu cầu bổ sung" }[decision]) + "?")) return;
+    if (!data || !window.confirm(`${t("Xác nhận xử lý hồ sơ:")} ${t(({ APPROVE: "Phê duyệt", REJECT: "Từ chối", REQUEST_CHANGES: "Yêu cầu bổ sung" } as Record<string, string>)[decision] || decision)}?`)) return;
     setBusy(true); setError("");
     try { setData(await api<Organization>("/api/organizations/" + id + "/review", { method: "POST", body: JSON.stringify({ decision, reason, version: data.version }) })); }
     catch (ex) { setError((ex as Error).message); } finally { setBusy(false); }
