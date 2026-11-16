@@ -1,0 +1,119 @@
+.steps p {
+  color: var(--muted);
+  font-size: 15px;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid #d9dfd7;
+}
+.steps article {
+  padding: 30px 40px 0 0;
+}
+.steps article + article {
+  padding-left: 30px;
+  border-left: 1px solid #d9dfd7;
+}
+.steps span {
+  font: italic 27px "Times New Roman";
+  color: #c99079;
+}
+.steps h3 {
+  font: normal 24px "Times New Roman";
+  margin: 35px 0 12px;
+}
+.steps p {
+  max-width: 310px;
+  line-height: 1.8;
+}
+@media (max-width: 600px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  .steps article,
+  .steps article + article {
+    padding: 25px 0;
+    border-left: 0;
+    border-bottom: 1px solid #d9dfd7;
+  }
+  .steps h3 {
+    margin: 12px 0;
+  }
+}
+.guideTimeline h3 {
+  font:
+    normal 27px/1.25 "Times New Roman",
+    serif;
+  margin: 20px 0 14px;
+}
+.guideTimeline p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.85;
+}
+.guideActions {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+.guideOrganizations {
+  background: #f7f5ef;
+}
+.guideTimeline {
+  counter-reset: guide;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px 50px;
+}
+.guideTimeline li {
+  counter-increment: guide;
+  border-top: 1px solid #d5dbd0;
+  padding-top: 22px;
+}
+.guideTimeline li::before {
+  content: "0" counter(guide);
+  font:
+    italic 28px "Times New Roman",
+    serif;
+  color: #b96850;
+}
+.faqLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 70px;
+}
+.faq details {
+  border-bottom: 1px solid #d9dfd7;
+  padding: 22px 0;
+}
+.faq details:first-child {
+  border-top: 1px solid #d9dfd7;
+}
+.faq summary {
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1.6;
+}
+.faq p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.85;
+}
+@media (max-width: 800px) {
+  .faqLayout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .guideTimeline {
+    grid-template-columns: 1fr;
+  }
+  .guideTimeline {
+    gap: 20px;
+  }
+}

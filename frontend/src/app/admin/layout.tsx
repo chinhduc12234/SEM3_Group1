@@ -1,3 +1,8 @@
-import AdminShell from "@/features/dashboard/components/AdminShell";
-import "@/app/workspace.css";
-export default function Layout({children}:{children:React.ReactNode}){return <AdminShell>{children}</AdminShell>;}
+import AdminShell from "@/features/admin/components/AdminShell";
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="ga-site">
+      <AdminShell>{children}</AdminShell>
+    </div>
+  );
+}

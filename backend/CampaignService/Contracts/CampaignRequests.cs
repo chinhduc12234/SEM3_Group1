@@ -6,11 +6,11 @@ public sealed class CampaignRequest
 {
     public Guid OrganizationId { get; set; }
     [Required, StringLength(200, MinimumLength = 3)] public string Title { get; set; } = "";
-    [Required, StringLength(10000)] public string Description { get; set; } = "";
+    [Required, StringLength(10000, MinimumLength = 30)] public string Description { get; set; } = "";
     [Required, RegularExpression("^COMBINED$")] public string CampaignType { get; set; } = "COMBINED";
     [Required, RegularExpression("^(CHILDREN|EDUCATION|DISABLED|WOMEN|YOUTH|ELDERLY|HEALTH|DISASTER_RELIEF|ENVIRONMENT|COMMUNITY)$")]
     public string Cause { get; set; } = "";
-    [Required, StringLength(4000, MinimumLength = 1)] public string BeneficiaryDescription { get; set; } = "";
+    [Required, StringLength(4000, MinimumLength = 10)] public string BeneficiaryDescription { get; set; } = "";
     [Range(typeof(decimal), "1", "9999999999999999")] public decimal GoalAmount { get; set; }
     [Range(1, 1000000)] public int VolunteerTarget { get; set; }
     public DateOnly StartDate { get; set; }

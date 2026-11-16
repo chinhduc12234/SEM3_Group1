@@ -1,1 +1,1 @@
-export { default } from "@/app/organizations/[id]/page";
+export { default } from "@/features/organizations/screens/OrganizationApplicationScreen";
