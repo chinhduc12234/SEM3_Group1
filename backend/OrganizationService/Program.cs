@@ -22,6 +22,7 @@ builder.Services.AddHttpClient("notifications", client =>
 builder.Services.AddScoped<OrganizationApplications>();
 builder.Services.AddScoped<OrganizationWorkspaceService>();
 builder.Services.AddScoped<OrganizationMembers>();
+builder.Services.AddScoped<PersonnelProfiles>();
 builder.Services.AddScoped<OrganizationInvitations>();
 builder.Services.AddScoped<OrganizationLegalChanges>();
 builder.Services.AddScoped<OrganizationOversight>();

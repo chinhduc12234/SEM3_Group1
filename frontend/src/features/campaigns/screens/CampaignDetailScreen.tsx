@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/shared/api/api";
-import { Campaign, causes } from "@/features/campaigns/types/campaigns";
+import { Campaign, campaignTypes, causes } from "@/features/campaigns/types/campaigns";
 import CampaignLocalizedTree from "@/features/campaigns/components/CampaignLocalizedTree";
 
 type Expense = { name?: string; amount?: number | string; description?: string };
@@ -39,8 +39,20 @@ export default function CampaignDetailScreen() {
     () => parseSubmissionDetails(campaign?.additionalDetails) ?? {},
     [campaign?.additionalDetails],
   );
-  const schedules = sortSchedules(details.schedules ?? []);
-  const stops = getCampaignRouteStops(schedules);
+  const publicPlan = campaign?.publicPlan;
+  const schedules = publicPlan ? publicPlan.days.map((day, index) => ({
+    id: index + 1, date: day.date ?? "", title: day.title, description: day.description, location: day.location,
+    activities: day.activities.map((activity, activityIndex) => ({
+      id: activityIndex + 1, title: activity.title, start: activity.start?.slice(0, 5) ?? "",
+      end: activity.end?.slice(0, 5) ?? "", ward: "", address: activity.location, detail: "",
+    })),
+  })) : sortSchedules(details.schedules ?? []);
+  const stops = publicPlan ? publicPlan.days.flatMap((day, index) => {
+    if (!day.mapPin && !day.ward) return [];
+    return [{ day: index + 1, activity: 0, title: day.title, date: date(day.date), start: "", detail: day.location,
+      ward: day.ward ?? "", province: day.province ?? "", district: day.district ?? undefined, pin: day.mapPin,
+      schedule: day.activities.map((activity) => [activity.start?.slice(0, 5), activity.title].filter(Boolean).join(" · ")) }];
+  }) : getCampaignRouteStops(schedules);
   const cover = campaign?.media.find((media) => media.kind === "COVER");
 
   return (
@@ -63,10 +75,10 @@ export default function CampaignDetailScreen() {
               <header className={campaignStyles.detailHeading}>
                 <div>
                   <p className={campaignStyles.eyebrow}>
-                    <span /> {causes[campaign.cause] || campaign.cause} / CHIẾN DỊCH CỘNG ĐỒNG
+                    <span /> {causes[campaign.cause] || campaign.cause} / {campaignTypes[campaign.campaignType]}
                   </p>
                   <h1>{campaign.title}</h1>
-                  <p className={campaignStyles.detailDeck}>{campaign.description}</p>
+                  <p className={campaignStyles.detailDeck}>{publicPlan?.summary || campaign.description}</p>
                   <div className={campaignStyles.detailMeta}>
                     <span>✳ &nbsp; GIVE-AID</span>
                     <span>{campaign.location}</span>
@@ -84,7 +96,7 @@ export default function CampaignDetailScreen() {
                     alt={`Ảnh đại diện chiến dịch ${campaign.title}`}
                   />
                   <figcaption>
-                    CHIẾN DỊCH CỘNG ĐỒNG <span>GIVE-AID</span>
+                    {campaignTypes[campaign.campaignType]} <span>GIVE-AID</span>
                   </figcaption>
                 </figure>
               ) : (
@@ -95,12 +107,7 @@ export default function CampaignDetailScreen() {
               <div className={campaignStyles.storyLayout}>
                 <article className={campaignStyles.story} data-cp-story="">
                   <section className={campaignStyles.detailSection}>
-                    <div className={campaignStyles.storyKicker}>01 / THÔNG TIN CHIẾN DỊCH</div>
-                    <h2>
-                      Hành trình
-                      <br />
-                      <em>bắt đầu từ sự sẻ chia.</em>
-                    </h2>
+                    <h2>Thông tin chương trình</h2>
                     <div className={campaignStyles.storyBody}>
                       {campaign.description
                         .split(/\n+/)
@@ -109,6 +116,8 @@ export default function CampaignDetailScreen() {
                           <p key={index}>{paragraph}</p>
                         ))}
                     </div>
+                    {publicPlan?.goal && <p><strong>Mục tiêu chương trình</strong> · {publicPlan.goal}</p>}
+                    {publicPlan?.outcomes && <p><strong>Kết quả dự kiến</strong> · {publicPlan.outcomes}</p>}
                     <dl className={campaignStyles.publicGrid}>
                       <div>
                         <dt>Đối tượng thụ hưởng</dt>
@@ -121,8 +130,8 @@ export default function CampaignDetailScreen() {
                         </dd>
                       </div>
                       <div>
-                        <dt>Tỉnh/thành phố</dt>
-                        <dd>{details.province || campaign.location}</dd>
+                        <dt>Địa điểm</dt>
+                        <dd>{details.province || campaign.location || (publicPlan?.eventFormat === "ONLINE" ? "Trực tuyến" : "—")}</dd>
                       </div>
                       <div>
                         <dt>Email liên hệ</dt>
@@ -135,15 +144,28 @@ export default function CampaignDetailScreen() {
                     </dl>
                   </section>
 
-                  <CampaignSupport
+                  {publicPlan ? <>
+                    {publicPlan.fundraisingPurpose && <section className={campaignStyles.detailSection}>
+                      <h2>Kế hoạch gây quỹ</h2>
+                      <p>{publicPlan.fundraisingPurpose}</p>
+                    </section>}
+                    {campaign.media.some((media) => media.kind === "GALLERY") && <section className={campaignStyles.detailSection}>
+                      <h2>Hình ảnh chương trình</h2>
+                      <div className={campaignStyles.galleryGrid}>
+                        {campaign.media.filter((media) => media.kind === "GALLERY").map((media, index) => <figure key={media.id}>
+                          <img src={`/api/campaigns/${id}/media/${media.id}`} loading="lazy" alt={`Hình ảnh ${index + 1} của ${campaign.title}`} />
+                        </figure>)}
+                      </div>
+                    </section>}
+                  </> : <CampaignSupport
                     campaign={campaign}
                     details={details}
                     onDownloadError={setError}
-                  />
+                  />}
                   <CampaignItinerary
                     schedules={schedules}
                     stops={stops}
-                    province={details.province || campaign.location}
+                    province={publicPlan ? "" : details.province || campaign.location}
                   />
                 </article>
 
@@ -168,12 +190,12 @@ export default function CampaignDetailScreen() {
                           {campaign.goalAmount.toLocaleString("vi-VN")} <small>VNĐ</small>
                         </dd>
                       </div>
-                      <div>
+                      {!publicPlan && <div>
                         <dt>Số tình nguyện viên dự kiến</dt>
                         <dd>
                           {campaign.volunteerTarget} <small>người</small>
                         </dd>
-                      </div>
+                      </div>}
                       <div>
                         <dt>Thời gian</dt>
                         <dd>
@@ -182,7 +204,7 @@ export default function CampaignDetailScreen() {
                       </div>
                       <div>
                         <dt>Địa điểm</dt>
-                        <dd>{details.province || campaign.location}</dd>
+                        <dd>{details.province || campaign.location || (publicPlan?.eventFormat === "ONLINE" ? "Trực tuyến" : "—")}</dd>
                       </div>
                       <div>
                         <dt>Số lịch biểu</dt>
@@ -191,7 +213,7 @@ export default function CampaignDetailScreen() {
                         </dd>
                       </div>
                       <div>
-                        <dt>Số hoạt động có địa điểm</dt>
+                        <dt>Số điểm trên lịch trình</dt>
                         <dd>{stops.length}</dd>
                       </div>
                     </dl>

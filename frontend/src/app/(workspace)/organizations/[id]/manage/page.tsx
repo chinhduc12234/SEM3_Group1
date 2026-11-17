@@ -1,1 +1,1 @@
-export { default } from "@/features/organizations/workspace/screens/WorkspaceOverviewScreen";
+export { default } from "@/features/organizations/workspace/screens/WorkspaceMembersScreen";

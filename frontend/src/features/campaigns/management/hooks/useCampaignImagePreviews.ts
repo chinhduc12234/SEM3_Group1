@@ -2,21 +2,7 @@ import { useEffect, useState } from "react";
 import { apiBlob } from "@/shared/api/api";
 import type { Campaign } from "@/features/campaigns/types/campaigns";
 
-export function useCampaignImagePreviews(
-  cover: File | null,
-  evidence: File[],
-  gallery: File[],
-  selected: Campaign | null,
-) {
-  const [imagePreviews, setImagePreviews] = useState<{ file: File; url: string }[]>([]);
-  useEffect(() => {
-    const previews = [...(cover ? [cover] : []), ...evidence, ...gallery].map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
-    setImagePreviews(previews);
-    return () => previews.forEach((p) => URL.revokeObjectURL(p.url));
-  }, [cover, evidence, gallery]);
+export function useCampaignImagePreviews(selected: Campaign | null) {
   const [mediaPreviews, setMediaPreviews] = useState<
     Record<string, { url?: string; error?: string }>
   >({});
@@ -56,5 +42,5 @@ export function useCampaignImagePreviews(
     };
   }, [selected?.id, selected?.media]);
 
-  return { imagePreviews, mediaPreviews };
+  return mediaPreviews;
 }

@@ -10,32 +10,20 @@ type Props = Pick<
   CampaignManagementModel,
   | "action"
   | "busy"
-  | "canReviewSelected"
-  | "editable"
-  | "manager"
   | "mediaPreviews"
-  | "note"
   | "publishedEditable"
   | "setMessage"
-  | "setNote"
   | "setSelected"
-  | "viewing"
 > & { selected: NonNullable<CampaignManagementModel["selected"]> };
 
 export default function CampaignAttachments({
   action,
   busy,
-  canReviewSelected,
-  editable,
-  manager,
   mediaPreviews,
-  note,
   publishedEditable,
   selected,
   setMessage,
-  setNote,
   setSelected,
-  viewing,
 }: Props) {
   return (
     <LocalizedTree>
@@ -97,7 +85,7 @@ export default function CampaignAttachments({
               </button>
             </p>
           ))}
-        {(editable || publishedEditable) && (
+        {publishedEditable && (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -120,7 +108,6 @@ export default function CampaignAttachments({
               <select name="kind">
                 <option value="COVER">Ảnh đại diện</option>
                 <option value="GALLERY">Ảnh thư viện</option>
-                {!publishedEditable && <option value="DOCUMENT">Tài liệu hỗ trợ</option>}
               </select>
             </label>
             <label>
@@ -141,85 +128,11 @@ export default function CampaignAttachments({
               diện sẽ thay ảnh đại diện hiện tại.
             </p>
             <label>
-              PNG, JPG hoặc PDF, tối đa 5 MB
-              <input name="file" type="file" accept=".png,.jpg,.jpeg,.pdf" required />
+              PNG hoặc JPG, tối đa 5 MB
+              <input name="file" type="file" accept=".png,.jpg,.jpeg" required />
             </label>
             <button disabled={busy}>Tải tệp lên</button>
           </form>
-        )}
-        {manager && selected && ["DRAFT", "NEEDS_REVISION"].includes(selected.status) && (
-          <div className="actions">
-            <button
-              disabled={busy}
-              onClick={() =>
-                void action(async () => {
-                  setSelected(
-                    await api<Campaign>(`/api/campaigns/${selected.id}/submit`, {
-                      method: "POST",
-                      body: JSON.stringify({ version: selected.version }),
-                    }),
-                  );
-                  setMessage("Đã gửi Owner xét duyệt.");
-                })
-              }
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <svg
-                  aria-hidden="true"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 2 11 13" />
-                  <path d="m22 2-7 20-4-9-9-4Z" />
-                </svg>
-                Gửi Owner duyệt
-              </span>
-            </button>
-          </div>
-        )}
-        {canReviewSelected && !viewing && selected && (
-          <section>
-            <h3>Owner xét duyệt</h3>
-            <label>
-              Nhận xét / lý do
-              <textarea value={note} maxLength={2000} onChange={(e) => setNote(e.target.value)} />
-            </label>
-            <div className="actions">
-              {[
-                ["APPROVE", "Phê duyệt và công khai"],
-                ["REQUEST_CHANGES", "Yêu cầu chỉnh sửa"],
-                ["REJECT", "Từ chối"],
-              ].map(([decision, label]) => (
-                <button
-                  key={decision}
-                  disabled={busy || (decision !== "APPROVE" && !note.trim())}
-                  onClick={() =>
-                    void action(async () => {
-                      setSelected(
-                        await api<Campaign>(`/api/campaigns/${selected.id}/review`, {
-                          method: "POST",
-                          body: JSON.stringify({
-                            version: selected.version,
-                            decision,
-                            note,
-                          }),
-                        }),
-                      );
-                      setMessage("Đã lưu kết quả xét duyệt.");
-                    })
-                  }
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </section>
         )}
         {selected.status === "PUBLISHED" && (
           <p>

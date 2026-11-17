@@ -55,9 +55,11 @@ export type Workspace = {
 };
 export type Member = {
   id: string;
-  userId: string;
+  userId: string | null;
   fullName: string;
   email: string | null;
+  phone: string | null;
+  photo: string | null;
   roles: string[];
   isActive: boolean;
   accountActive: boolean;

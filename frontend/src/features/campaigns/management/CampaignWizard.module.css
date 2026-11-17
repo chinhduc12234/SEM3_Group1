@@ -1,0 +1,364 @@
+.pageHeader {
+  max-width: 76rem;
+  margin: 0 auto 1.4rem;
+}
+
+.pageHeader h2 {
+  margin: 0.65rem 0 0;
+  padding: 0;
+  font-size: clamp(1.65rem, 3vw, 2.45rem);
+  font-weight: 720;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  color: #123e32;
+}
+
+.pageHeader button.back {
+  min-height: auto;
+  padding: 0.36rem 0.65rem;
+  border: 0;
+  background: transparent;
+  color: #25624e;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+.pageHeader button.back:hover {
+  background: #deede4;
+  color: #123e32;
+}
+
+.layout {
+  --wizard-ink: #163b30;
+  --wizard-muted: #506b5e;
+  --wizard-line: #dce7df;
+  --wizard-accent: #17624a;
+  display: grid;
+  grid-template-columns: minmax(12rem, 14.5rem) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(0.8rem, 2vw, 1.6rem);
+  max-width: 76rem;
+  margin-inline: auto;
+  color: var(--wizard-ink);
+}
+
+.navigation,
+.layout .card {
+  background: #fff;
+  border: 1px solid var(--wizard-line);
+  border-radius: 1.15rem;
+  box-shadow: 0 10px 28px #2144340d;
+}
+
+.navigation {
+  padding: 0.9rem;
+}
+
+.progressHeading {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem 0.8rem;
+  color: var(--wizard-muted);
+  font-size: 0.82rem;
+}
+
+.progressHeading progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 0.4rem;
+  border: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #edf3ee;
+}
+
+.progressHeading progress::-webkit-progress-bar {
+  background: #edf3ee;
+}
+
+.progressHeading progress::-webkit-progress-value {
+  background: var(--wizard-accent);
+}
+
+.progressHeading progress::-moz-progress-bar {
+  background: var(--wizard-accent);
+}
+
+.navigation ol {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navigation li {
+  min-width: 0;
+}
+
+.navigation li button {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  width: 100%;
+  min-height: 2.85rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  text-align: left;
+  background: transparent;
+  color: var(--wizard-muted);
+  box-shadow: none;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.navigation li button:hover {
+  background: #f0f6f2;
+  color: var(--wizard-ink);
+}
+
+.stepNumber {
+  display: grid;
+  place-items: center;
+  flex: 0 0 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: #edf3ee;
+  font-size: 0.78rem;
+}
+
+.navigation li button[aria-current="step"] {
+  border-color: #d5eadc;
+  background: #e9f5ed;
+  color: #104a37;
+}
+
+.navigation li button[aria-current="step"] .stepNumber {
+  color: #fff;
+  background: var(--wizard-accent);
+}
+
+.cardHeading,
+.cardBody,
+.footer {
+  padding-inline: clamp(1rem, 3vw, 2rem);
+}
+
+.cardHeading {
+  padding-block: 1.35rem 1rem;
+  border-bottom: 1px solid var(--wizard-line);
+}
+
+.cardHeading h3 {
+  margin: 0;
+  font-size: clamp(1.17rem, 2vw, 1.45rem);
+  font-weight: 720;
+  letter-spacing: -0.018em;
+}
+
+.cardHeading h3:focus {
+  outline: none;
+}
+
+.cardHeading p {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--wizard-muted);
+}
+
+.required {
+  color: #a32b28;
+}
+
+.cardBody {
+  padding-block: 1.3rem 1.6rem;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.15rem;
+}
+
+.fields label {
+  display: grid;
+  align-content: start;
+  gap: 0.43rem;
+  min-width: 0;
+  margin: 0;
+  color: var(--wizard-ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.fields label :is(input, select, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.8rem;
+  margin: 0;
+  border: 1px solid #cbdad0;
+  border-radius: 0.62rem;
+  background-color: #fbfdfb;
+  font-weight: 400;
+}
+
+.fields label textarea {
+  min-height: 5.2rem;
+  resize: vertical;
+}
+
+.fields label :is(input, select, textarea):focus {
+  outline: 2px solid #55a184;
+  outline-offset: 1px;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.address {
+  min-width: 0;
+  margin: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--wizard-line, #cbdad0);
+  border-radius: 0.75rem;
+}
+
+.address legend {
+  padding-inline: 0.35rem;
+  font-weight: 680;
+}
+
+.addressUnit {
+  min-width: 0;
+}
+
+.addressNote,
+.addressError {
+  color: var(--wizard-muted);
+  font-size: 0.83rem;
+}
+
+.addressNote {
+  margin: 0 0 0.8rem;
+}
+
+.addressError button {
+  min-height: auto;
+  padding: 0.2rem;
+  color: var(--wizard-accent);
+  text-decoration: underline;
+}
+
+.fields label.attachment {
+  padding: 0.85rem;
+  border: 1px dashed #b9cfc2;
+  border-radius: 0.75rem;
+  background: #f7faf7;
+}
+
+.attachment small {
+  color: var(--wizard-muted);
+  font-weight: 400;
+}
+
+.gallery {
+  margin-block-start: 1.25rem;
+}
+
+.gallery h4 {
+  margin-bottom: 0.5rem;
+}
+
+.gallery button {
+  min-height: 0;
+  margin-top: 0.25rem;
+  padding: 0.3rem 0.4rem;
+  color: var(--wizard-accent);
+}
+
+.fields label.attachment input {
+  min-height: 0;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  font-size: 0.8rem;
+}
+
+.attachment input::file-selector-button {
+  margin-inline-end: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid #c7d9ce;
+  border-radius: 0.45rem;
+  background: #fff;
+  color: var(--wizard-ink);
+  cursor: pointer;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  justify-content: space-between;
+  padding-block: 0.9rem;
+  border-top: 1px solid var(--wizard-line);
+  border-radius: 0 0 1.15rem 1.15rem;
+  background: #f8fbf8;
+}
+
+.nextActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-inline-start: auto;
+}
+
+.saving {
+  margin: 0;
+  padding: 0 1rem 0.75rem;
+  color: var(--wizard-muted);
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .navigation ol {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .navigation li button {
+    height: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .navigation li button {
+    flex-direction: column;
+    justify-content: start;
+    text-align: center;
+    gap: 0.25rem;
+    padding-inline: 0.15rem;
+    font-size: 0.69rem;
+  }
+
+  .stepNumber {
+    flex: 0 0 auto;
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .footer {
+    flex-wrap: wrap;
+  }
+}

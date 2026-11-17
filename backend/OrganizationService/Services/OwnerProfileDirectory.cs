@@ -19,10 +19,10 @@ public sealed class OwnerProfileDirectory(OrganizationDb db, IdentityDirectory i
     public async Task<object> List(int page, string search, CancellationToken cancellationToken)
     {
         var memberships = await db.Members.AsNoTracking()
-            .Where(x => x.IsActive && x.Role == "OWNER")
+            .Where(x => x.IsActive && x.Role == "OWNER" && x.UserId != null)
             .Select(x => new
             {
-                x.UserId,
+                UserId = x.UserId!.Value,
                 x.JoinedAt,
                 Organization = new OwnerOrganizationSummary(x.OrganizationId, x.Organization.Profile.LegalName,
                     x.Organization.Status, x.Organization.Profile.Province, x.JoinedAt)

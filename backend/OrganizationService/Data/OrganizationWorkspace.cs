@@ -31,10 +31,15 @@ public sealed class OrganizationInvitation
     public Guid OrganizationId { get; set; }
     public Guid InvitedUserId { get; set; }
     public Guid InvitedBy { get; set; }
+    public Guid? PersonnelMemberId { get; set; }
     public string RolesJson { get; set; } = "[]";
     public string State { get; set; } = "PENDING";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset ExpiresAt { get; set; } = DateTimeOffset.UtcNow.AddDays(7);
+    public string? PersonnelName { get; set; }
+    public string? PersonnelPhone { get; set; }
+    public string? ProtectedPersonnelIdentity { get; set; }
+    public string? ProtectedPersonnelPhoto { get; set; }
     public byte[] Version { get; set; } = [];
 }
 

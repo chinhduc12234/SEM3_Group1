@@ -37,6 +37,15 @@ namespace CampaignService.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<DateTimeOffset?>("BudgetConfirmedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("BudgetNeedsReview")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("BudgetPlan")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CampaignType")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -46,6 +55,9 @@ namespace CampaignService.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ConceptDetails")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ContactEmail")
                         .IsRequired()
@@ -68,7 +80,7 @@ namespace CampaignService.Data.Migrations
                         .HasMaxLength(10000)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly>("EndDate")
+                    b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
 
                     b.Property<decimal>("GoalAmount")
@@ -80,13 +92,25 @@ namespace CampaignService.Data.Migrations
                         .HasMaxLength(400)
                         .HasColumnType("nvarchar(400)");
 
+                    b.Property<DateTimeOffset?>("OperationsConfirmedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("OperationsConfirmedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OperationsPlan")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ParentCampaignId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<DateOnly>("StartDate")
+                    b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Status")
@@ -116,11 +140,58 @@ namespace CampaignService.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ParentCampaignId");
+
                     b.HasIndex("OrganizationId", "Status");
 
                     b.HasIndex("Status", "StartDate", "EndDate");
 
                     b.ToTable("Campaigns");
+                });
+
+            modelBuilder.Entity("CampaignService.Data.CampaignAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("AssignedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("MembershipId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("UserId", "MembershipId", "RevokedAt");
+
+                    b.ToTable("CampaignAssignment");
                 });
 
             modelBuilder.Entity("CampaignService.Data.CampaignMedia", b =>
@@ -161,6 +232,29 @@ namespace CampaignService.Data.Migrations
                     b.ToTable("Media");
                 });
 
+            modelBuilder.Entity("CampaignService.Data.CampaignNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt");
+
+                    b.ToTable("AssignmentNotifications");
+                });
+
             modelBuilder.Entity("CampaignService.Data.CampaignReview", b =>
                 {
                     b.Property<Guid>("Id")
@@ -185,11 +279,33 @@ namespace CampaignService.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("SubmittedSnapshot")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CampaignId");
 
                     b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("CampaignService.Data.Campaign", b =>
+                {
+                    b.HasOne("CampaignService.Data.Campaign", "ParentCampaign")
+                        .WithMany()
+                        .HasForeignKey("ParentCampaignId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCampaign");
+                });
+
+            modelBuilder.Entity("CampaignService.Data.CampaignAssignment", b =>
+                {
+                    b.HasOne("CampaignService.Data.Campaign", null)
+                        .WithMany("Assignments")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CampaignService.Data.CampaignMedia", b =>
@@ -212,6 +328,8 @@ namespace CampaignService.Data.Migrations
 
             modelBuilder.Entity("CampaignService.Data.Campaign", b =>
                 {
+                    b.Navigation("Assignments");
+
                     b.Navigation("Media");
 
                     b.Navigation("Reviews");

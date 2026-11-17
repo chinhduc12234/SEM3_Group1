@@ -17,6 +17,13 @@ builder.Services.AddHttpClient("organization", client =>
     client.Timeout = TimeSpan.FromSeconds(10);
     client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient("notifications", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["InternalApi:NotificationUrl"] ?? "http://notification:8080/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<AssignmentNotificationWorker>();
 
 // Keep cross-service calls out of this bootstrap; use explicit API contracts or events as features arrive.
 var app = builder.Build();

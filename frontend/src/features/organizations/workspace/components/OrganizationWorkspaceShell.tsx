@@ -42,18 +42,14 @@ function Shell({ children }: { children: ReactNode }) {
     reload().catch((ex) => setError(ex.message));
   }, [reload]);
   const links = [
-    [root, t("Tổng quan")],
-    [root + "/profile", t("Thông tin tổ chức")],
-    [root + "/members", t("Nhân sự & vai trò")],
-    ...(data?.roles.some((r) => ["OWNER", "CAMPAIGN_MANAGER"].includes(r))
-      ? [[root + "/campaigns", t("Chiến dịch")]]
+    [root + "/members", t("Nhân sự")],
+    ...(data?.roles.includes("CAMPAIGN_MANAGER")
+      ? [[root + "/campaigns", t("Chiến dịch và sự kiện")]]
+      : data?.roles.includes("OWNER") ? [[root + "/campaigns", t("Duyệt và phân công")]] : []),
+    ...(data?.roles.includes("VOLUNTEER_COORDINATOR")
+      ? [[root + "/operations", t("Vận hành")]]
       : []),
-    ...(data?.canManageMembers
-      ? [
-          [root + "/legal", t("Hồ sơ pháp lý")],
-          [root + "/activity", t("Nhật ký hoạt động")],
-        ]
-      : []),
+    ...(data?.roles.includes("FINANCE_MANAGER") ? [[root + "/budget", t("Ngân sách")]] : []),
   ];
 
   return (
@@ -67,7 +63,7 @@ function Shell({ children }: { children: ReactNode }) {
         </p>
         <nav>
           {links.map(([href, label]) => (
-            <Link key={href} href={href} aria-current={path === href ? "page" : undefined}>
+            <Link key={href} href={href} aria-current={path === href || path.startsWith(href + "/") || (path === root && href === root + "/members") ? "page" : undefined}>
               {label}
             </Link>
           ))}

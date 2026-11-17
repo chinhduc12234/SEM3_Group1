@@ -4,7 +4,7 @@ import campaignStyles from "@/features/campaigns/Campaigns.module.css";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/shared/api/api";
-import { CampaignListItem, causes } from "@/features/campaigns/types/campaigns";
+import { CampaignListItem, campaignTypes, causes } from "@/features/campaigns/types/campaigns";
 import type { PageResult } from "@/shared/api/pagination";
 import CampaignLocalizedTree from "@/features/campaigns/components/CampaignLocalizedTree";
 
@@ -157,7 +157,7 @@ export default function CampaignDirectoryScreen() {
                 <Link
                   className={campaignStyles.cardImage}
                   href={`/chien-dich/${campaign.id}`}
-                  aria-label={`Xem chiến dịch ${campaign.title}`}
+                    aria-label={`Xem chi tiết ${campaign.title}`}
                 >
                   {campaign.coverMediaId ? (
                     <img
@@ -177,7 +177,7 @@ export default function CampaignDirectoryScreen() {
                 <div className={campaignStyles.cardBody}>
                   <div className={campaignStyles.cardMeta}>
                     <span>{campaign.location}</span>
-                    <span>CHIẾN DỊCH CỘNG ĐỒNG</span>
+                    <span>{campaignTypes[campaign.campaignType ?? "CAMPAIGN"]}</span>
                   </div>
                   <h3>
                     <Link href={`/chien-dich/${campaign.id}`}>{campaign.title}</Link>
@@ -190,15 +190,15 @@ export default function CampaignDirectoryScreen() {
                         {campaign.goalAmount.toLocaleString("vi-VN")} <small>VNĐ</small>
                       </strong>
                     </div>
-                    <div>
+                    {campaign.volunteerTarget > 0 && <div>
                       <span>Tình nguyện viên</span>
                       <strong>
                         {campaign.volunteerTarget} <small>người</small>
                       </strong>
-                    </div>
+                    </div>}
                   </div>
                   <Link className={campaignStyles.readMore} href={`/chien-dich/${campaign.id}`}>
-                    Tìm hiểu câu chuyện <span aria-hidden="true">↗</span>
+                    Xem chi tiết <span aria-hidden="true">↗</span>
                   </Link>
                 </div>
               </article>

@@ -5,18 +5,14 @@ import managementStyles from "@/features/campaigns/management/CampaignManagement
 import { causes } from "@/features/campaigns/types/campaigns";
 import { downloadDocument } from "@/shared/api/api";
 import CampaignRouteMap from "@/features/campaigns/components/CampaignRouteMap";
+import { CampaignConceptHistory } from "./CampaignConceptDetails";
 
 type Props = Pick<
   CampaignManagementModel,
   | "action"
   | "busy"
   | "mediaPreviews"
-  | "openWizardForEdit"
-  | "selectedCanEdit"
-  | "setEditingSelected"
   | "submittedDetails"
-  | "submittedSchedules"
-  | "submittedStops"
 > & { selected: NonNullable<CampaignManagementModel["selected"]> };
 
 export default function SubmittedCampaignDetails({
@@ -25,14 +21,9 @@ export default function SubmittedCampaignDetails({
   busy,
 
   mediaPreviews,
-  openWizardForEdit,
   selected,
-  selectedCanEdit,
-  setEditingSelected,
 
   submittedDetails,
-  submittedSchedules,
-  submittedStops,
 }: Props) {
   return (
     <LocalizedTree>
@@ -41,23 +32,9 @@ export default function SubmittedCampaignDetails({
           <span className={"badge " + selected.status}>
             {campaignStatuses[selected.status] || selected.status}
           </span>
-          {selectedCanEdit && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                selected.status === "PUBLISHED"
-                  ? setEditingSelected(true)
-                  : openWizardForEdit(selected)
-              }
-            >
-              Chỉnh sửa
-            </button>
-          )}
         </div>
-        <p className="muted">Nội dung chiến dịch theo các bước 1–8 của biểu mẫu tạo chiến dịch.</p>
         <section className={managementStyles.reviewBlock}>
-          <h4>1. Thông tin chiến dịch</h4>
+          <h4>Thông tin chiến dịch</h4>
           <p>
             <strong>Tên chiến dịch:</strong> {selected.title}
           </p>
@@ -85,76 +62,7 @@ export default function SubmittedCampaignDetails({
           </p>
         </section>
         <section className={managementStyles.reviewBlock}>
-          <h4>2. Mục tiêu chiến dịch</h4>
-          {submittedDetails?.expenses?.length ? (
-            <>
-              {submittedDetails.expenses.map((expense, index) => (
-                <p key={expense.id ?? index}>
-                  <strong>Khoản chi {index + 1}:</strong> {expense.name} ·{" "}
-                  {Number(expense.amount || 0).toLocaleString("vi-VN")} đ<br />
-                  <strong>Mục đích:</strong> {expense.description}
-                </p>
-              ))}
-              <p>
-                <strong>Tổng mục tiêu quyên góp:</strong>{" "}
-                {Number(selected.goalAmount).toLocaleString("vi-VN")} đ
-              </p>
-            </>
-          ) : (
-            <p>
-              <strong>Mục tiêu quyên góp:</strong>{" "}
-              {Number(selected.goalAmount).toLocaleString("vi-VN")} đ
-            </p>
-          )}
-          <p>
-            <strong>Phương thức nhận tài trợ:</strong>{" "}
-            {submittedDetails?.methods?.join(", ") || "Chưa có thông tin"}
-          </p>
-          {submittedDetails?.methods?.includes("Chuyển khoản ngân hàng") && (
-            <>
-              <p>
-                <strong>Ngân hàng:</strong>{" "}
-                {submittedDetails.bank?.name === "Ngân hàng khác"
-                  ? submittedDetails.bank?.otherName
-                  : submittedDetails.bank?.name || "—"}
-              </p>
-              <p>
-                <strong>Tên chủ tài khoản:</strong> {submittedDetails.bank?.accountHolder || "—"}
-              </p>
-              <p>
-                <strong>Số tài khoản:</strong> {submittedDetails.bank?.accountNumber || "—"}
-              </p>
-            </>
-          )}
-          {submittedDetails?.methods?.includes("Mã QR ngân hàng") && (
-            <div>
-              <strong>Mã QR ngân hàng:</strong>
-              <div className={managementStyles.reviewImages}>
-                <img src="/campaign-bank-qr.jpg" alt="Mã QR ngân hàng" />
-              </div>
-            </div>
-          )}
-          {submittedDetails?.methods?.includes("Nhận hiện vật") && (
-            <>
-              <p>
-                <strong>Loại hiện vật:</strong> {submittedDetails.goods?.description || "—"}
-              </p>
-              <p>
-                <strong>Số lượng mục tiêu:</strong>{" "}
-                {submittedDetails.goods?.target || "Không đặt số lượng"}
-              </p>
-              <p>
-                <strong>Địa chỉ tiếp nhận:</strong> {submittedDetails.goods?.address || "—"}
-              </p>
-            </>
-          )}
-          <p>
-            <strong>Cam kết công khai thu chi:</strong>{" "}
-            {submittedDetails?.transparencyCommitment || "—"}
-          </p>
-        </section>
-        <section className={managementStyles.reviewBlock}>
-          <h4>3. Tình nguyện viên</h4>
+          <h4>Tình nguyện viên</h4>
           <p>
             <strong>Số lượng cần tuyển:</strong>{" "}
             {submittedDetails?.volunteers?.count || selected.volunteerTarget}
@@ -249,7 +157,7 @@ export default function SubmittedCampaignDetails({
           );
           return (
             <section className={managementStyles.reviewBlock}>
-              <h4>4. Hình ảnh</h4>
+              <h4>Hình ảnh</h4>
               {renderImages(coverImages, "Ảnh thumbnail")}
               {renderImages(evidenceImages, "Ảnh bằng chứng")}
               {renderImages(galleryImages, "Ảnh phụ trong bài viết")}
@@ -257,90 +165,7 @@ export default function SubmittedCampaignDetails({
           );
         })()}
         <section className={managementStyles.reviewBlock}>
-          <h4>5. Lịch biểu</h4>
-          {submittedSchedules.length === 0 ? (
-            <p>Chưa có lịch biểu.</p>
-          ) : (
-            submittedSchedules.map((day, index) => (
-              <div key={day.id}>
-                <p>
-                  <strong>
-                    Ngày {index + 1} · {day.title}
-                  </strong>
-                </p>
-                <p>
-                  <strong>Ngày diễn ra:</strong> {day.date}
-                </p>
-                <p>
-                  <strong>Mô tả:</strong> {day.description}
-                </p>
-                <p>
-                  <strong>Địa điểm:</strong> {submittedDetails?.province || selected.location}
-                </p>
-              </div>
-            ))
-          )}
-        </section>
-        <section className={managementStyles.reviewBlock}>
-          <h4>6. Hoạt động</h4>
-          {submittedSchedules.length === 0 ? (
-            <p>Chưa có hoạt động.</p>
-          ) : (
-            submittedSchedules.map((day, index) => (
-              <div key={day.id}>
-                <p>
-                  <strong>
-                    Ngày {index + 1} · {day.title} · {day.date}
-                  </strong>
-                </p>
-                {day.activities.map((activity, activityIndex) => (
-                  <div key={activity.id}>
-                    <p>
-                      <strong>Hoạt động {activityIndex + 1}:</strong> {activity.start} –{" "}
-                      {activity.end}
-                    </p>
-                    <p>
-                      <strong>Nội dung:</strong> {activity.detail}
-                    </p>
-                    <p>
-                      <strong>Xã/Phường:</strong> {activity.ward}
-                    </p>
-                    <p>
-                      <strong>Địa chỉ cụ thể:</strong> {activity.address || "Không có"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ))
-          )}
-        </section>
-        <section className={managementStyles.reviewBlock}>
-          <h4>7. Địa điểm hoạt động và bản đồ</h4>
-          {submittedStops.length === 0 ? (
-            <p>Chưa có địa điểm hoạt động.</p>
-          ) : (
-            <>
-              <ol>
-                {submittedStops.map((stop, index) => (
-                  <li key={index}>
-                    <strong>
-                      Ngày {stop.day} · Hoạt động {stop.activity}: {stop.ward},{" "}
-                      {submittedDetails?.province || selected.location}
-                    </strong>{" "}
-                    · {stop.date} · {stop.start}
-                  </li>
-                ))}
-              </ol>
-              <CampaignRouteMap
-                province={submittedDetails?.province || selected.location}
-                stops={submittedStops}
-                autoShow
-              />
-            </>
-          )}
-        </section>
-        <section className={managementStyles.reviewBlock}>
-          <h4>8. Trạng thái gửi duyệt</h4>
+          <h4>Trạng thái gửi duyệt</h4>
           <p>
             <strong>Trạng thái:</strong> {campaignStatuses[selected.status] || selected.status}
           </p>
@@ -353,7 +178,177 @@ export default function SubmittedCampaignDetails({
               : "—"}
           </p>
         </section>
+        {selected.status !== "PUBLISHED" && <CampaignConceptHistory campaign={selected} />}
       </section>
     </LocalizedTree>
   );
+}
+
+export function SubmittedCampaignBudget({ selected, submittedDetails }: Pick<Props, "selected" | "submittedDetails">) {
+  const hasBudget = selected.goalAmount > 0 || !!submittedDetails?.expenses?.length || !!submittedDetails?.methods?.length;
+  if (!hasBudget) return <section className={managementStyles.reviewBlock}>
+    <h3>Ngân sách</h3>
+    <p className="muted">Chờ cập nhật</p>
+  </section>;
+
+  return (
+    <section className={managementStyles.reviewBlock}>
+      <h3>Ngân sách và mục tiêu quyên góp</h3>
+      {submittedDetails?.expenses?.length ? (
+        <>
+          {submittedDetails.expenses.map((expense, index) => (
+            <p key={expense.id ?? index}>
+              <strong>Khoản chi {index + 1}:</strong> {expense.name} ·{" "}
+              {Number(expense.amount || 0).toLocaleString("vi-VN")} đ<br />
+              <strong>Mục đích:</strong> {expense.description}
+            </p>
+          ))}
+          <p>
+            <strong>Tổng mục tiêu quyên góp:</strong>{" "}
+            {Number(selected.goalAmount).toLocaleString("vi-VN")} đ
+          </p>
+        </>
+      ) : (
+        <p>
+          <strong>Mục tiêu quyên góp:</strong>{" "}
+          {Number(selected.goalAmount).toLocaleString("vi-VN")} đ
+        </p>
+      )}
+      <p>
+        <strong>Phương thức nhận tài trợ:</strong>{" "}
+        {submittedDetails?.methods?.join(", ") || "Chưa có thông tin"}
+      </p>
+      {submittedDetails?.methods?.includes("Chuyển khoản ngân hàng") && (
+        <>
+          <p>
+            <strong>Ngân hàng:</strong>{" "}
+            {submittedDetails.bank?.name === "Ngân hàng khác"
+              ? submittedDetails.bank?.otherName
+              : submittedDetails.bank?.name || "—"}
+          </p>
+          <p>
+            <strong>Tên chủ tài khoản:</strong> {submittedDetails.bank?.accountHolder || "—"}
+          </p>
+          <p>
+            <strong>Số tài khoản:</strong> {submittedDetails.bank?.accountNumber || "—"}
+          </p>
+        </>
+      )}
+      {submittedDetails?.methods?.includes("Mã QR ngân hàng") && (
+        <div>
+          <strong>Mã QR ngân hàng:</strong>
+          <div className={managementStyles.reviewImages}>
+            <img src="/campaign-bank-qr.jpg" alt="Mã QR ngân hàng" />
+          </div>
+        </div>
+      )}
+      {submittedDetails?.methods?.includes("Nhận hiện vật") && (
+        <>
+          <p>
+            <strong>Loại hiện vật:</strong> {submittedDetails.goods?.description || "—"}
+          </p>
+          <p>
+            <strong>Số lượng mục tiêu:</strong>{" "}
+            {submittedDetails.goods?.target || "Không đặt số lượng"}
+          </p>
+          <p>
+            <strong>Địa chỉ tiếp nhận:</strong> {submittedDetails.goods?.address || "—"}
+          </p>
+        </>
+      )}
+      <p>
+        <strong>Cam kết công khai thu chi:</strong>{" "}
+        {submittedDetails?.transparencyCommitment || "—"}
+      </p>
+    </section>
+  );
+}
+
+export function SubmittedCampaignSchedule({ selected, submittedDetails, submittedSchedules, submittedStops }:
+  Pick<Props, "selected" | "submittedDetails"> & Pick<CampaignManagementModel, "submittedSchedules" | "submittedStops">) {
+  return <>
+    <section className={managementStyles.reviewBlock}>
+      <h3>Ngày triển khai</h3>
+      {submittedSchedules.length === 0 ? (
+        <p>Chưa có lịch biểu.</p>
+      ) : (
+        submittedSchedules.map((day, index) => (
+          <div key={day.id}>
+            <p>
+              <strong>
+                Ngày {index + 1} · {day.title}
+              </strong>
+            </p>
+            <p>
+              <strong>Ngày diễn ra:</strong> {day.date}
+            </p>
+            <p>
+              <strong>Mô tả:</strong> {day.description}
+            </p>
+            <p>
+              <strong>Địa điểm:</strong> {submittedDetails?.province || selected.location}
+            </p>
+          </div>
+        ))
+      )}
+    </section>
+    <section className={managementStyles.reviewBlock}>
+      <h3>Hoạt động theo ngày</h3>
+      {submittedSchedules.length === 0 ? (
+        <p>Chưa có hoạt động.</p>
+      ) : (
+        submittedSchedules.map((day, index) => (
+          <div key={day.id}>
+            <p>
+              <strong>
+                Ngày {index + 1} · {day.title} · {day.date}
+              </strong>
+            </p>
+            {day.activities.map((activity, activityIndex) => (
+              <div key={activity.id}>
+                <p>
+                  <strong>Hoạt động {activityIndex + 1}:</strong> {activity.start} –{" "}
+                  {activity.end}
+                </p>
+                <p>
+                  <strong>Nội dung:</strong> {activity.detail}
+                </p>
+                <p>
+                  <strong>Xã/Phường:</strong> {activity.ward}
+                </p>
+                <p>
+                  <strong>Địa chỉ cụ thể:</strong> {activity.address || "Không có"}
+                </p>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+    </section>
+    <section className={managementStyles.reviewBlock}>
+      <h3>Địa điểm hoạt động và bản đồ</h3>
+      {submittedStops.length === 0 ? (
+        <p>Chưa có địa điểm hoạt động.</p>
+      ) : (
+        <>
+          <ol>
+            {submittedStops.map((stop, index) => (
+              <li key={index}>
+                <strong>
+                  Ngày {stop.day} · Hoạt động {stop.activity}: {stop.ward},{" "}
+                  {submittedDetails?.province || selected.location}
+                </strong>{" "}
+                · {stop.date} · {stop.start}
+              </li>
+            ))}
+          </ol>
+          <CampaignRouteMap
+            province={submittedDetails?.province || selected.location}
+            stops={submittedStops}
+            autoShow
+          />
+        </>
+      )}
+    </section>
+  </>;
 }

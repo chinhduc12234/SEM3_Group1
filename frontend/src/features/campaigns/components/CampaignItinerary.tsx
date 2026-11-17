@@ -19,12 +19,7 @@ export default function CampaignItinerary({
         {" "}
         <section className={styles.detailSection}>
           <div className={styles.storyDivider} />
-          <div className={styles.storyKicker}>05–06 / LỊCH BIỂU VÀ HOẠT ĐỘNG</div>
-          <h2>
-            Mỗi ngày
-            <br />
-            <em>một việc thiết thực.</em>
-          </h2>
+          <h2>Lịch trình và hoạt động</h2>
           {schedules.length === 0 ? (
             <p className={styles.sectionLead}>Chiến dịch chưa công khai lịch hoạt động chi tiết.</p>
           ) : (
@@ -36,7 +31,7 @@ export default function CampaignItinerary({
                     <div>
                       <h3>{schedule.title || `Lịch biểu ${dayIndex + 1}`}</h3>
                       <p>
-                        {date(schedule.date)} · {province}
+                        {[date(schedule.date), schedule.location || province].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                   </header>
@@ -52,13 +47,12 @@ export default function CampaignItinerary({
                             {activity.start || "—"} – {activity.end || "—"}
                           </div>
                           <div>
-                            <h4>Hoạt động {activityIndex + 1}</h4>
-                            <p>{activity.detail || "—"}</p>
-                            <p className={styles.activityPlace}>
+                            <h4>{activity.title || `Hoạt động ${activityIndex + 1}`}</h4>
+                            {activity.detail && <p>{activity.detail}</p>}
+                            {(activity.ward || province || activity.address) && <p className={styles.activityPlace}>
                               <strong>Địa điểm:</strong>{" "}
-                              {[activity.ward, province].filter(Boolean).join(", ")}
-                              {activity.address ? ` · ${activity.address}` : ""}
-                            </p>
+                              {[activity.ward, province, activity.address].filter(Boolean).join(" · ")}
+                            </p>}
                           </div>
                         </div>
                       ))
@@ -73,16 +67,7 @@ export default function CampaignItinerary({
         </section>
         <section className={styles.detailSection}>
           <div className={styles.storyDivider} />
-          <div className={styles.storyKicker}>07 / LỘ TRÌNH CHIẾN DỊCH</div>
-          <h2>
-            Nhìn rõ
-            <br />
-            <em>hành trình sẻ chia.</em>
-          </h2>
-          <p className={styles.sectionLead}>
-            Bản đồ hiển thị các xã/phường theo thứ tự ngày và giờ; chọn điểm để xem ngày, lịch biểu
-            và hoạt động tương ứng.
-          </p>
+          <h2>Bản đồ lịch trình</h2>
           {stops.length ? (
             <div className={styles.routeMapWrap}>
               <CampaignRouteMap province={province} stops={stops} autoShow />

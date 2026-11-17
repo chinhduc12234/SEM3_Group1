@@ -7,7 +7,7 @@ using Shared;
 
 namespace OrganizationService.Services;
 
-public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess access, IdentityDirectory directory)
+public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess access, IdentityDirectory directory, PersonnelProfiles profiles)
 {
 
     public async Task<object> Mine(OrganizationActor actor)
@@ -25,11 +25,13 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
         var owner = actor.IsAdmin || await db.Members.AnyAsync(x => x.OrganizationId == id && x.UserId == actor.UserId && x.IsActive && x.Role == "OWNER", cancellationToken);
         var query = db.Invitations.AsNoTracking().Where(x => x.OrganizationId == id);
         if (!owner) query = query.Where(x => x.InvitedBy == actor.UserId);
-        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((page - 1) * 20).Take(20).ToListAsync(cancellationToken);
+        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((page - 1) * 20).Take(20)
+            .Select(x => new { x.Id, x.InvitedUserId, x.PersonnelName, x.RolesJson, x.State, x.CreatedAt, x.ExpiresAt, x.Version })
+            .ToListAsync(cancellationToken);
         var accounts = await directory.Read(items.Select(x => x.InvitedUserId), cancellationToken);
         return new { totalCount = await query.CountAsync(cancellationToken), page, pageSize = 20, items = items.Select(x => new
         {
-            x.Id, x.InvitedUserId, fullName = accounts.GetValueOrDefault(x.InvitedUserId)?.FullName,
+            x.Id, x.InvitedUserId, fullName = x.PersonnelName ?? accounts.GetValueOrDefault(x.InvitedUserId)?.FullName,
             email = accounts.GetValueOrDefault(x.InvitedUserId)?.Email, roles = JsonSerializer.Deserialize<string[]>(x.RolesJson),
             state = x.State == "PENDING" && x.ExpiresAt <= DateTimeOffset.UtcNow ? "EXPIRED" : x.State,
             x.CreatedAt, x.ExpiresAt, version = Convert.ToBase64String(x.Version)
@@ -45,14 +47,33 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
         if (account.IsAdmin || account.Id == actor.UserId) throw new ApiException(400, "Không mời tài khoản admin hệ thống hoặc chính mình làm nhân sự.");
         if (await db.Members.AnyAsync(x => x.OrganizationId == id && x.UserId == account.Id, cancellationToken))
             throw new ApiException(409, "Tài khoản đã là thành viên. Hãy quản lý vai trò hoặc kích hoạt lại từ danh sách nhân sự.");
+        if (request.MemberId is Guid memberId)
+        {
+            var member = await db.Members.Include(x => x.Roles).SingleOrDefaultAsync(x => x.OrganizationId == id && x.Id == memberId, cancellationToken)
+                ?? throw new ApiException(404, "Không tìm thấy hồ sơ nhân sự.");
+            if (member.UserId is not null) throw new ApiException(409, "Hồ sơ này đã liên kết tài khoản.");
+            if (!roles.SequenceEqual(WorkspaceAccess.Roles(member)))
+                throw new ApiException(409, "Vai trò nhân sự đã thay đổi. Vui lòng tải lại hồ sơ.");
+            // Use the member's row version to serialize invitation creation against edits, linking and deletion.
+            member.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+        var profile = request.MemberId is not null || request.Profile is null
+            ? default : await profiles.Protect(id, request.Profile, cancellationToken);
         // Expire old pending invitations atomically before inserting a replacement.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await db.Invitations.Where(x => x.OrganizationId == id && x.InvitedUserId == account.Id && x.State == "PENDING" && x.ExpiresAt <= DateTimeOffset.UtcNow)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.State, "EXPIRED"), cancellationToken);
+        await db.Invitations.Where(x => x.OrganizationId == id &&
+                (x.InvitedUserId == account.Id || (request.MemberId != null && x.PersonnelMemberId == request.MemberId)) &&
+                x.State == "PENDING" && x.ExpiresAt <= DateTimeOffset.UtcNow)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.State, "EXPIRED")
+                .SetProperty(x => x.PersonnelPhone, (string?)null)
+                .SetProperty(x => x.ProtectedPersonnelIdentity, (string?)null)
+                .SetProperty(x => x.ProtectedPersonnelPhoto, (string?)null), cancellationToken);
         var invitation = new OrganizationInvitation { OrganizationId = id, InvitedUserId = account.Id, InvitedBy = actor.UserId,
-            RolesJson = JsonSerializer.Serialize(roles) };
+            PersonnelMemberId = request.MemberId, RolesJson = JsonSerializer.Serialize(roles),
+            PersonnelName = profile.Name, PersonnelPhone = profile.Phone,
+            ProtectedPersonnelIdentity = profile.Identity, ProtectedPersonnelPhoto = profile.Photo };
         db.Invitations.Add(invitation);
-        access.Audit(id, actor.UserId, "MEMBER_INVITED", new { invitationId = invitation.Id, userId = account.Id, roles });
+        access.Audit(id, actor.UserId, "MEMBER_INVITED", new { invitationId = invitation.Id, memberId = request.MemberId, userId = account.Id, roles });
         await access.Save(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new { invitation.Id, invitation.ExpiresAt };
@@ -73,9 +94,27 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
             var allowed = await access.RequireInvitationRoles(invitation.OrganizationId, invitation.InvitedBy, cancellationToken);
             WorkspaceAccess.EnsureInvitable(roles, allowed);
             if (await db.Members.AnyAsync(x => x.OrganizationId == invitation.OrganizationId && x.UserId == actor.UserId, cancellationToken)) throw new ApiException(409, "Bạn đã có tư cách thành viên.");
-            db.Members.Add(new OrganizationMember { OrganizationId = invitation.OrganizationId, UserId = actor.UserId, Role = roles[0],
-                Roles = roles.Select(r => new OrganizationMemberRole { Role = r }).ToList() });
+            if (invitation.PersonnelMemberId is Guid memberId)
+            {
+                var member = await db.Members.Include(x => x.Roles).SingleOrDefaultAsync(
+                    x => x.OrganizationId == invitation.OrganizationId && x.Id == memberId, cancellationToken);
+                if (member is null || member.UserId is not null)
+                    throw new ApiException(409, "Hồ sơ nhân sự đã được liên kết hoặc không còn tồn tại.");
+                if (!roles.SequenceEqual(WorkspaceAccess.Roles(member)))
+                    throw new ApiException(409, "Vai trò đã đổi sau khi gửi lời mời. Vui lòng đề nghị Owner gửi lời mời mới.");
+                member.UserId = actor.UserId;
+                member.IsActive = true;
+                member.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                db.Members.Add(new OrganizationMember { OrganizationId = invitation.OrganizationId, UserId = actor.UserId, Role = roles[0],
+                    Roles = roles.Select(r => new OrganizationMemberRole { Role = r }).ToList(), PersonnelName = invitation.PersonnelName,
+                    PersonnelPhone = invitation.PersonnelPhone, ProtectedPersonnelIdentity = invitation.ProtectedPersonnelIdentity,
+                    ProtectedPersonnelPhoto = invitation.ProtectedPersonnelPhoto });
+            }
         }
+        ClearPrivateProfile(invitation);
         access.Audit(invitation.OrganizationId, actor.UserId, request.Accept ? "INVITATION_ACCEPTED" : "INVITATION_DECLINED", new { invitation.Id });
         await access.Save(cancellationToken);
         return new { invitation.State };
@@ -94,9 +133,16 @@ public sealed class OrganizationInvitations(OrganizationDb db, WorkspaceAccess a
         WorkspaceAccess.Match(invitation.Version, request.Version);
         if (invitation.State != "PENDING") throw new ApiException(409, "Lời mời đã được xử lý.");
         invitation.State = "REVOKED";
+        ClearPrivateProfile(invitation);
         access.Audit(id, actor.UserId, "INVITATION_REVOKED", new { invitation.Id });
         await access.Save(cancellationToken);
         return new { invitation.State };
     }
 
+    private static void ClearPrivateProfile(OrganizationInvitation invitation)
+    {
+        invitation.PersonnelPhone = null;
+        invitation.ProtectedPersonnelIdentity = null;
+        invitation.ProtectedPersonnelPhoto = null;
+    }
 }

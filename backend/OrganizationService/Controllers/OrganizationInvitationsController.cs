@@ -20,7 +20,7 @@ public sealed class OrganizationInvitationsController(OrganizationInvitations or
     public async Task<IActionResult> List(Guid id, [FromQuery, Range(1, 100000)] int page = 1, CancellationToken cancellationToken = default) =>
         Ok(await organizationInvitations.List(CurrentActor, id, page, cancellationToken));
 
-    [HttpPost("{id:guid}/workspace/invitations")]
+    [HttpPost("{id:guid}/workspace/invitations"), RequestSizeLimit(512 * 1024)]
     public async Task<IActionResult> Invite(Guid id, InviteMemberRequest request, CancellationToken cancellationToken) =>
         Created("/api/organizations/invitations/mine", await organizationInvitations.Invite(CurrentActor, id, request, cancellationToken));
 

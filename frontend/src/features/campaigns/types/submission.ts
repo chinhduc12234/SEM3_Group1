@@ -1,5 +1,6 @@
 export type SubmissionActivity = {
   id: number;
+  title?: string;
   start: string;
   end: string;
   detail: string;
@@ -11,6 +12,7 @@ export type SubmissionSchedule = {
   title: string;
   description: string;
   date: string;
+  location?: string;
   activities: SubmissionActivity[];
 };
 export type CampaignSubmissionDetails = {

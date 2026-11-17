@@ -41,8 +41,35 @@ public sealed class OrganizationWorkspaceController(OrganizationWorkspaceService
     }
 
     [HttpGet("{id:guid}/workspace/members")]
-    public async Task<IActionResult> Members(Guid id, [FromQuery, Range(1, 100000)] int page = 1, CancellationToken cancellationToken = default) =>
-        Ok(await organizationMembers.Members(CurrentActor, id, page, cancellationToken));
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> Members(Guid id, [FromQuery, Range(1, 100000)] int page = 1,
+        [FromQuery, Range(1, 50)] int pageSize = 20, [FromQuery, MaxLength(120)] string? search = null,
+        [FromQuery, MaxLength(40)] string? role = null, [FromQuery, RegularExpression("^(ACTIVE|SUSPENDED|UNLINKED)$")] string? status = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(await organizationMembers.Members(CurrentActor, id, page, pageSize, search, role, status, cancellationToken));
+
+    [HttpPost("{id:guid}/workspace/members"), RequestSizeLimit(512 * 1024)]
+    public async Task<IActionResult> CreateMember(Guid id, CreateMemberRequest request, CancellationToken cancellationToken)
+    {
+        var memberId = await organizationMembers.Create(CurrentActor, id, request, cancellationToken);
+        return CreatedAtAction(nameof(MemberProfile), new { id, memberId }, new { id = memberId });
+    }
+
+    [HttpDelete("{id:guid}/workspace/members/{memberId:guid}")]
+    public async Task<IActionResult> DeleteMember(Guid id, Guid memberId, [FromQuery, Required, MaxLength(24)] string version, CancellationToken cancellationToken)
+    {
+        await organizationMembers.Delete(CurrentActor, id, memberId, version, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/workspace/members/{memberId:guid}/profile")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> MemberProfile(Guid id, Guid memberId, CancellationToken cancellationToken) =>
+        Ok(await organizationMembers.Profile(CurrentActor, id, memberId, cancellationToken));
+
+    [HttpPut("{id:guid}/workspace/members/{memberId:guid}/profile"), RequestSizeLimit(512 * 1024)]
+    public async Task<IActionResult> UpdateMemberProfile(Guid id, Guid memberId, MemberProfileRequest request, CancellationToken cancellationToken) =>
+        Ok(await organizationMembers.UpdateProfile(CurrentActor, id, memberId, request, cancellationToken));
 
     [HttpPut("{id:guid}/workspace/members/{memberId:guid}/roles")]
     public async Task<IActionResult> Roles(Guid id, Guid memberId, MemberRolesRequest request, CancellationToken cancellationToken) =>

@@ -12,11 +12,24 @@ public sealed class InternalEventsController(OrganizationEventReceiver receiver,
     [HttpPost]
     public async Task<IActionResult> Receive(OrganizationNotificationEvent item, CancellationToken ct)
     {
-        var expected = configuration["InternalApi:Key"];
-        var supplied = Request.Headers["X-Internal-Key"].ToString();
-        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(supplied) ||
-            !CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(expected)), SHA256.HashData(Encoding.UTF8.GetBytes(supplied)))) return Unauthorized();
+        if (!Authorized()) return Unauthorized();
         await receiver.Receive(item, ct);
         return NoContent();
+    }
+
+    [HttpPost("/internal/notifications/campaign-assignments")]
+    public async Task<IActionResult> ReceiveAssignment(CampaignAssignmentEvent item, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        await receiver.ReceiveAssignment(item, ct);
+        return NoContent();
+    }
+
+    private bool Authorized()
+    {
+        var expected = configuration["InternalApi:Key"];
+        var supplied = Request.Headers["X-Internal-Key"].ToString();
+        return !string.IsNullOrEmpty(expected) && !string.IsNullOrEmpty(supplied) &&
+            CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(expected)), SHA256.HashData(Encoding.UTF8.GetBytes(supplied)));
     }
 }

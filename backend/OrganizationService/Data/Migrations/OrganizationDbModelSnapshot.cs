@@ -314,6 +314,23 @@ namespace OrganizationService.Data.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("PersonnelMemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PersonnelName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("PersonnelPhone")
+                        .HasMaxLength(26)
+                        .HasColumnType("nvarchar(26)");
+
+                    b.Property<string>("ProtectedPersonnelIdentity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProtectedPersonnelPhoto")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("RolesJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -336,6 +353,10 @@ namespace OrganizationService.Data.Migrations
                     b.HasIndex("OrganizationId", "InvitedUserId")
                         .IsUnique()
                         .HasFilter("[State] = 'PENDING'");
+
+                    b.HasIndex("OrganizationId", "PersonnelMemberId")
+                        .IsUnique()
+                        .HasFilter("[State] = 'PENDING' AND [PersonnelMemberId] IS NOT NULL");
 
                     b.ToTable("Invitations");
                 });
@@ -413,6 +434,20 @@ namespace OrganizationService.Data.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("PersonnelName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("PersonnelPhone")
+                        .HasMaxLength(26)
+                        .HasColumnType("nvarchar(26)");
+
+                    b.Property<string>("ProtectedPersonnelIdentity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProtectedPersonnelPhoto")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -421,7 +456,7 @@ namespace OrganizationService.Data.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<byte[]>("Version")
@@ -433,7 +468,8 @@ namespace OrganizationService.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationId", "UserId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("Members");
                 });

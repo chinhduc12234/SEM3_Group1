@@ -48,7 +48,9 @@ function Inbox() {
     try {
       await api(`/api/notifications/${item.id}/read`, { method: "PUT" });
       await refresh();
-      if (/^\/(?:admin\/)?organizations\/[0-9a-f-]+(?:\/manage)?$/.test(item.url))
+      const organizationUrl = /^\/(?:admin\/)?organizations\/[0-9a-f-]+(?:\/manage)?$/;
+      const campaignUrl = /^\/organizations\/[0-9a-f-]{36}\/manage\/campaigns\?campaign=[0-9a-f-]{36}$/;
+      if (organizationUrl.test(item.url) || (item.kind === "CAMPAIGN_ASSIGNED" && campaignUrl.test(item.url)))
         router.push(item.url);
     } catch (ex) {
       setError((ex as Error).message);

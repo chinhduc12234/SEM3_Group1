@@ -4,9 +4,23 @@ using Shared;
 
 namespace CampaignService.Services;
 
-public sealed record OrganizationPermission(Guid OrganizationId, string OrganizationName, bool IsActive, string[] Roles);
+public sealed record OrganizationPermission(Guid OrganizationId, string OrganizationName, bool IsActive, string[] Roles, Guid? MembershipId);
+public sealed record CampaignMember(Guid MembershipId, Guid UserId, string FullName, string[] Roles);
 public sealed class OrganizationAccess(IHttpClientFactory clients) : IOrganizationAccess
 {
+    public async Task<CampaignMember[]> Members(Guid org, CancellationToken ct)
+    {
+        try
+        {
+            using var response = await clients.CreateClient("organization").GetAsync($"internal/organizations/{org}/campaign-members", ct);
+            if (!response.IsSuccessStatusCode) throw new ApiException(503, "Chưa tải được nhân sự của tổ chức.");
+            return await response.Content.ReadFromJsonAsync<CampaignMember[]>(ct)
+                ?? throw new ApiException(503, "Danh sách nhân sự không hợp lệ.");
+        }
+        catch (HttpRequestException) { throw new ApiException(503, "Không kết nối được dịch vụ tổ chức."); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ApiException(503, "Tải danh sách nhân sự quá thời gian."); }
+    }
+
     public async Task<OrganizationPermission> Require(Guid org, Guid actor, string[] allowed, CancellationToken ct)
     {
         try

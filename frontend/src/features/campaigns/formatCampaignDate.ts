@@ -1,4 +1,4 @@
-export function formatCampaignDate(value?: string) {
+export function formatCampaignDate(value?: string | null) {
   if (!value) return "—";
   const [year, month, day] = value.slice(0, 10).split("-");
   return year && month && day ? `${day}/${month}/${year}` : value;

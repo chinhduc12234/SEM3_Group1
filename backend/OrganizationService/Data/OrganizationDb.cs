@@ -70,13 +70,17 @@ public sealed class OrganizationMember
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrganizationId { get; set; }
     public Organization Organization { get; set; } = null!;
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
     public string Role { get; set; } = "OWNER";
     public bool IsActive { get; set; } = true;
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public byte[] Version { get; set; } = [];
     public List<OrganizationMemberRole> Roles { get; set; } = [];
+    public string? PersonnelName { get; set; }
+    public string? PersonnelPhone { get; set; }
+    public string? ProtectedPersonnelIdentity { get; set; }
+    public string? ProtectedPersonnelPhoto { get; set; }
 }
 // Only logical user IDs cross the service boundary; no Identity database reference exists here.
 public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : DbContext(options)
@@ -112,6 +116,8 @@ public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : D
         b.Entity<OrganizationReview>().Property(x => x.Action).HasMaxLength(40);
         b.Entity<OrganizationReview>().Property(x => x.Reason).HasMaxLength(2000);
         b.Entity<OrganizationMember>().Property(x => x.Role).HasMaxLength(40);
+        b.Entity<OrganizationMember>().Property(x => x.PersonnelName).HasMaxLength(120);
+        b.Entity<OrganizationMember>().Property(x => x.PersonnelPhone).HasMaxLength(26);
         b.Entity<OrganizationMember>().HasIndex(x => new { x.OrganizationId, x.UserId }).IsUnique();
         b.Entity<EmailNotification>().Property(x => x.Sequence).UseIdentityColumn();
         b.Entity<EmailNotification>().HasIndex(x => x.Sequence).IsUnique();
@@ -132,8 +138,12 @@ public sealed class OrganizationDb(DbContextOptions<OrganizationDb> options) : D
         b.Entity<OrganizationWorkspace>().Property(x => x.DisplayName).HasMaxLength(200);
         b.Entity<OrganizationInvitation>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
         b.Entity<OrganizationInvitation>().Property(x => x.State).HasMaxLength(20);
+        b.Entity<OrganizationInvitation>().Property(x => x.PersonnelName).HasMaxLength(120);
+        b.Entity<OrganizationInvitation>().Property(x => x.PersonnelPhone).HasMaxLength(26);
         b.Entity<OrganizationInvitation>().Property(x => x.Version).IsRowVersion();
         b.Entity<OrganizationInvitation>().HasIndex(x => new { x.OrganizationId, x.InvitedUserId }).IsUnique().HasFilter("[State] = 'PENDING'");
+        b.Entity<OrganizationInvitation>().HasIndex(x => new { x.OrganizationId, x.PersonnelMemberId }).IsUnique()
+            .HasFilter("[State] = 'PENDING' AND [PersonnelMemberId] IS NOT NULL");
         b.Entity<OrganizationInvitation>().HasIndex(x => new { x.InvitedUserId, x.State });
         b.Entity<OrganizationActivity>().HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId);
         b.Entity<OrganizationActivity>().Property(x => x.Action).HasMaxLength(60);

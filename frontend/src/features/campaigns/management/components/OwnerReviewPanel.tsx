@@ -7,8 +7,7 @@ export default function OwnerReviewPanel({ busy, note, setNote, reviewCampaign }
   return (
     <LocalizedTree>
       <section>
-        <h3>Owner xét duyệt</h3>
-        <p className="muted">Chiến dịch đang chờ Chủ tổ chức xét duyệt.</p>
+          <h3>Duyệt ý tưởng</h3>
         <label>
           Nhận xét / lý do
           <textarea value={note} maxLength={2000} onChange={(e) => setNote(e.target.value)} />
@@ -16,7 +15,7 @@ export default function OwnerReviewPanel({ busy, note, setNote, reviewCampaign }
         <div className="actions">
           {(
             [
-              ["APPROVE", "Phê duyệt và công khai"],
+              ["APPROVE", "Chấp thuận chủ trương"],
               ["REQUEST_CHANGES", "Yêu cầu chỉnh sửa"],
               ["REJECT", "Từ chối"],
             ] as const
