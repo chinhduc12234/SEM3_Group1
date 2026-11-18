@@ -8,27 +8,27 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace IdentityService.Controllers;
 
-[ApiController, Route("api/auth"), EnableRateLimiting("auth")]
+[ApiController, Route("api/auth"), EnableRateLimiting("organization")]
 public sealed class AuthController(AccountAuthentication authentication, IWebHostEnvironment environment) : ControllerBase
 {
     private const string CookieName = "giveaid_refresh";
 
-    [HttpPost("register")]
+    [HttpPost("register"), EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         await authentication.Register(request);
         return StatusCode(201, new { message = "Đăng ký thành công. Vui lòng đăng nhập." });
     }
 
-    [HttpPost("login")]
+    [HttpPost("login"), EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginRequest request) =>
         SessionResponse(await authentication.Login(request));
 
-    [HttpPost("refresh")]
+    [HttpPost("refresh"), EnableRateLimiting("auth-session")]
     public async Task<IActionResult> Refresh() =>
         SessionResponse(await authentication.Refresh(Request.Cookies[CookieName]));
 
-    [HttpPost("logout")]
+    [HttpPost("logout"), EnableRateLimiting("auth-session")]
     public async Task<IActionResult> Logout()
     {
         var sid = User.Identity?.IsAuthenticated == true && Guid.TryParse(User.FindFirstValue("sid"), out var value)
@@ -84,7 +84,7 @@ public sealed class AuthController(AccountAuthentication authentication, IWebHos
         return NoContent();
     }
 
-    [Authorize, HttpPost("password")]
+    [Authorize, HttpPost("password"), EnableRateLimiting("auth")]
     public async Task<IActionResult> ChangePassword(PasswordRequest request)
     {
         await authentication.ChangePassword(User.FindFirstValue("sub")!, request);
@@ -94,9 +94,7 @@ public sealed class AuthController(AccountAuthentication authentication, IWebHos
 
     private IActionResult SessionResponse(SessionCredentials session)
     {
-        var options = CookieOptions();
-        options.Expires = session.ExpiresAt;
-        Response.Cookies.Append(CookieName, session.RefreshToken, options);
+        Response.Cookies.Append(CookieName, session.RefreshToken, CookieOptions());
         return Ok(session.Response);
     }
 

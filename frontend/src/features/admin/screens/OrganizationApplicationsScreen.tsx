@@ -1,7 +1,7 @@
 "use client";
 import adminStyles from "@/features/admin/Admin.module.css";
 import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Protected from "@/features/auth/components/Protected";
@@ -21,10 +21,9 @@ type Result = {
 };
 function Administration() {
   const params = useSearchParams();
-  const initial = params.get("status");
-  const [status, setStatus] = useState(
-    initial !== null && (initial === "" || initial in statuses) ? initial : "PENDING_REVIEW",
-  );
+  const requestedStatus = params.get("status") ?? "";
+  const defaultStatus = Object.hasOwn(statuses, requestedStatus) ? requestedStatus : "";
+  const [status, setStatus] = useState(defaultStatus);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -32,13 +31,19 @@ function Administration() {
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Result["items"][number] | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleted, setDeleted] = useState(false);
+  const deleteDialog = useRef<HTMLDialogElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    const value = params.get("status");
-    if (value !== null && (value === "" || value in statuses)) {
-      setStatus(value);
-      setPage(1);
-    }
-  }, [params]);
+    if (selected && !deleteDialog.current?.open) deleteDialog.current?.showModal();
+  }, [selected]);
+  useEffect(() => {
+    setStatus(defaultStatus);
+    setPage(1);
+  }, [params, defaultStatus]);
   useEffect(() => {
     let live = true;
     setData(null);
@@ -48,7 +53,10 @@ function Administration() {
       "/api/organizations?" + new URLSearchParams({ page: String(page), status, search: query }),
     )
       .then((r) => {
-        if (live) setData(r);
+        if (!live) return;
+        const lastPage = Math.max(1, Math.ceil(r.totalCount / 20));
+        if (page > lastPage) setPage(lastPage);
+        else setData(r);
       })
       .catch((ex) => {
         if (live) setError(ex.message);
@@ -66,13 +74,31 @@ function Administration() {
     setStatus("");
     setPage(1);
   }
+  async function confirmDelete() {
+    if (!selected || deleting) return;
+
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api<void>(`/api/organizations/${selected.id}`, { method: "DELETE" });
+      deleteDialog.current?.close();
+      setDeleted(true);
+      setLoading(true);
+      setRefresh((value) => value + 1);
+      heading.current?.focus();
+    } catch (ex) {
+      setDeleteError(ex instanceof Error ? ex.message : "Không thể xóa tổ chức. Vui lòng thử lại.");
+    } finally {
+      setDeleting(false);
+    }
+  }
   return (
     <LocalizedTree>
       <>
         <div className={adminStyles.pageHeading}>
           <div>
             <p className={adminStyles.eyebrow}>KẾT NỐI & ĐỒNG HÀNH</p>
-            <h1>Quản trị tổ chức</h1>
+            <h1 ref={heading} tabIndex={-1}>Quản trị tổ chức</h1>
             <p>Xem hồ sơ, đối chiếu giấy tờ và gửi phản hồi đến tổ chức.</p>
           </div>
           <button className="secondary" disabled={loading} onClick={() => setRefresh((x) => x + 1)}>
@@ -80,6 +106,9 @@ function Administration() {
             Làm mới
           </button>
         </div>
+        {deleted && (
+          <p className="notice success" role="status">Đã xóa tổ chức.</p>
+        )}
         <section className={adminStyles.directory}>
           <div className={adminStyles.statusTabs} role="group" aria-label="Lọc theo trạng thái">
             {[["", "Tất cả"], ...Object.entries(statuses)].map(([key, label]) => (
@@ -182,12 +211,26 @@ function Administration() {
                             <span className={"badge " + item.status}>{statuses[item.status]}</span>
                           </td>
                           <td>
-                            <Link
-                              className={adminStyles.rowLink}
-                              href={"/admin/organizations/" + item.id}
-                            >
-                              Xem hồ sơ <Icon name="arrow" size={16} />
-                            </Link>
+                            <div className={adminStyles.organizationActions}>
+                              <Link
+                                className={adminStyles.viewOrganization}
+                                href={"/admin/organizations/" + item.id}
+                              >
+                                Xem hồ sơ <Icon name="arrow" size={16} />
+                              </Link>
+                              <button
+                                type="button"
+                                className={adminStyles.deleteOrganization}
+                                aria-haspopup="dialog"
+                                onClick={() => {
+                                  setSelected(item);
+                                  setDeleted(false);
+                                  setDeleteError("");
+                                }}
+                              >
+                                <Icon name="trash" size={16} /> Xóa tổ chức
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -236,6 +279,39 @@ function Administration() {
             )
           )}
         </section>
+        <dialog
+          ref={deleteDialog}
+          className={adminStyles.deleteDialog}
+          aria-labelledby="delete-organization-title"
+          aria-describedby="delete-organization-description"
+          onClose={() => setSelected(null)}
+          onCancel={(event) => {
+            if (deleting) event.preventDefault();
+          }}
+        >
+          <h2 id="delete-organization-title">Xóa tổ chức?</h2>
+          <div id="delete-organization-description">
+            <p className={adminStyles.deleteTarget}>
+              <strong>{selected?.legalName}</strong>
+              <span>{selected?.registrationNumber}</span>
+            </p>
+            <p>Hồ sơ, giấy tờ và quyền truy cập không gian làm việc của tổ chức sẽ bị xóa vĩnh viễn.</p>
+          </div>
+          {deleteError && <p className="notice error" role="alert">{deleteError}</p>}
+          <div className={adminStyles.deleteDialogActions}>
+            <button
+              type="button"
+              className="secondary"
+              disabled={deleting}
+              onClick={() => deleteDialog.current?.close()}
+            >
+              Hủy
+            </button>
+            <button type="button" className="danger" disabled={deleting} onClick={confirmDelete}>
+              {deleting ? "Đang xóa…" : "Xóa tổ chức"}
+            </button>
+          </div>
+        </dialog>
         <div className={adminStyles.directoryNote}>
           <Icon name="shield" size={18} />
           <p>

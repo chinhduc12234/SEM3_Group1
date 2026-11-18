@@ -5,4 +5,4 @@ public sealed record UserProfileInfo(Guid Id, string? Email, string FullName, st
     string? Address, DateOnly? DateOfBirth, bool HasAvatar);
 public sealed record AvatarContent(byte[] Content, string ContentType);
 public sealed record AuthResponse(string AccessToken, int ExpiresIn, AccountInfo User);
-public sealed record SessionCredentials(string RefreshToken, DateTimeOffset ExpiresAt, AuthResponse Response);
+public sealed record SessionCredentials(string RefreshToken, AuthResponse Response);

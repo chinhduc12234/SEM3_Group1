@@ -14,11 +14,19 @@ export default function Protected({
   children: ReactNode;
   admin?: boolean;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionUnavailable, retrySession } = useAuth();
   const router = useRouter();
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
+    if (!loading && !sessionUnavailable && !user) router.replace("/login");
+  }, [loading, sessionUnavailable, user, router]);
+  if (sessionUnavailable)
+    return (
+      <LocalizedTree>
+        <div className="notice error" role="alert">
+          Không thể kiểm tra phiên đăng nhập. <button type="button" className="quiet" onClick={retrySession}>Thử lại</button>
+        </div>
+      </LocalizedTree>
+    );
   if (loading || !user)
     return (
       <LocalizedTree>

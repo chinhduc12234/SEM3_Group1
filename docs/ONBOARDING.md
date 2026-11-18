@@ -66,6 +66,11 @@ Create/update nhận {profile,identityNumber,consent,version}. version trả tro
 
 - Password dùng ASP.NET Core Identity PBKDF2 HMAC-SHA512 210.000 vòng với salt riêng; không mã hóa có thể giải ngược và không lưu plaintext. Tối thiểu 12 ký tự, hoa/thường/số/ký tự đặc biệt. Sai 5 lần khóa đăng nhập 15 phút.
 - JWT RS256 tồn tại 5 phút và chỉ nằm trong memory của frontend; refresh token ngẫu nhiên ở cookie HttpOnly, SameSite Strict, Secure ngoài Development. SQL chỉ lưu SHA-256 của refresh token; rowversion đảm bảo một lần refresh chỉ có một bên thắng.
+- Refresh token dùng cookie phiên trình duyệt. Máy chủ giới hạn phiên mới ở 12 giờ. Làm mới xoay refresh token và giữ hạn ban đầu.
+- Đổi mật khẩu thu hồi các phiên hiện tại của tài khoản. Đăng xuất thu hồi phiên đang dùng và thông báo cho các tab cùng origin qua `BroadcastChannel`. Khi Redis mất dữ liệu phiên, đăng nhập lại để cấp phiên mới.
+- Production cần HTTPS ở gateway, môi trường ASP.NET Core `Production` và Redis lưu bền dữ liệu với TTL. Giữ cùng origin cho web, API và SignalR. Triển khai web, Identity và Notification cùng đợt để đổi transport realtime đồng bộ. Các thay đổi xác thực này dùng schema hiện có.
+
+Chạy `node scripts/check-auth-sessions.mjs` trên Docker Compose local. Script tạo tài khoản thử nghiệm riêng. Đặt `GIVEAID_PLAYWRIGHT_MODULE` thành đường dẫn tuyệt đối tới `playwright-core` để kiểm thử trên Chrome đã cài. Đặt `GIVEAID_TEST_RESTART_IDENTITY=1` khi muốn kiểm tra phiên qua lần khởi động lại IdentityService local.
 - Redis là registry thu hồi phiên, được kiểm tra bởi các service mà không gọi Identity database. Logout/đổi mật khẩu làm token cũ mất hiệu lực. Redis không khả dụng thì xác thực thất bại; mất registry yêu cầu đăng nhập lại, không tự khôi phục phiên từ SQL.
 - API giới hạn request xác thực theo ngân sách mỗi instance; UserManager quản lý lockout. Không ghi password/token/nội dung hồ sơ vào log request. Identity và Organization dùng login SQL riêng; API không được tạo/sửa schema và không được đọc database service khác.
 - Số định danh và nội dung tệp được bảo vệ bằng Data Protection, keyring của Organization lưu bền ở volume organization-keys. Metadata và thông tin liên hệ không công khai, chỉ người nộp/Admin đọc. Giữ keyring cùng bản sao lưu database; triển khai thực cần bảo vệ keyring bằng secret manager/certificate và HTTPS.

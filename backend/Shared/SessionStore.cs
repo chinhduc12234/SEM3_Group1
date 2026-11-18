@@ -11,7 +11,8 @@ public sealed class SessionStore(IDistributedCache cache)
     public async Task<bool> Exists(Guid id, Guid userId) => await cache.GetStringAsync($"auth:session:{id:N}") == userId.ToString();
     public async Task<bool> IsActive(ClaimsPrincipal principal, CancellationToken ct)
     {
-        if (!Guid.TryParse(principal.FindFirstValue("sid"), out var id)) return false;
-        return await cache.GetStringAsync($"auth:session:{id:N}", ct) == principal.FindFirstValue("sub");
+        var userId = principal.FindFirstValue("sub");
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(principal.FindFirstValue("sid"), out var id)) return false;
+        return await cache.GetStringAsync($"auth:session:{id:N}", ct) == userId;
     }
 }

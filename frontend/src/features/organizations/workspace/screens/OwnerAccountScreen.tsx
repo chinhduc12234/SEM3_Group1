@@ -73,9 +73,16 @@ export default function OwnerAccountScreen() {
   return (
     <LocalizedTree>
       <div className={workspaceStyles.ownerAccountPage}>
-        <p className="eyebrow">TÀI KHOẢN & BẢO MẬT</p>
-        <h1>Hồ sơ tài khoản Owner</h1>
-        <p className="muted">Quản lý thông tin đăng nhập và bảo mật cho tài khoản của bạn.</p>
+        <header className={workspaceStyles.ownerAccountHero}>
+          <div>
+            <p className="eyebrow">TÀI KHOẢN & BẢO MẬT</p>
+            <h1>Hồ sơ tài khoản Owner</h1>
+            <p>Quản lý thông tin đăng nhập và bảo mật cho tài khoản của bạn.</p>
+          </div>
+          <div className={workspaceStyles.ownerAccountHeroMark} aria-hidden="true">
+            <span />
+          </div>
+        </header>
 
         <section className={`panel ${workspaceStyles.ownerAccountIdentity}`}>
           <div className={workspaceStyles.ownerAccountAvatar} aria-hidden="true">
@@ -89,96 +96,101 @@ export default function OwnerAccountScreen() {
           <span className={workspaceStyles.ownerAccountBadge}>OWNER</span>
         </section>
 
-        <section className="panel">
-          <h2>Thông tin tài khoản</h2>
-          <p className="muted">Email được dùng để đăng nhập và nhận thông báo quan trọng.</p>
-          <form onSubmit={saveProfile}>
-            <div className="form-grid">
-              <label>
-                Họ và tên
-                <input
-                  required
-                  minLength={2}
-                  maxLength={200}
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              <label>
-                Email đăng nhập
-                <input
-                  required
-                  type="email"
-                  maxLength={256}
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </label>
+        <div className={workspaceStyles.ownerAccountGrid}>
+          <section className={`panel ${workspaceStyles.ownerAccountPanel}`}>
+            <div className={workspaceStyles.ownerAccountSectionHeading}>
+              <span>01</span>
+              <div>
+                <h2>Thông tin tài khoản</h2>
+                <p>Email được dùng để đăng nhập và nhận thông báo quan trọng.</p>
+              </div>
             </div>
-            <button disabled={busy || !name.trim() || !email.trim()}>
-              {busy ? "Đang lưu…" : "Lưu thay đổi"}
-            </button>
-          </form>
-        </section>
+            <form onSubmit={saveProfile}>
+              <div className="form-grid">
+                <label>
+                  Họ và tên
+                  <input
+                    required
+                    minLength={2}
+                    maxLength={200}
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Email đăng nhập
+                  <input
+                    required
+                    type="email"
+                    maxLength={256}
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button disabled={busy || !name.trim() || !email.trim()}>
+                {busy ? "Đang lưu…" : "Lưu thay đổi"}
+              </button>
+            </form>
+          </section>
 
-        <section className="panel">
-          <h2>Đổi mật khẩu</h2>
-          <p className="muted">
-            Mật khẩu không được hiển thị. Sau khi đổi, các phiên đăng nhập hiện tại sẽ bị thu hồi.
-          </p>
-          <form onSubmit={changePassword}>
-            <div className="form-grid">
-              <label className="full">
-                Mật khẩu hiện tại
-                <input
-                  required
-                  type="password"
-                  name="currentPassword"
-                  autoComplete="current-password"
-                  maxLength={128}
-                />
-              </label>
-              <label>
-                Mật khẩu mới
-                <input
-                  required
-                  type="password"
-                  name="newPassword"
-                  autoComplete="new-password"
-                  minLength={12}
-                  maxLength={128}
-                />
-                <small>Ít nhất 12 ký tự.</small>
-              </label>
-              <label>
-                Nhập lại mật khẩu mới
-                <input
-                  required
-                  type="password"
-                  name="confirmPassword"
-                  autoComplete="new-password"
-                  minLength={12}
-                  maxLength={128}
-                />
-              </label>
+          <section className={`panel ${workspaceStyles.ownerAccountPanel} ${workspaceStyles.ownerSecurityPanel}`}>
+            <div className={workspaceStyles.ownerAccountSectionHeading}>
+              <span>02</span>
+              <div>
+                <h2>Đổi mật khẩu</h2>
+                <p>Mật khẩu không được hiển thị. Các phiên đăng nhập sẽ kết thúc sau khi đổi.</p>
+              </div>
             </div>
-            <button className="secondary" disabled={busy}>
-              Đổi mật khẩu
-            </button>
-          </form>
-        </section>
-        {error && (
-          <p className="notice error" role="alert">
-            {error}
-          </p>
-        )}
-        {message && (
-          <p className="notice success" role="status">
-            {message}
-          </p>
-        )}
+            <form method="post" onSubmit={changePassword}>
+              <div className="form-grid">
+                <label className="full">
+                  Mật khẩu hiện tại
+                  <input
+                    required
+                    type="password"
+                    name="currentPassword"
+                    id="owner-current-password"
+                    autoComplete="current-password"
+                    maxLength={128}
+                  />
+                </label>
+                <label>
+                  Mật khẩu mới
+                  <input
+                    required
+                    type="password"
+                    name="newPassword"
+                    id="owner-new-password"
+                    autoComplete="new-password"
+                    minLength={12}
+                    maxLength={128}
+                  />
+                  <small>Ít nhất 12 ký tự.</small>
+                </label>
+                <label>
+                  Nhập lại mật khẩu mới
+                  <input
+                    required
+                    type="password"
+                    name="confirmPassword"
+                    id="owner-confirm-password"
+                    autoComplete="new-password"
+                    minLength={12}
+                    maxLength={128}
+                  />
+                </label>
+              </div>
+              <button className="secondary" disabled={busy}>
+                {busy ? "Đang cập nhật…" : "Cập nhật mật khẩu"}
+              </button>
+            </form>
+          </section>
+        </div>
+        {error && <p className="notice error" role="alert">{error}</p>}
+        {message && <p className="notice success" role="status">{message}</p>}
       </div>
     </LocalizedTree>
   );

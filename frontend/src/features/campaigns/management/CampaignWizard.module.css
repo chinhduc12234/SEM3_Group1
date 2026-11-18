@@ -100,6 +100,7 @@
 .navigation li button {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.62rem;
   width: 100%;
   min-height: 2.85rem;
@@ -360,5 +361,392 @@
 
   .footer {
     flex-wrap: wrap;
+  }
+}
+
+/* Campaign concept wizard polish */
+.pageHeader {
+  max-width: 80rem;
+  margin-bottom: clamp(1rem, 2.2vw, 1.6rem);
+}
+
+.pageHeader h2 {
+  margin-top: 0.45rem;
+  color: #153f30;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -0.045em;
+}
+
+.layout {
+  grid-template-columns: minmax(14rem, 16rem) minmax(0, 1fr);
+  max-width: 80rem;
+  gap: clamp(1rem, 2.2vw, 1.75rem);
+}
+
+.navigation,
+.layout .card {
+  border-color: #dce8df;
+  border-radius: 1.2rem;
+  box-shadow: 0 14px 34px rgb(24 63 41 / 6%);
+}
+
+.navigation {
+  position: sticky;
+  top: 1rem;
+  padding: 1rem;
+}
+
+.progressHeading {
+  padding: 0.35rem 0.45rem 1rem;
+  color: #60766a;
+}
+
+.progressHeading strong {
+  color: #345b45;
+  font-size: 0.84rem;
+}
+
+.progressHeading progress {
+  height: 0.48rem;
+  background: #edf3ee;
+}
+
+.navigation ol {
+  gap: 0.42rem;
+}
+
+.navigation li button {
+  justify-content: flex-start;
+  gap: 0.68rem;
+  min-height: 2.95rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.75rem;
+  color: #587063;
+  font-size: 0.84rem;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.stepNumber {
+  width: 1.7rem;
+  height: 1.7rem;
+  flex: 0 0 1.7rem;
+  border: 1px solid #dfebe1;
+  color: #567461;
+  font-weight: 750;
+}
+
+.navigation li button[aria-current="step"] {
+  border-color: #cfe5d4;
+  background: linear-gradient(105deg, #e9f5ed, #f5faf5);
+  box-shadow: inset 3px 0 #278252;
+  color: #174e37;
+}
+
+.navigation li button[aria-current="step"] .stepNumber {
+  border-color: #17624a;
+}
+
+.navigation li button:focus-visible {
+  outline: 3px solid #9bcaa5;
+  outline-offset: 2px;
+}
+
+.layout .card {
+  overflow: hidden;
+}
+
+.cardHeading {
+  padding-block: clamp(1.25rem, 2.5vw, 1.75rem) 1.15rem;
+  background: linear-gradient(105deg, #fff 0%, #fbfdfb 100%);
+}
+
+.cardHeading h3 {
+  color: #194832;
+  font-size: clamp(1.28rem, 2vw, 1.55rem);
+}
+
+.cardHeading p {
+  margin-top: 0.55rem;
+  color: #738176;
+}
+
+.cardBody {
+  padding-block: clamp(1.2rem, 2.5vw, 1.75rem);
+}
+
+.fields {
+  gap: 1.15rem 1.3rem;
+}
+
+.fields label {
+  color: #345444;
+  font-size: 0.88rem;
+}
+
+.fields label :is(input, select, textarea) {
+  border-color: #d3e0d6;
+  border-radius: 0.7rem;
+  background: #fcfdfc;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.fields label :is(input, select, textarea):focus {
+  outline: 3px solid rgb(64 145 91 / 18%);
+  outline-offset: 1px;
+  border-color: #4e9567;
+  background: #fff;
+}
+
+.fields label.attachment {
+  padding: 1rem;
+  border-color: #c7dccb;
+  border-radius: 0.85rem;
+  background: linear-gradient(140deg, #fbfdfb, #f4f9f4);
+}
+
+.footer {
+  padding-block: 1rem;
+  background: #f7faf7;
+}
+
+.footer button {
+  min-height: 44px;
+  border-radius: 0.7rem;
+}
+
+.nextActions > button:last-child {
+  box-shadow: 0 5px 12px rgb(23 98 74 / 14%);
+}
+
+@media (max-width: 760px) {
+  .navigation ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .navigation li:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .navigation li button {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 44px;
+    text-align: left;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .navigation {
+    position: static;
+  }
+}
+
+@media (max-width: 620px) {
+  .navigation {
+    padding: 0.9rem;
+  }
+
+  .navigation ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .navigation li:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .navigation li button {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    height: 100%;
+    min-height: 44px;
+    padding: 0.45rem;
+    text-align: left;
+    font-size: 0.76rem;
+  }
+
+  .stepNumber {
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-basis: 1.6rem;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .footer > button,
+  .nextActions > button {
+    flex: 1 1 auto;
+  }
+
+  .nextActions {
+    width: 100%;
+    margin-inline-start: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .navigation ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .navigation li:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation li button,
+  .fields label :is(input, select, textarea) {
+    transition: none;
+  }
+}
+
+/* A more distinctive, guided entry point for the campaign workflow. */
+.pageHeader {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 1.1rem;
+  max-width: 80rem;
+  margin-bottom: clamp(1.15rem, 2.5vw, 1.8rem);
+  padding: clamp(1.35rem, 3vw, 2.3rem);
+  border: 1px solid #246b50;
+  border-radius: 1.4rem;
+  background:
+    radial-gradient(circle at 90% 110%, rgb(98 184 128 / 33%), transparent 31%),
+    linear-gradient(118deg, #0d4936 0%, #126144 57%, #18734e 100%);
+  box-shadow: 0 18px 42px rgb(16 67 47 / 17%);
+  color: #fff;
+}
+
+.pageHeader::after {
+  position: absolute;
+  z-index: -1;
+  right: -3rem;
+  bottom: -6rem;
+  width: 18rem;
+  height: 18rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.8rem rgb(255 255 255 / 4%), 0 0 0 3.6rem rgb(255 255 255 / 3%);
+  content: "";
+  pointer-events: none;
+}
+
+.pageHeader button.back {
+  justify-self: start;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 9%);
+  color: #f5fff7;
+  backdrop-filter: blur(8px);
+}
+
+.pageHeader button.back:hover {
+  background: rgb(255 255 255 / 17%);
+  color: #fff;
+}
+
+.titleGroup {
+  max-width: 48rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.6rem;
+  color: #bfe4c9;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.pageHeader h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.75rem, 3vw, 2.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+[data-ow-shell]:global(.ga-dashboard) [data-ow-content] .pageHeader h2 {
+  color: #fff;
+}
+
+.intro {
+  max-width: 42rem;
+  margin: 0.75rem 0 0;
+  color: rgb(244 255 247 / 84%);
+  font-size: clamp(0.88rem, 1.35vw, 1rem);
+  line-height: 1.6;
+}
+
+.navigation,
+.layout .card {
+  border-radius: 1.25rem;
+  box-shadow: 0 18px 42px rgb(22 62 41 / 8%);
+}
+
+.navigation {
+  border-top: 3px solid #31845c;
+}
+
+.progressHeading {
+  padding-bottom: 1rem;
+}
+
+.progressHeading progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1f7552, #52a96e);
+}
+
+.navigation li button[aria-current="step"] {
+  background: linear-gradient(110deg, #e7f5eb, #f4faf5);
+  box-shadow: inset 3px 0 #248153, 0 4px 12px rgb(28 103 68 / 7%);
+}
+
+.navigation li button[aria-current="step"] .stepNumber {
+  background: linear-gradient(145deg, #1e7651, #12583f);
+  color: #fff;
+}
+
+.cardHeading {
+  position: relative;
+  padding-inline: clamp(1.3rem, 2.8vw, 2rem);
+}
+
+.cardHeading::before {
+  position: absolute;
+  top: 0;
+  left: clamp(1.3rem, 2.8vw, 2rem);
+  width: 2.6rem;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, #20794f, #7bbc7f);
+  content: "";
+}
+
+.cardBody {
+  padding-inline: clamp(1.3rem, 2.8vw, 2rem);
+}
+
+@media (max-width: 700px) {
+  .pageHeader {
+    border-radius: 1.1rem;
+  }
+
+  .pageHeader::after {
+    right: -8rem;
   }
 }

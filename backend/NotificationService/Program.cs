@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -21,14 +20,6 @@ builder.Services.AddSingleton<IPushSender, FirebasePushSender>();
 builder.Services.AddSingleton<IUserIdProvider, NotificationUserIdProvider>();
 builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!, options =>
     options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("GiveAid.Notifications"));
-builder.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    options.Events.OnMessageReceived = context =>
-    {
-        if (context.Request.Path == "/hubs/notifications") context.Token = context.Request.Query["access_token"];
-        return Task.CompletedTask;
-    };
-});
 builder.Services.AddHttpClient("identity", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["InternalApi:IdentityUrl"] ?? "http://identity:8080/");
@@ -38,7 +29,7 @@ builder.Services.AddHttpClient("identity", client =>
 builder.Services.AddDataProtection().SetApplicationName("GiveAid.Notification").PersistKeysToFileSystem(
     new DirectoryInfo(builder.Configuration["Protection:KeyDirectory"] ?? Path.Combine(builder.Environment.ContentRootPath, ".keys")));
 if (!args.Contains("--migrate")) builder.Services.AddHostedService<NotificationDeliveryWorker>();
-// Never log websocket query credentials (including development request logging).
+// Avoid logging connection details for the realtime endpoint.
 builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
 var app = builder.Build();

@@ -49,6 +49,15 @@ public sealed class OrganizationApplications(OrganizationDb db, IDataProtectionP
 
     public async Task<object> Detail(OrganizationActor actor, Guid id) => View(await Find(id, actor));
 
+    public async Task Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var organization = await db.Organizations.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (organization is null) return;
+
+        db.Organizations.Remove(organization);
+        await Save(cancellationToken);
+    }
+
     public async Task<(Guid Id, object Body)> Create(OrganizationActor actor, OrganizationRequest request, CancellationToken cancellationToken)
     {
         Validate(request);
@@ -174,7 +183,7 @@ public sealed class OrganizationApplications(OrganizationDb db, IDataProtectionP
     }
     private object View(Organization organization) => new
     {
-        organization.Id, organization.Profile, IdentityNumber = protector.Unprotect(organization.ProtectedIdentityNumber), organization.Status,
+        organization.Id, organization.Profile, IdentityNumber = OrganizationIdentity.Read(protector, organization.ProtectedIdentityNumber), organization.Status,
         organization.Consent, organization.CreatedAt, organization.UpdatedAt, organization.SubmittedAt, Version = Convert.ToBase64String(organization.Version),
         organization.ApplicantUserId,
         documents = organization.Documents.Select(x => new { x.Id, x.Kind, x.FileName, x.Size, x.UploadedAt }),

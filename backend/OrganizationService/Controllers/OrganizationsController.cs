@@ -29,6 +29,13 @@ public sealed class OrganizationsController(OrganizationApplications organizatio
     public async Task<IActionResult> Detail(Guid id) =>
         Ok(await organizationApplications.Detail(CurrentActor, id));
 
+    [Authorize(Roles = "ADMIN"), HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await organizationApplications.Delete(id, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(OrganizationRequest request)
     {

@@ -121,7 +121,22 @@ export default function CampaignManagementScreen({ createPage = false, campaignI
         </>}
         {!createPage && !campaignId && (
           <>
-            {(canList || !linkedCampaign) && <h1>{manager ? "Chiến dịch và sự kiện của tổ chức" : "Duyệt và phân công"}</h1>}
+            {(canList || !linkedCampaign) && <header className={managementStyles.campaignOverviewHeader}>
+              <div>
+                <p className={managementStyles.campaignEyebrow}>KHÔNG GIAN TỔ CHỨC · CHIẾN DỊCH</p>
+                <h1>{manager ? "Chiến dịch và sự kiện" : "Duyệt và phân công"}</h1>
+                <p>{manager
+                  ? "Tạo đề xuất, theo dõi tiến độ và phối hợp cùng đội ngũ trong một nơi."
+                  : "Xem các đề xuất đang chờ và điều phối người phụ trách theo từng chiến dịch."}</p>
+              </div>
+              {manager && <button
+                className={managementStyles.campaignCreateAction}
+                disabled={busy}
+                onClick={() => router.push(`/organizations/${id}/manage/campaigns/create`)}
+              >
+                <span aria-hidden="true">＋</span> Tạo chiến dịch
+              </button>}
+            </header>}
             {error && (
               <p className="notice error" role="alert">
                 {error}
@@ -131,14 +146,6 @@ export default function CampaignManagementScreen({ createPage = false, campaignI
               <p className="notice success" role="status">
                 {message}
               </p>
-            )}
-            {manager && (
-              <button
-                disabled={busy}
-                onClick={() => router.push(`/organizations/${id}/manage/campaigns/create`)}
-              >
-                Tạo chiến dịch / sự kiện
-              </button>
             )}
             {linkedCampaign && !error && <p role="status">Đang mở hồ sơ…</p>}
             {canList && !linkedCampaign && <CampaignList
@@ -179,7 +186,7 @@ export default function CampaignManagementScreen({ createPage = false, campaignI
               className={
                 creating
                   ? `panel ${createPage ? managementStyles.campaignPage : managementStyles.campaignDialog}`
-                  : "panel"
+                  : campaignId ? `panel ${managementStyles.detailPanel}` : "panel"
               }
               role={creating && !createPage ? "dialog" : undefined}
               aria-modal={creating && !createPage ? true : undefined}
@@ -206,7 +213,11 @@ export default function CampaignManagementScreen({ createPage = false, campaignI
                   <button type="button" className={`quiet ${wizardStyles.back}`} disabled={busy} onClick={() => router.push(`/organizations/${id}/manage/campaigns`)}>
                     <span aria-hidden="true">← </span>Chiến dịch và sự kiện
                   </button>
-                  <h2 id="campaign-create-title">Tạo chiến dịch hoặc sự kiện</h2>
+                  <div className={wizardStyles.titleGroup}>
+                    <p className={wizardStyles.eyebrow}>ĐỀ XUẤT MỚI <span aria-hidden="true">·</span> 5 BƯỚC</p>
+                    <h2 id="campaign-create-title">Tạo chiến dịch hoặc sự kiện</h2>
+                    <p className={wizardStyles.intro}>Chia sẻ ý tưởng của bạn. Hoàn thiện từng bước để gửi đề xuất đến Owner xét duyệt.</p>
+                  </div>
                 </header>
               ) : (!campaignId || creating) && (
               <h2 id={creating ? "campaign-create-title" : undefined}>

@@ -115,7 +115,7 @@ function Detail() {
               {group === "Người đại diện" && (
                 <div>
                   <dt>{data.profile.identityType}</dt>
-                  <dd>{data.identityNumber}</dd>
+                  <dd>{data.identityNumber || "Chưa cung cấp"}</dd>
                 </div>
               )}
             </dl>

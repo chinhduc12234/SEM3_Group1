@@ -525,6 +525,38 @@
   font-size: 13px;
   font-weight: 600;
 }
+.shell:global(.ga-dashboard) .topbar .topbarStart {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-width: 0;
+}
+.shell:global(.ga-dashboard) .topbar .backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #dbe7dd;
+  border-radius: 10px;
+  background: #fff;
+  color: #275d40;
+  white-space: nowrap;
+  transition: background var(--ga-motion), border-color var(--ga-motion), transform var(--ga-motion);
+}
+.shell:global(.ga-dashboard) .topbar .backLink:hover {
+  border-color: #bfd7c3;
+  background: #f2f8f2;
+  text-decoration: none;
+}
+.shell:global(.ga-dashboard) .topbar .backLink:active { transform: translateY(1px); }
+.shell:global(.ga-dashboard) .topbar .backLink > span {
+  color: #378153;
+  font-size: 17px;
+  line-height: 1;
+}
 .shell:global(.ga-dashboard) .content {
   max-width: 1380px;
   padding: clamp(22px, 3vw, 40px);
@@ -675,70 +707,217 @@
 
 .ownerAccountPage {
   display: grid;
-  gap: 20px;
-  max-width: 900px;
+  gap: 22px;
+  max-width: 1120px;
   margin: 0 auto;
 }
-.ownerAccountPage > h1,
-.ownerAccountPage > p {
-  margin-top: 0;
-  margin-bottom: 0;
+.ownerAccountHero {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  min-height: 210px;
+  padding: clamp(26px, 4vw, 42px);
+  overflow: hidden;
+  border: 1px solid #d5e7d9;
+  border-radius: 23px;
+  background:
+    radial-gradient(ellipse at 87% 12%, rgb(149 208 158 / 39%), transparent 30%),
+    linear-gradient(112deg, #fff 0%, #f4faf4 58%, #e4f2e5 100%);
+  box-shadow: 0 14px 34px rgb(20 69 43 / 6%);
 }
-.ownerAccountPage > :global(.panel) {
-  padding: 26px;
+.ownerAccountHero > div:first-child { position: relative; z-index: 1; }
+.ownerAccountHero .eyebrow {
+  margin: 0 0 13px;
+  color: #b45b45;
 }
-.ownerAccountPage :global(.panel) h2 {
-  margin-top: 0;
+.ownerAccountHero h1 {
+  margin: 0 0 11px !important;
+  color: #153f30;
+  font-size: clamp(32px, 4.3vw, 46px) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -.045em !important;
 }
-.ownerAccountPage :global(.panel) form {
+.ownerAccountHero > div:first-child > p:last-child {
+  max-width: 540px;
+  margin: 0;
+  color: #667b6c;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.ownerAccountHeroMark {
+  position: relative;
   display: grid;
-  gap: 20px;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  flex: 0 0 120px;
+  border: 1px solid #c8dfcc;
+  border-radius: 34px;
+  background: rgb(255 255 255 / 70%);
+  transform: rotate(8deg);
 }
+.ownerAccountHeroMark::before,
+.ownerAccountHeroMark::after,
+.ownerAccountHeroMark span {
+  content: "";
+  position: absolute;
+  border: 2px solid #347b4d;
+  border-radius: 50%;
+}
+.ownerAccountHeroMark::before { width: 52px; height: 52px; }
+.ownerAccountHeroMark::after { width: 28px; height: 28px; background: #e5f3e7; }
+.ownerAccountHeroMark span { width: 78px; height: 78px; border-color: #90bf98; }
 .ownerAccountIdentity {
   display: flex;
   align-items: center;
   gap: 18px;
+  min-height: 130px;
+  padding: 22px 28px;
+  border-color: #dce9de !important;
+  border-radius: 18px !important;
   background: linear-gradient(110deg, #fff, #edf7ef) !important;
+  box-shadow: 0 10px 26px rgb(25 68 42 / 5%) !important;
 }
 .ownerAccountIdentity h2 {
-  margin: 3px 0;
+  margin: 3px 0 4px;
+  color: #164d34;
   font-size: 21px !important;
+}
+.ownerAccountIdentity > div:nth-child(2) > p:last-child {
+  margin: 0;
+  color: #687e6e;
+  font-size: 13px;
 }
 .ownerAccountIdentity :global(.eyebrow) {
   margin: 0;
-  color: #bb4937;
+  color: #b45b45;
 }
 .ownerAccountAvatar {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #dcefe0;
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  border: 1px solid #cfe3d3;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #e8f5e9, #d5ebd9);
   color: #17583c;
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 750;
 }
 .ownerAccountBadge {
   margin-left: auto;
-  padding: 7px 12px;
-  border-radius: 20px;
-  background: #e5f3e8;
+  padding: 8px 13px;
+  border: 1px solid #d3e9d8;
+  border-radius: 999px;
+  background: #e7f4e8;
   color: #22603e;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .1em;
+}
+.ownerAccountGrid {
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+  align-items: start;
+  gap: 18px;
+}
+.ownerAccountPanel {
+  min-width: 0;
+  padding: 25px !important;
+  border: 1px solid #e0e9e1 !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 26px rgb(24 63 41 / 5%) !important;
+}
+.ownerAccountSectionHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.ownerAccountSectionHeading > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid #dcebdd;
+  border-radius: 11px;
+  background: #f1f8f1;
+  color: #398052;
+  font-size: 11px;
+  font-weight: 750;
+}
+.ownerAccountSectionHeading h2 {
+  margin: 1px 0 5px !important;
+  color: #194832;
+  font-size: 20px !important;
+  letter-spacing: -.025em !important;
+}
+.ownerAccountSectionHeading p {
+  margin: 0;
+  color: #77877b;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  line-height: 1.55;
+}
+.ownerAccountPanel form {
+  display: grid;
+  gap: 15px;
+}
+.ownerAccountPanel :global(.form-grid) {
+  gap: 0 16px;
+}
+.ownerAccountPanel label {
+  color: #365543;
+  font-size: 12px;
+}
+.ownerAccountPanel input {
+  min-height: 46px;
+  border-color: #d2dfd4;
+  border-radius: 9px;
+  font-size: 14px;
+}
+.ownerAccountPanel label small {
+  color: #738579;
+  font-size: 11px;
+}
+.ownerAccountPanel button {
+  justify-self: start;
+  min-height: 44px;
+  padding-inline: 17px;
+  border-radius: 10px;
+}
+.ownerAccountPanel button.secondary {
+  border-color: #cfe0d2;
+  background: #f7faf7;
+  color: #245c3c;
+}
+.ownerAccountPanel button.secondary:hover {
+  background: #edf5ed;
+}
+.ownerSecurityPanel {
+  background: linear-gradient(165deg, #fff, #fcfdfb) !important;
 }
 @media (max-width: 600px) {
-  .ownerAccountPage > :global(.panel) {
-    padding: 20px;
-  }
+  .ownerAccountPage { gap: 16px; }
+  .ownerAccountHero { min-height: 0; padding: 24px; border-radius: 18px; }
+  .ownerAccountHero h1 { font-size: 32px !important; }
+  .ownerAccountHeroMark { width: 62px; height: 62px; flex-basis: 62px; border-radius: 19px; }
+  .ownerAccountHeroMark::before { width: 30px; height: 30px; }
+  .ownerAccountHeroMark::after { width: 16px; height: 16px; }
+  .ownerAccountHeroMark span { width: 44px; height: 44px; }
+  .ownerAccountGrid { grid-template-columns: minmax(0, 1fr); }
+  .ownerAccountPanel { padding: 20px !important; }
   .ownerAccountIdentity {
     align-items: flex-start;
     flex-wrap: wrap;
+    padding: 20px !important;
   }
   .ownerAccountBadge {
-    margin-left: 82px;
+    margin-left: 0;
   }
 }
 .shell:global(.ga-dashboard),
@@ -869,4 +1048,378 @@
     padding: 7px;
     font-size: 11px;
   }
+}
+
+/* Owner dashboard */
+.ownerDashboard {
+  display: grid;
+  gap: 28px;
+}
+.ownerWelcome {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  overflow: hidden;
+  min-height: 230px;
+  padding: clamp(26px, 4vw, 48px);
+  border: 1px solid #d6e9dc;
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 88% 16%, rgb(177 226 183 / 65%), transparent 32%),
+    linear-gradient(110deg, #fff 0%, #f6fbf5 56%, #e5f3e7 100%);
+  box-shadow: 0 16px 40px rgb(25 72 49 / 7%);
+}
+.ownerWelcome::after {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  right: 16%;
+  bottom: -260px;
+  border: 1px solid rgb(44 133 81 / 12%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgb(44 133 81 / 3%), 0 0 0 58px rgb(44 133 81 / 3%);
+  pointer-events: none;
+}
+.ownerWelcomeCopy,
+.ownerWelcomeBrand {
+  position: relative;
+  z-index: 1;
+}
+.ownerWelcomeCopy {
+  max-width: 680px;
+}
+.ownerWelcomeCopy .eyebrow {
+  margin-bottom: 14px;
+  color: #387550;
+}
+.ownerWelcomeCopy h1 {
+  margin: 0 0 12px !important;
+  font-size: clamp(30px, 4vw, 46px) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.045em !important;
+}
+.ownerWelcomeCopy > p:last-child {
+  max-width: 540px;
+  margin: 0;
+  color: #62796a;
+  font-size: 15px;
+}
+.ownerWelcomeBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+  padding: 12px 16px 12px 12px;
+  border: 1px solid #e3ede4;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 8px 20px rgb(35 77 52 / 6%);
+}
+.ownerWelcomeBrand img,
+.ownerWelcomeBrand > span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border: 1px solid #deebe0;
+  border-radius: 13px;
+  background: #edf6ee;
+  color: #17633f;
+  font-size: 20px;
+  font-weight: 800;
+  object-fit: contain;
+}
+.ownerWelcomeBrand > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.ownerWelcomeBrand strong {
+  overflow: hidden;
+  color: #214b36;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ownerWelcomeBrand small {
+  color: #75877a;
+  font-size: 11px;
+}
+.ownerSectionHeading,
+.ownerPanelHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+}
+.ownerSectionHeading .eyebrow,
+.ownerPanelHeading .eyebrow {
+  margin: 0 0 7px;
+  color: #748679;
+  font-size: 10px;
+  letter-spacing: .14em;
+}
+.ownerSectionHeading h2,
+.ownerPanelHeading h2 {
+  margin: 0 !important;
+  font-size: 23px !important;
+  letter-spacing: -.035em !important;
+}
+.ownerLive {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid #dcecdf;
+  border-radius: 999px;
+  background: #f5fbf5;
+  color: #38734d;
+  font-size: 12px;
+  font-weight: 650;
+}
+.ownerLive i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #48a365;
+  box-shadow: 0 0 0 3px #48a36520;
+}
+.ownerStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+.ownerStat {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 150px;
+  padding: 21px;
+  overflow: hidden;
+  border: 1px solid #e1ebe2;
+  border-radius: 17px;
+  background: linear-gradient(150deg, #fff, #fbfdfb);
+  box-shadow: 0 8px 22px rgb(28 66 45 / 4%);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.ownerStat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 28px rgb(28 66 45 / 8%);
+}
+.ownerStatMark {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e4f3e7, #f4f9ef);
+}
+.ownerStatMark::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 2px solid #4d9764;
+  border-radius: 50%;
+}
+.ownerStat p {
+  max-width: calc(100% - 34px);
+  margin: 0;
+  color: #748579;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.ownerStat strong {
+  overflow: hidden;
+  color: #174b35;
+  font-size: clamp(23px, 2.4vw, 31px);
+  letter-spacing: -.04em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ownerStat small {
+  color: #8a988d;
+  font-size: 11px;
+}
+.ownerDashboardGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr);
+  align-items: start;
+  gap: 18px;
+}
+.ownerPanel {
+  min-width: 0;
+  padding: 25px;
+  border: 1px solid #e1ebe2;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 9px 26px rgb(28 66 45 / 5%);
+}
+.ownerPanelHeading {
+  align-items: center;
+  margin-bottom: 18px;
+}
+.ownerQuickLinks {
+  display: grid;
+}
+.ownerQuickLinks a {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 13px;
+  min-height: 74px;
+  padding: 11px 4px;
+  border-top: 1px solid #edf1ed;
+  color: inherit;
+  text-decoration: none;
+}
+.ownerQuickLinks a:first-child {
+  border-top: 0;
+}
+.ownerQuickLinks a:hover strong {
+  color: #167146;
+}
+.ownerQuickIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e0eee2;
+  border-radius: 13px;
+  background: #f0f7f0;
+  color: #34734c;
+  font-size: 11px;
+  font-weight: 750;
+}
+.ownerQuickLinks a > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.ownerQuickLinks strong {
+  color: #284536;
+  font-size: 13px;
+  transition: color 180ms ease;
+}
+.ownerQuickLinks small {
+  overflow: hidden;
+  color: #7a897d;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+}
+.ownerArrow {
+  color: #8ba391;
+  font-size: 19px;
+  text-align: right;
+}
+.ownerTextLink {
+  color: #28734a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ownerProfileCard {
+  padding: 17px;
+  border: 1px solid #e5eee4;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #f9fcf8, #f3f8f1);
+}
+.ownerProfileProgress {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #47624f;
+  font-size: 12px;
+  font-weight: 650;
+}
+.ownerProfileProgress strong {
+  color: #276544;
+  font-size: 13px;
+}
+.ownerProgressTrack {
+  height: 7px;
+  margin: 13px 0 12px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e2ebe0;
+}
+.ownerProgressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #318656, #72b477);
+  transition: width 220ms ease;
+}
+.ownerProfileCard ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: #718276;
+  font-size: 11px;
+}
+.ownerProfileComplete {
+  margin: 0;
+  color: #718276;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.ownerFocusAreas {
+  display: grid;
+  gap: 11px;
+  margin-top: 21px;
+}
+.ownerFocusAreas > span {
+  color: #708176;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ownerFocusAreas > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.ownerFocusAreas > div > span {
+  padding: 6px 9px;
+  border: 1px solid #e0eee2;
+  border-radius: 999px;
+  background: #f4f9f3;
+  color: #3a6547;
+  font-size: 10px;
+  font-weight: 650;
+}
+.ownerFocusAreas small {
+  color: #89958b;
+  font-size: 11px;
+}
+@media (max-width: 1080px) {
+  .ownerStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ownerDashboardGrid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 650px) {
+  .ownerDashboard { gap: 21px; }
+  .ownerWelcome { align-items: flex-start; flex-direction: column; min-height: 0; padding: 24px; border-radius: 19px; }
+  .ownerWelcomeBrand { min-width: 0; max-width: 100%; }
+  .ownerWelcomeCopy h1 { font-size: 32px !important; }
+  .ownerStats { gap: 10px; }
+  .ownerStat { min-height: 132px; padding: 16px; }
+  .ownerStatMark { top: 14px; right: 14px; width: 26px; height: 26px; }
+  .ownerStatMark::after { inset: 8px; }
+  .ownerStat strong { font-size: 23px; }
+  .ownerSectionHeading { align-items: flex-start; flex-direction: column; }
+  .ownerPanel { padding: 19px; }
+}
+@media (max-width: 380px) {
+  .ownerStats { grid-template-columns: minmax(0, 1fr); }
+  .ownerStat { min-height: 118px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ownerStat { transition: none; }
 }

@@ -66,7 +66,7 @@ public sealed class OwnerProfileDirectory(OrganizationDb db, IdentityDirectory i
         var joinedAt = memberships.GroupBy(x => x.OrganizationId).ToDictionary(x => x.Key, x => x.Min(y => y.JoinedAt));
         var profiles = organizations.Select(x => new OwnerOrganizationProfile(
             x.Id, x.Status, x.CreatedAt, x.SubmittedAt, joinedAt.GetValueOrDefault(x.Id), x.Profile,
-            protector.Unprotect(x.ProtectedIdentityNumber),
+            OrganizationIdentity.Read(protector, x.ProtectedIdentityNumber),
             x.Documents.OrderBy(d => d.Kind).Select(d => new OwnerDocument(d.Id, d.Kind, d.FileName, d.Size, d.UploadedAt)).ToArray(),
             x.Reviews.OrderByDescending(r => r.At).Select(r => (object)new { r.Action, r.Reason, r.At }).ToArray()
         )).ToArray();

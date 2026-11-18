@@ -52,13 +52,14 @@ function SecurityPage() {
               khẩu mới.
             </p>
           </div>
-          <form className={accountStyles.accountSecurityForm} onSubmit={changePassword}>
+          <form method="post" className={accountStyles.accountSecurityForm} onSubmit={changePassword}>
             <label>
               Mật khẩu hiện tại
               <input
                 required
                 type="password"
                 name="currentPassword"
+                id="account-current-password"
                 maxLength={128}
                 autoComplete="current-password"
               />
@@ -69,6 +70,7 @@ function SecurityPage() {
                 required
                 type="password"
                 name="newPassword"
+                id="account-new-password"
                 minLength={12}
                 maxLength={128}
                 autoComplete="new-password"
@@ -81,6 +83,7 @@ function SecurityPage() {
                 required
                 type="password"
                 name="confirmPassword"
+                id="account-confirm-password"
                 minLength={12}
                 maxLength={128}
                 autoComplete="new-password"

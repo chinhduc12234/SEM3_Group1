@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiBlob } from "@/shared/api/api";
 import type { BudgetReceiving } from "./budget";
 import styles from "../CampaignManagement.module.css";
+import finance from "./BudgetDashboard.module.css";
 
 const emptyBank = { bankName: "", accountHolder: "", accountNumber: "", qrMediaId: null, transferNote: "" };
 const emptyGoods = { acceptedItems: "", address: "", receivingHours: "", contact: "" };
@@ -54,10 +55,10 @@ export default function BudgetReceivingFields({ receiving, campaignId, revision,
 }) {
   const bank = receiving?.bank ?? null;
   const goods = receiving?.goods ?? null;
-  return <div className={styles.detailOperationsGrid}>
+  return <div className={`${styles.detailOperationsGrid} ${finance.columns}`}>
     <section className={styles.reviewBlock}>
       <h3>Chuyển khoản ngân hàng</h3>
-      <label className={styles.inlineCheck}><input type="checkbox" checked={!!bank}
+      <label className={finance.check}><input type="checkbox" checked={!!bank}
         onChange={(event) => onChange({ bank: event.target.checked ? emptyBank : null, goods })} /> Cấu hình chuyển khoản</label>
       {bank && <>
         {bankFields.map(([key, label, limit]) => <label key={key}>{label}
@@ -78,7 +79,7 @@ export default function BudgetReceivingFields({ receiving, campaignId, revision,
     </section>
     <section className={styles.reviewBlock}>
       <h3>Nhận hiện vật</h3>
-      <label className={styles.inlineCheck}><input type="checkbox" checked={!!goods}
+      <label className={finance.check}><input type="checkbox" checked={!!goods}
         onChange={(event) => onChange({ bank, goods: event.target.checked ? emptyGoods : null })} /> Cấu hình điểm nhận hiện vật</label>
       {goods && goodsFields.map(([key, label, limit]) => <label key={key}>{label}
         <input value={goods[key]} maxLength={limit} onChange={(event) => onChange({ bank, goods: { ...goods, [key]: event.target.value } })} />

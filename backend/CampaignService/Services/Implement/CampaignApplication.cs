@@ -19,7 +19,7 @@ public sealed partial class CampaignApplication(ICampaignRepository repository, 
         c.Title, c.Description, c.CampaignType, c.Cause, c.BeneficiaryDescription, c.GoalAmount, c.VolunteerTarget,
         c.StartDate, c.EndDate, c.Location, c.ContactEmail, c.ContactPhone, c.Status, Convert.ToBase64String(c.Version),
         c.CreatedAt, c.SubmittedAt, c.PublishedAt,
-        c.Media.Where(m => history || m.Kind is "COVER" or "GALLERY").Select(m => (object)new { m.Id, m.Kind, m.FileName, m.ContentType }).ToArray(),
+        c.Media.Where(m => m.Kind != ActivityReportKind && (history || m.Kind is "COVER" or "GALLERY")).Select(m => (object)new { m.Id, m.Kind, m.FileName, m.ContentType }).ToArray(),
         history ? c.Reviews.OrderBy(x => x.CreatedAt).Select(r => (object)new { r.Id, r.Action, r.Note, r.ActorId, r.CreatedAt }).ToArray() : [],
         !history && c.ConceptDetails is not null ? "{}" : c.AdditionalDetails,
         history ? ReadConcept(c) : null, history ? c.ParentCampaign?.Title : null,
@@ -284,7 +284,7 @@ public sealed partial class CampaignApplication(ICampaignRepository repository, 
             : kind == "COVER" || qr ? c.Media.SingleOrDefault(m => m.Kind == kind) : null;
         var maxBytes = kind == "DOCUMENT" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
         if ((!qr && kind is not ("COVER" or "GALLERY" or "DOCUMENT")) || file.Length < 8 || file.Length > maxBytes ||
-            (!qr && target is null && c.Media.Count(m => m.Kind != ReceivingQrKind) >= 13))
+            (!qr && target is null && c.Media.Count(m => m.Kind != ReceivingQrKind && m.Kind != ActivityReportKind) >= 13))
             throw new ApiException(400, "Loại tệp không hợp lệ, vượt 5 MB hoặc quá 12 tệp.");
         await using var stream = new MemoryStream(); await file.CopyToAsync(stream, ct); var bytes = stream.ToArray();
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -295,7 +295,7 @@ public sealed partial class CampaignApplication(ICampaignRepository repository, 
         if (type == "" || (kind != "DOCUMENT" && type is "application/pdf" or "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             || (kind == "DOCUMENT" && type.StartsWith("image/", StringComparison.Ordinal))) throw new ApiException(400, "Ảnh chỉ nhận PNG/JPG; tài liệu chỉ nhận PDF/DOCX.");
         var incomingName = Path.GetFileName(file.FileName);
-        if (!qr && c.Media.Any(m => m.Kind != ReceivingQrKind && m.Id != target?.Id && string.Equals(m.FileName, incomingName, StringComparison.OrdinalIgnoreCase)))
+        if (!qr && c.Media.Any(m => m.Kind != ReceivingQrKind && m.Kind != ActivityReportKind && m.Id != target?.Id && string.Equals(m.FileName, incomingName, StringComparison.OrdinalIgnoreCase)))
             throw new ApiException(409, "Tên tệp đã tồn tại trong chiến dịch.");
         var media = target ?? new CampaignMedia { CampaignId = id, Kind = kind };
         media.FileName = Path.GetFileName(file.FileName)[..Math.Min(Path.GetFileName(file.FileName).Length, 200)];
@@ -321,7 +321,9 @@ public sealed partial class CampaignApplication(ICampaignRepository repository, 
     public async Task<CampaignMedia> Download(Guid id, Guid mediaId, Guid? actor, CancellationToken ct)
     {
         var c = await Get(id, ct); var media = c.Media.SingleOrDefault(x => x.Id == mediaId) ?? throw new ApiException(404, "Không tìm thấy tệp.");
-        if (c.Status != "PUBLISHED" || media.Kind is not ("COVER" or "GALLERY"))
+        if (media.Kind == ActivityReportKind)
+            await RequireActivityReportAccess(c, actor, ct);
+        else if (c.Status != "PUBLISHED" || media.Kind is not ("COVER" or "GALLERY"))
             await RequireRead(c, actor, ct);
         if (media.StoragePath is not null)
         {

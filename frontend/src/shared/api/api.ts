@@ -4,39 +4,73 @@ export type Account = { id: string; email: string; fullName: string; roles: stri
 type Session = { accessToken: string; user: Account };
 let accessToken: string | null = null;
 let refreshing: Promise<Session | null> | null = null;
+let tokenRevision = 0;
+const sessionChannelName = "giveaid-auth-session";
+
+export async function withSessionLock<T>(operation: () => Promise<T>): Promise<T> {
+  if ("locks" in navigator) return navigator.locks.request("giveaid-refresh", operation);
+  return operation();
+}
 
 // Keep credentials out of browser storage. Web Locks serialize rotating cookies across tabs.
 export async function refreshSession(): Promise<Session | null> {
   if (!refreshing) {
     const execute = async () => {
+      const revision = tokenRevision;
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
         credentials: "same-origin",
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
         headers: { "X-Requested-With": "GiveAid" },
       });
-      if (!response.ok) {
+      if (revision !== tokenRevision) return null;
+      if (response.status === 401) {
         accessToken = null;
         return null;
       }
+      if (!response.ok) throw new ApiError("Không thể kiểm tra phiên đăng nhập. Vui lòng thử lại.", response.status);
       const session: Session = await response.json();
+      if (revision !== tokenRevision) return null;
       accessToken = session.accessToken;
       return session;
     };
-    const guarded = async (): Promise<Session | null> => {
-      if ("locks" in navigator) return await navigator.locks.request("giveaid-refresh", execute);
-      return await execute();
-    };
-    refreshing = guarded().finally(() => {
+    refreshing = withSessionLock(execute).finally(() => {
       refreshing = null;
     });
   }
   return refreshing;
 }
 export function acceptSession(session: Session) {
+  tokenRevision++;
   accessToken = session.accessToken;
 }
-export function forgetSession() {
+function clearSessionToken() {
+  tokenRevision++;
   accessToken = null;
+}
+export function forgetSession() {
+  clearSessionToken();
+  window.dispatchEvent(new Event("giveaid-session-expired"));
+  if (typeof BroadcastChannel === "undefined") return;
+  const channel = new BroadcastChannel(sessionChannelName);
+  channel.postMessage("signed-out");
+  channel.close();
+}
+export function onSessionEnded(callback: () => void) {
+  const end = () => {
+    clearSessionToken();
+    callback();
+  };
+  window.addEventListener("giveaid-session-expired", end);
+  const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(sessionChannelName);
+  channel?.addEventListener("message", (event) => {
+    if (event.data === "signed-out") end();
+  });
+  return () => {
+    window.removeEventListener("giveaid-session-expired", end);
+    channel?.close();
+  };
 }
 export async function realtimeAccessToken(): Promise<string> {
   if (accessToken) {

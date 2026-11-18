@@ -1,6 +1,6 @@
 "use client";
 import authStyles from "@/features/auth/components/AuthForm.module.css";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/components/AuthProvider";
@@ -8,19 +8,60 @@ import { api } from "@/shared/api/api";
 import { useLocale } from "@/shared/i18n/LocaleProvider";
 export default function AuthForm({ register = false }: { register?: boolean }) {
   const { t } = useLocale();
-  const { login } = useAuth();
+  const { login, user, loading, sessionUnavailable, retrySession } = useAuth();
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const loginFormHeight = useRef<number>(undefined);
+  const submitting = useRef(false);
+  const signedIn = !register && user !== null;
+  const checkingSession = !register && (loading || sessionUnavailable || signedIn);
+
+  useEffect(() => {
+    if (register || loading || sessionUnavailable || !user) return;
+    if (user.roles.includes("ADMIN")) {
+      router.replace("/admin");
+      return;
+    }
+
+    let active = true;
+    async function openWorkspace() {
+      let destination = "/";
+      try {
+        const memberships = await api<{ id: string; roles?: string[] }[]>("/api/organizations/workspaces/mine");
+        if (memberships.length === 1) {
+          const membership = memberships[0];
+          const memberOnly = membership.roles?.some((role) => ["STAFF", "SURVEY_STAFF"].includes(role)) &&
+            !membership.roles?.some((role) => ["OWNER", "ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER"].includes(role));
+          destination = `/organizations/${membership.id}/manage${memberOnly ? "/members" : ""}`;
+        } else if (
+          memberships.length > 1 ||
+          (await api<unknown[]>("/api/organizations/invitations/mine")).length > 0
+        ) {
+          destination = "/organizations/mine";
+        }
+      } catch {
+        /* Login remains usable when organization data is temporarily unavailable. */
+      }
+      if (active) router.replace(destination);
+    }
+    void openWorkspace();
+    return () => { active = false; };
+  }, [register, loading, sessionUnavailable, router, user]);
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting.current || checkingSession) return;
     setMessage("");
     const form = new FormData(e.currentTarget);
+    if (!register) loginFormHeight.current = e.currentTarget.offsetHeight;
     if (register && form.get("password") !== form.get("confirm")) {
       setMessage(t("Mật khẩu xác nhận chưa khớp."));
       return;
     }
+    submitting.current = true;
     setBusy(true);
     try {
       if (register) {
@@ -34,28 +75,12 @@ export default function AuthForm({ register = false }: { register?: boolean }) {
         });
         setDone(true);
       } else {
-        const account = await login(String(form.get("email")), String(form.get("password")));
-        if (account.roles.includes("ADMIN")) {
-          router.push("/admin");
-          return;
-        }
-        let destination = "/";
-        try {
-          const memberships = await api<{ id: string }[]>("/api/organizations/workspaces/mine");
-          if (memberships.length === 1) destination = `/organizations/${memberships[0].id}/manage`;
-          else if (
-            memberships.length > 1 ||
-            (await api<unknown[]>("/api/organizations/invitations/mine")).length > 0
-          )
-            destination = "/organizations/mine";
-        } catch {
-          /* Login remains usable when organization data is temporarily unavailable. */
-        }
-        router.push(destination);
+        await login(String(form.get("email")), String(form.get("password")));
       }
     } catch (ex) {
       setMessage((ex as Error).message);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -97,77 +122,112 @@ export default function AuthForm({ register = false }: { register?: boolean }) {
               </Link>
             </div>
           ) : (
-            <form onSubmit={submit} aria-busy={busy}>
-              {register && (
-                <label>
-                  {t("Họ và tên")}
-                  <input
-                    name="fullName"
-                    required
-                    minLength={2}
-                    maxLength={200}
-                    autoComplete="name"
-                    placeholder={t("Nhập họ và tên")}
-                  />
-                </label>
+            <div className={authStyles.authFormArea} style={signedIn ? { minHeight: loginFormHeight.current } : undefined}>
+              {checkingSession && (
+                <div className={authStyles.sessionStatus}>
+                  {sessionUnavailable ? (
+                    <div className="notice error" role="alert">
+                      {t("Không thể kiểm tra phiên đăng nhập.")}{" "}
+                      <button type="button" className="quiet" onClick={retrySession}>{t("Thử lại")}</button>
+                    </div>
+                  ) : (
+                    <p className="notice" role="status">
+                      {t(signedIn && !loading ? "Đang xử lý…" : "Đang kiểm tra phiên đăng nhập…")}
+                    </p>
+                  )}
+                </div>
               )}
-              <label>
-                {t("Email")}
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  maxLength={256}
-                  autoComplete={register ? "email" : "username"}
-                  placeholder="ban@example.com"
-                />
-              </label>
-              <label>
-                {t("Mật khẩu")}
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  minLength={register ? 12 : undefined}
-                  maxLength={128}
-                  autoComplete={register ? "new-password" : "current-password"}
-                  placeholder={t("Nhập mật khẩu")}
-                  aria-describedby={register ? "password-help" : undefined}
-                />
+              {!signedIn && <form id={register ? "register-form" : "login-form"} method="post" onSubmit={submit} aria-busy={busy} inert={checkingSession}>
                 {register && (
-                  <small id="password-help">
-                    {t("Tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.")}
-                  </small>
+                  <label>
+                    {t("Họ và tên")}
+                    <input
+                      name="fullName"
+                      id="register-name"
+                      required
+                      minLength={2}
+                      maxLength={200}
+                      autoComplete="name"
+                      placeholder={t("Nhập họ và tên")}
+                    />
+                  </label>
                 )}
-              </label>
-              {register && (
                 <label>
-                  {t("Xác nhận mật khẩu")}
+                  {t("Email")}
                   <input
-                    type="password"
-                    name="confirm"
+                    type="email"
+                    name="email"
+                    id={register ? "register-email" : "login-email"}
                     required
-                    minLength={12}
-                    maxLength={128}
-                    autoComplete="new-password"
-                    placeholder={t("Nhập lại mật khẩu")}
+                    maxLength={256}
+                    autoComplete={register ? "email" : "username"}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    enterKeyHint="next"
+                    placeholder="ban@example.com"
                   />
                 </label>
-              )}
-              {message && (
-                <p className={authStyles.formMessage} role="alert">
-                  {message}
-                </p>
-              )}
-              <button
-                className={`ga-button ${authStyles.authSubmit}`}
-                disabled={busy}
-                type="submit"
-              >
-                {t(busy ? "Đang xử lý…" : register ? "Tạo tài khoản" : "Đăng nhập")}
-                <span>↗</span>
-              </button>
-            </form>
+                <div className={authStyles.passwordField}>
+                  <label htmlFor={register ? "register-password" : "login-password"}>{t("Mật khẩu")}</label>
+                  <div className={authStyles.credentialInput}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      id={register ? "register-password" : "login-password"}
+                      required
+                      minLength={register ? 12 : undefined}
+                      maxLength={128}
+                      autoComplete={register ? "new-password" : "current-password"}
+                      enterKeyHint={register ? "next" : "go"}
+                      placeholder={t("Nhập mật khẩu")}
+                      aria-describedby={register ? "password-help" : undefined}
+                    />
+                    <button
+                      type="button"
+                      aria-label={t("Hiện mật khẩu")}
+                      aria-pressed={showPassword}
+                      aria-controls={register ? "register-password" : "login-password"}
+                      onClick={() => setShowPassword((visible) => !visible)}
+                    >
+                      {t(showPassword ? "Ẩn" : "Hiện")}
+                    </button>
+                  </div>
+                  {register && (
+                    <small id="password-help">
+                      {t("Tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.")}
+                    </small>
+                  )}
+                </div>
+                {register && (
+                  <label>
+                    {t("Xác nhận mật khẩu")}
+                    <input
+                      type="password"
+                      name="confirm"
+                      id="register-confirm-password"
+                      required
+                      minLength={12}
+                      maxLength={128}
+                      autoComplete="new-password"
+                      placeholder={t("Nhập lại mật khẩu")}
+                    />
+                  </label>
+                )}
+                {message && (
+                  <p className={authStyles.formMessage} role="alert">
+                    {message}
+                  </p>
+                )}
+                <button
+                  className={`ga-button ${authStyles.authSubmit}`}
+                  disabled={busy || checkingSession}
+                  type="submit"
+                >
+                  {t(busy ? "Đang xử lý…" : register ? "Tạo tài khoản" : "Đăng nhập")}
+                  <span>↗</span>
+                </button>
+              </form>}
+            </div>
           )}
           <p className={authStyles.authSwitch}>
             {t(register ? "Đã có tài khoản?" : "Bạn chưa có tài khoản?")}{" "}

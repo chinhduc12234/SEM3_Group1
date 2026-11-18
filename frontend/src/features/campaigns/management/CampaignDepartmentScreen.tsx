@@ -15,7 +15,10 @@ import CampaignOperationsPanel from "./components/CampaignOperationsPanel";
 import CampaignBudgetPanel from "./budget/CampaignBudgetPanel";
 import { BudgetStatus } from "./budget/CampaignBudgetSummary";
 import OperationsStatusBadge from "./components/OperationsStatusBadge";
-import styles from "./CampaignManagement.module.css";
+import finance from "./budget/BudgetDashboard.module.css";
+import { BudgetHero, BudgetRecordCard } from "./budget/BudgetDashboard";
+import ops from "./components/OperationsDashboard.module.css";
+import { OperationsCards, OperationsCard, OperationsHero } from "./components/OperationsDashboard";
 
 const departments = {
   operations: { role: "VOLUNTEER_COORDINATOR", title: "Vận hành", roleLabel: "Quản lý vận hành", list: "Danh sách vận hành" },
@@ -69,44 +72,81 @@ export default function CampaignDepartmentScreen({ workspace = "operations" }: {
     <p className="notice">Bạn cần quyền {department.roleLabel} để mở mục này.</p>
   </LocalizedTree>;
 
-  return <LocalizedTree>
-    {campaignId && <Link href={workspacePath}>← {department.list}</Link>}
-    <h1>{campaign?.title || department.title}</h1>
-    {!campaignId && <label>Trạng thái hồ sơ
-      <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
-        <option value="PLANNING">Đang lập kế hoạch</option>
-        <option value="PUBLISHED">Đã công bố</option>
-      </select>
-    </label>}
-    {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet" onClick={() => setRetry(retry + 1)}>Tải lại</button></p>}
-    {!list && !campaign && !error && <p role="status">Đang tải hồ sơ…</p>}
-    {campaign && <>
-      <p className="muted">{campaignTypes[campaign.campaignType]} · <Link href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt</Link></p>
-      {workspace === "budget" ? <CampaignBudgetPanel key={campaign.id} campaign={campaign} /> :
-        <CampaignOperationsPanel key={campaign.id} campaign={campaign} />}
-    </>}
-    {list && <section className="panel">
-      <h2>Kế hoạch theo chiến dịch và sự kiện</h2>
-      {!list.items.length && <p>Chưa có hồ sơ ở trạng thái này.</p>}
-      {list.items.length > 0 && <ul className={styles.operationsList}>
-        {list.items.map((row) => <li key={row.id}>
-          <div>
-            <strong>{row.title}</strong>
-            <p className="muted">{campaignTypes[row.campaignType]}{row.startDate && row.endDate &&
-              ` · ${formatCampaignDate(row.startDate)} – ${formatCampaignDate(row.endDate)}`}</p>
-            <div className={styles.operationsRowStatus}>
-              {workspace === "budget" ? <BudgetStatus confirmedAt={row.budgetConfirmedAt} needsReview={row.budgetNeedsReview} /> :
-                <OperationsStatusBadge confirmedAt={row.operationsConfirmedAt} />}
-            </div>
+  if (workspace === "operations") return <LocalizedTree>
+    <div className={ops.dashboard}>
+      {campaignId && <Link className={ops.back} href={workspacePath}>← Danh sách vận hành</Link>}
+      <OperationsHero title={campaign?.title ?? "Vận hành"}
+        description={campaign ? "Điều phối lịch, nhân sự và cập nhật hoạt động cho Owner." : "Theo dõi các chiến dịch và sự kiện bạn được phân công phụ trách."}>
+        {campaign && <Link className={ops.heroLink} href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt ↗</Link>}
+      </OperationsHero>
+      {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet"
+        onClick={() => setRetry((value) => value + 1)}>Tải lại</button></p>}
+      {campaignId ? campaign ? <CampaignOperationsPanel key={campaign.id} campaign={campaign} /> :
+        !error && <p role="status">Đang tải hồ sơ…</p> :
+        <section className={ops.surface}>
+          <div className={ops.listHeader}>
+            <div><h2>Kế hoạch được phân công</h2>
+              {list && <p className="muted">{list.totalCount} hồ sơ</p>}</div>
+            <label>Trạng thái hồ sơ
+              <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
+                <option value="PLANNING">Đang lập kế hoạch</option>
+                <option value="PUBLISHED">Đã công bố</option>
+              </select>
+            </label>
           </div>
-          <Link className="button secondary" href={`${workspacePath}/${row.id}`}>{workspace === "budget" ? "Mở dự toán" : "Mở kế hoạch"}</Link>
-        </li>)}
-      </ul>}
-      {list.totalCount > list.pageSize && <div className="actions">
-        <button type="button" className="secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Trước</button>
-        <span>Trang {page}</span>
-        <button type="button" className="secondary" disabled={page * list.pageSize >= list.totalCount} onClick={() => setPage(page + 1)}>Sau</button>
-      </div>}
-    </section>}
+          {!list && !error && <p role="status" className={ops.empty}>Đang tải hồ sơ…</p>}
+          {list?.items.length === 0 && <p className={ops.empty}>Chưa có hồ sơ được phân công ở trạng thái này.</p>}
+          {!!list?.items.length && <OperationsCards>{list.items.map((row) =>
+            <OperationsCard key={row.id} title={row.title} href={`${workspacePath}/${row.id}`}
+              subtitle={[campaignTypes[row.campaignType], row.startDate && row.endDate &&
+                `${formatCampaignDate(row.startDate)} – ${formatCampaignDate(row.endDate)}`].filter(Boolean).join(" · ")}
+              status={<OperationsStatusBadge confirmedAt={row.operationsConfirmedAt} />} />)}
+          </OperationsCards>}
+          {list && list.totalCount > list.pageSize && <div className={ops.actions}>
+            <button type="button" className="secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Trước</button>
+            <span>Trang {page}</span>
+            <button type="button" className="secondary" disabled={page * list.pageSize >= list.totalCount} onClick={() => setPage(page + 1)}>Sau</button>
+          </div>}
+        </section>}
+    </div>
+  </LocalizedTree>;
+
+  return <LocalizedTree>
+    <div className={finance.dashboard}>
+      <BudgetHero title={campaign?.title ?? "Ngân sách"}
+        description={campaign ? campaignTypes[campaign.campaignType] : "Lập dự toán, theo dõi nguồn vốn và ghi nhận chi thực tế cho các hồ sơ được phân công."}
+        backHref={campaignId ? workspacePath : undefined}>
+        {campaign && <Link className={finance.heroLink} href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt <span aria-hidden="true">↗</span></Link>}
+      </BudgetHero>
+      {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet" onClick={() => setRetry(retry + 1)}>Tải lại</button></p>}
+      {campaignId ? campaign ? <CampaignBudgetPanel key={campaign.id} campaign={campaign} /> :
+        !error && <p className={finance.empty} role="status">Đang tải hồ sơ…</p> :
+        <section className={finance.surface} aria-labelledby="assigned-budgets">
+          <header className={finance.sectionHeader}>
+            <div><h2 id="assigned-budgets">Ngân sách được phân công</h2>
+              {list && <p role="status">{list.totalCount} hồ sơ</p>}</div>
+            <label>Trạng thái hồ sơ
+              <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
+                <option value="PLANNING">Đang lập kế hoạch</option>
+                <option value="PUBLISHED">Đã công bố</option>
+              </select>
+            </label>
+          </header>
+          {!list && !error && <p className={finance.empty} role="status">Đang tải hồ sơ…</p>}
+          {list?.items.length === 0 && <p className={finance.empty}>Chưa có hồ sơ được phân công ở trạng thái này.</p>}
+          {!!list?.items.length && <ul className={finance.records}>
+            {list.items.map((row) => <BudgetRecordCard key={row.id} title={row.title}
+              href={`${workspacePath}/${row.id}`}
+              metadata={[campaignTypes[row.campaignType], row.startDate && row.endDate &&
+                `${formatCampaignDate(row.startDate)} – ${formatCampaignDate(row.endDate)}`].filter(Boolean).join(" · ")}
+              status={<BudgetStatus confirmedAt={row.budgetConfirmedAt} needsReview={row.budgetNeedsReview} />} />)}
+          </ul>}
+          {list && list.totalCount > list.pageSize && <div className={finance.actions}>
+            <button type="button" className="secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Trước</button>
+            <span>Trang {page}</span>
+            <button type="button" className="secondary" disabled={page * list.pageSize >= list.totalCount} onClick={() => setPage(page + 1)}>Sau</button>
+          </div>}
+        </section>}
+    </div>
   </LocalizedTree>;
 }

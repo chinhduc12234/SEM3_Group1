@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { api } from "@/shared/api/api";
 import type { Campaign } from "../../types/campaigns";
 import { formatCampaignDate } from "../../formatCampaignDate";
 import styles from "../CampaignManagement.module.css";
+import finance from "./BudgetDashboard.module.css";
 import CampaignBudgetSummary, { BudgetFigures, BudgetStatus, ExpenseVariance } from "./CampaignBudgetSummary";
 import BudgetReceivingFields from "./BudgetReceivingFields";
 import { calculateBudget, emptyBudget, eventScopes, expenseAmount, formatBudgetAmount,
@@ -11,6 +12,10 @@ import { calculateBudget, emptyBudget, eventScopes, expenseAmount, formatBudgetA
 
 const tabs = [["expenses", "Dự toán chi phí"], ["funding", "Nguồn vốn"], ["fundraising", "Kế hoạch gây quỹ"],
   ["receiving", "Phương thức tiếp nhận"], ["overview", "Xem lại"], ["actuals", "Chi thực tế"]] as const;
+
+function BudgetItemHeader({ title, children }: { title: string; children?: ReactNode }) {
+  return <header className={finance.itemHeader}><h4>{title}</h4>{children && <strong>{children}</strong>}</header>;
+}
 
 function textField(label: string, value: string, change: (value: string) => void, maxLength = 200) {
   return <label>{label}<input maxLength={maxLength} value={value} onChange={(event) => change(event.target.value)} /></label>;
@@ -33,13 +38,17 @@ function ActualExpenseForm({ expense, disabled, onSave }: {
   expense: BudgetExpense; disabled: boolean; onSave: (amount: number | null) => void;
 }) {
   const [amount, setAmount] = useState(expense.actualAmount?.toString() ?? "");
+  const actual = amount === "" ? null : Number(amount);
+  const valid = actual === null || (Number.isInteger(actual) && actual >= 0 && actual <= 1_000_000_000_000_000);
   return <section className={styles.operationsItem}>
-    <h3>{expense.name}</h3>
-    <ExpenseVariance expense={expense} />
+    <BudgetItemHeader title={expense.name || "Khoản chi chưa có tên"} />
+    <ExpenseVariance expense={expense} compact />
     <label>Số tiền đã chi (VND)
-      <input type="number" min={0} max={1_000_000_000_000_000} step={1} value={amount} onChange={(event) => setAmount(event.target.value)} />
+      <input type="number" min={0} max={1_000_000_000_000_000} step={1} value={amount}
+        disabled={disabled} aria-invalid={!valid} onChange={(event) => setAmount(event.target.value)} />
     </label>
-    <button type="button" className="secondary" disabled={disabled} onClick={() => onSave(amount === "" ? null : Number(amount))}>Lưu chi thực tế</button>
+    <button type="button" className="secondary" disabled={disabled || !valid || actual === (expense.actualAmount ?? null)}
+      onClick={() => onSave(actual)}>Lưu chi thực tế</button>
   </section>;
 }
 
@@ -136,25 +145,32 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
 
   const totals = calculateBudget(plan);
   const funding = plan.fundraising;
-  return <section className={`panel ${styles.budgetWorkspace}`} aria-labelledby="budget-title">
-    <header className={styles.detailMeta}>
-      <h2 id="budget-title">Kế hoạch ngân sách</h2>
-      {view && <BudgetStatus confirmedAt={view.confirmedAt} needsReview={view.needsReview} />}
+  const coverage = totals.estimated > 0 ? Math.floor(totals.confirmedFunding / totals.estimated * 100) : 0;
+  const activeTabLabel = tabs.find(([key]) => key === tab)?.[1];
+  return <section className={finance.editor} aria-labelledby="budget-title">
+    <header className={finance.sectionHeader}>
+      <div><h2 id="budget-title">Tổng quan ngân sách</h2>
+        {view && <BudgetStatus confirmedAt={view.confirmedAt} needsReview={view.needsReview} />}</div>
+      {view && <Link className={finance.recordLink} href={`${detail}?tab=operations`}>Xem kế hoạch vận hành <span aria-hidden="true">↗</span></Link>}
     </header>
     {error && <p className="notice error" role="alert">{error} <button className="quiet" type="button" disabled={busy}
       onClick={() => { setError(""); setRetry((count) => count + 1); }}>Tải lại bản đã lưu</button></p>}
     {message && <p className="notice success" role="status">{message}</p>}
     {!view && !error && <p role="status">Đang tải ngân sách…</p>}
     {view && <>
-      <p><Link href={`${detail}?tab=operations`}>Xem kế hoạch vận hành trong hồ sơ</Link></p>
       {view.needsReview && <p className="notice">Lịch hoặc quy mô vận hành đã thay đổi. Hãy rà soát và xác nhận lại dự toán.</p>}
-      <BudgetFigures totals={totals} minimum={plan.minimumAmount} />
-      <div className={styles.detailTabs} aria-label="Các phần kế hoạch ngân sách">
+      <BudgetFigures totals={totals} minimum={plan.minimumAmount} dashboard />
+      {totals.estimated > 0 && <div className={finance.coverage}>
+        <label htmlFor="budget-coverage">Tỷ lệ dự toán đã có vốn <strong>{coverage.toLocaleString()}%</strong></label>
+        <progress id="budget-coverage" max={totals.estimated} value={Math.min(totals.confirmedFunding, totals.estimated)} />
+      </div>}
+      <nav className={finance.tabs} aria-label="Các phần kế hoạch ngân sách">
         {tabs.filter(([key]) => view.canEdit || key === "overview" || key === "actuals").map(([key, title]) =>
-          <button type="button" className={tab === key ? "primary" : "secondary"}
+          <button type="button" className="secondary" aria-controls="budget-section"
           aria-pressed={tab === key} key={key} onClick={() => setTab(key)}>{title}</button>)}
-      </div>
-      <fieldset className={styles.conceptForm} disabled={busy}>
+      </nav>
+      <div className={finance.sectionHeader}><h3 id="budget-section-title">{activeTabLabel}</h3></div>
+      <fieldset id="budget-section" aria-labelledby="budget-section-title" className={`${styles.conceptForm} ${finance.form}`} disabled={busy}>
         {tab === "expenses" && <>
           {campaign.concept?.parentCampaignId && <label>Phạm vi ngân sách sự kiện
             <select value={plan.eventScope ?? ""} onChange={(event) => {
@@ -165,12 +181,12 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
               {Object.entries(eventScopes).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             </select>
           </label>}
-          {plan.expenses.length === 0 && <p className="muted">Chưa có khoản chi.</p>}
+          {plan.expenses.length === 0 && <p className={finance.empty}>Chưa có khoản chi.</p>}
           {plan.expenses.map((expense, index) => {
             const patch = (value: Partial<BudgetExpense>) => edit((current) => ({ ...current, expenses: updateRow(current.expenses, expense.id, value) }));
             return <section className={styles.operationsItem} key={expense.id}>
-              <div className={styles.detailMeta}><h3>Khoản chi {index + 1}</h3><strong>{formatBudgetAmount(expenseAmount(expense))}</strong></div>
-              <div className={styles.operationsFields}>
+              <BudgetItemHeader title={expense.name || `Khoản chi ${index + 1}`}>{formatBudgetAmount(expenseAmount(expense))}</BudgetItemHeader>
+              <div className={`${styles.operationsFields} ${finance.itemFields}`}>
                 {textField("Tên khoản chi", expense.name, (name) => patch({ name }))}
                 <label>Nhóm chi phí<select value={expense.category} onChange={(event) => patch({ category: event.target.value })}>
                   {view.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -199,12 +215,12 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
           }}>Thêm khoản chi</button>
         </>}
         {tab === "funding" && <>
-          {plan.funding.length === 0 && <p className="muted">Chưa có nguồn vốn.</p>}
+          {plan.funding.length === 0 && <p className={finance.empty}>Chưa có nguồn vốn.</p>}
           {plan.funding.map((source, index) => {
             const patch = (value: Partial<BudgetFunding>) => edit((current) => ({ ...current, funding: updateRow(current.funding, source.id, value) }));
             return <section className={styles.operationsItem} key={source.id}>
-              <h3>Nguồn vốn {index + 1}</h3>
-              <div className={styles.operationsFields}>
+              <BudgetItemHeader title={source.name || `Nguồn vốn ${index + 1}`}>{formatBudgetAmount(source.amount)}</BudgetItemHeader>
+              <div className={`${styles.operationsFields} ${finance.itemFields}`}>
                 {textField("Tên nguồn vốn", source.name, (name) => patch({ name }))}
                 {numberField("Số tiền (VND)", source.amount, (amount) => patch({ amount }))}
                 <label>Trạng thái nguồn vốn<select value={source.confirmed ? "confirmed" : "expected"}
@@ -227,7 +243,7 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
         </>}
         {tab === "fundraising" && <section className={styles.reviewBlock}>
           <p>Mục tiêu cần huy động bằng tổng dự toán trừ nguồn vốn đã xác nhận.</p>
-          {totals.fundraisingGoal > 0 && <div className={styles.operationsFields}>
+          {totals.fundraisingGoal > 0 && <div className={`${styles.operationsFields} ${finance.itemFields}`}>
             {([["opensOn", "Ngày dự kiến mở quyên góp"], ["closesOn", "Ngày dự kiến kết thúc"]] as const).map(([key, title]) =>
               <label key={key}>{title}<input type="date" value={funding[key] ?? ""} onChange={(event) => {
                 const date = event.target.value || null;
@@ -236,15 +252,15 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
             {longField("Mục đích sử dụng tiền", funding.purpose, (purpose) => edit((current) => ({ ...current, fundraising: { ...current.fundraising, purpose } })))}
             {longField("Xử lý khi thiếu nguồn lực", funding.shortfallPolicy, (shortfallPolicy) => edit((current) => ({ ...current, fundraising: { ...current.fundraising, shortfallPolicy } })))}
             {longField("Giải thích tài chính dự kiến công khai", funding.publicExplanation, (publicExplanation) => edit((current) => ({ ...current, fundraising: { ...current.fundraising, publicExplanation } })))}
-            <fieldset className={styles.budgetChoices}>
+            <fieldset className={finance.choices}>
               <legend>Nhóm chi phí kêu gọi hỗ trợ</legend>
               {view.categories.filter(({ id }) => funding.categories.includes(id) || plan.expenses.some((row) => row.category === id))
-                .map(({ id, name }) => <label key={id}><input type="checkbox" checked={funding.categories.includes(id)} onChange={(event) => {
+                .map(({ id, name }) => <label className={finance.check} key={id}><input type="checkbox" checked={funding.categories.includes(id)} onChange={(event) => {
                   const checked = event.target.checked;
                   edit((current) => ({ ...current, fundraising: { ...current.fundraising,
                     categories: checked ? [...current.fundraising.categories, id] : current.fundraising.categories.filter((category) => category !== id) } }));
                 }} /> {name}</label>)}
-              <label><input type="checkbox" checked={funding.allowOverGoal} onChange={(event) => {
+              <label className={finance.check}><input type="checkbox" checked={funding.allowOverGoal} onChange={(event) => {
                 const allowOverGoal = event.target.checked;
                 edit((current) => ({ ...current, fundraising: { ...current.fundraising, allowOverGoal } }));
               }} /> Cho phép vượt mục tiêu</label>
@@ -256,12 +272,14 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
           onUpload={(file) => void uploadQr(file)} />}
         {tab === "overview" && <CampaignBudgetSummary campaignId={campaign.id} view={view} plan={plan} totals={totals} />}
         {tab === "actuals" && <>
-          {!view.confirmedAt && <p>Hãy xác nhận ngân sách trước khi ghi chi thực tế.</p>}
-          {view.confirmedAt && plan !== view.plan && <p>Lưu thay đổi của dự toán trước khi ghi chi thực tế.</p>}
+          {!view.confirmedAt && <p className={finance.empty}>Hãy xác nhận ngân sách trước khi ghi chi thực tế.</p>}
+          {view.confirmedAt && plan.expenses.length === 0 && <p className={finance.empty}>Chưa có khoản chi.</p>}
+          {view.confirmedAt && plan !== view.plan && <p className="notice">Lưu thay đổi của dự toán trước khi ghi chi thực tế.</p>}
           {view.confirmedAt && plan.expenses.map((expense) => <ActualExpenseForm key={`${expense.id}:${expense.actualAmount}`}
-            expense={expense} disabled={plan !== view.plan} onSave={(amount) => void saveActual(expense.id, amount)} />)}
+            expense={expense} disabled={!view.canRecordActuals || plan !== view.plan} onSave={(amount) => void saveActual(expense.id, amount)} />)}
         </>}
-        {view.canEdit && tab !== "actuals" && <div className="actions">
+        {view.canEdit && tab !== "actuals" && <div className={finance.saveBar}>
+          <span role="status">{plan !== (view.plan ?? emptyBudget) ? "Có thay đổi chưa lưu" : "Mọi thay đổi đã được lưu"}</span>
           <button type="button" className="secondary" onClick={() => void save(false)}>Lưu bản nháp ngân sách</button>
           <button type="button" onClick={() => void save(true)}>Gửi xác nhận ngân sách</button>
         </div>}

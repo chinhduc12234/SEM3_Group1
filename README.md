@@ -10,6 +10,8 @@ Hướng dẫn tính năng và API hiện tại: [Tài khoản và xét duyệt 
 
 Email tiếp nhận hồ sơ và kết quả xét duyệt đã tích hợp qua EmailJS tại OrganizationService, có SQL outbox, retry và theo dõi trong chi tiết hồ sơ admin. Xem [cấu hình và vận hành email](docs/ORGANIZATION-EMAIL.md).
 
+Muốn thử dashboard theo vai trò bằng tài khoản giả lập local, xem [local demo workspace seed](docs/DEMO-SEED.md). Seed không sửa luồng duyệt hồ sơ pháp lý.
+
 Thông báo hồ sơ đã có service/database riêng, chuông realtime SignalR và Firebase push tùy chọn. Xem [cấu hình, API và kiểm tra notification](docs/NOTIFICATIONS.md). Các thành viên có thể chạy inbox/realtime với `FIREBASE_ENABLED=false`; chỉ bật push khi đã cấu hình file credential riêng.
 
 Đã có workspace riêng cho OWNER/thành viên và danh bạ giám sát của admin, gồm hồ sơ vận hành, nhân sự nhiều vai trò, lời mời trong ứng dụng, khóa quyền và xét duyệt thay đổi pháp lý. Xem [API, phân quyền và chia việc](docs/ORGANIZATION-WORKSPACE.md).

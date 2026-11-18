@@ -32,6 +32,13 @@ function Shell({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const root = `/organizations/${id}/manage`;
+  const isMemberOnly = !!data && !data.roles.some((role) =>
+    ["OWNER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER"].includes(role),
+  );
+  const showBackLink = path !== root && path !== `${root}/members` && path !== `${root}/operations`;
+  const backHref = isMemberOnly && path.startsWith(`${root}/campaigns`)
+    ? `${root}/members`
+    : root;
   const reload = useCallback(async () => {
     const result = await api<Workspace>(`/api/organizations/${id}/workspace`);
     setData(result);
@@ -42,6 +49,7 @@ function Shell({ children }: { children: ReactNode }) {
     reload().catch((ex) => setError(ex.message));
   }, [reload]);
   const links = [
+    ...(data?.roles.includes("OWNER") ? [[root, t("Tổng quan")]] : []),
     [root + "/members", t("Nhân sự")],
     ...(data?.roles.includes("CAMPAIGN_MANAGER")
       ? [[root + "/campaigns", t("Chiến dịch và sự kiện")]]
@@ -63,7 +71,7 @@ function Shell({ children }: { children: ReactNode }) {
         </p>
         <nav>
           {links.map(([href, label]) => (
-            <Link key={href} href={href} aria-current={path === href || path.startsWith(href + "/") || (path === root && href === root + "/members") ? "page" : undefined}>
+            <Link key={href} href={href} aria-current={path === href || (href !== root && path.startsWith(href + "/")) || (path === root && !data?.roles.includes("OWNER") && href === root + "/members") ? "page" : undefined}>
               {label}
             </Link>
           ))}
@@ -91,7 +99,19 @@ function Shell({ children }: { children: ReactNode }) {
       </aside>
       <div className={workspaceStyles.main}>
         <header className={workspaceStyles.topbar}>
-          <span>Give-AID / {t("Quản lý tổ chức")}</span>
+          <div className={workspaceStyles.topbarStart}>
+            {showBackLink && (
+              <Link
+                className={workspaceStyles.backLink}
+                href={backHref}
+                aria-label={t("Quay lại")}
+              >
+                <span aria-hidden="true">←</span>
+                {t("Quay lại")}
+              </Link>
+            )}
+            <span>Give-AID / {t("Quản lý tổ chức")}</span>
+          </div>
           <div className={notificationsStyles.actions}>
             <NotificationBell href={`${root}/notifications`} />
             {data?.roles.includes("OWNER") ? (

@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
+import { HttpTransportType, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
 import { useAuth } from "@/features/auth/components/AuthProvider";
 import { api, realtimeAccessToken } from "@/shared/api/api";
 import { cancelPushSetup, disableBrowserPush, optedIntoPush, registerBrowserPush } from "../push";
@@ -93,6 +93,8 @@ export default function NotificationProvider({ children }: { children: ReactNode
     let starting = false;
     const connection = new HubConnectionBuilder()
       .withUrl("/hubs/notifications", {
+        // Long polling keeps browser credentials in the Authorization header.
+        transport: HttpTransportType.LongPolling,
         accessTokenFactory: realtimeAccessToken,
         headers: { "X-Requested-With": "GiveAid" },
       })

@@ -84,26 +84,41 @@ export default function CampaignList({
   setTypeFilter,
   typeFilter,
 }: Props) {
+  const hasFilters = !!search || statusFilter !== "ALL" || typeFilter !== "ALL" || assignedOnly;
+
   return (
     <LocalizedTree>
       <section className={`panel ${managementStyles.campaignList}`}>
         <div className={managementStyles.campaignListHead}>
           <div>
-            <h2>{assignedOnly ? "Chiến dịch và sự kiện được phân công" : "Danh sách chiến dịch và sự kiện"}</h2>
+            <h2>{assignedOnly ? "Chiến dịch được phân công" : "Danh sách chiến dịch"}</h2>
+            <p>{assignedOnly ? "Các hồ sơ đang nằm trong phạm vi công việc của bạn." : "Tìm nhanh hồ sơ theo tên, loại hoặc trạng thái xử lý."}</p>
           </div>
-          <div className={managementStyles.campaignFilters}>
-            {(owner || manager) && <select aria-label="Phạm vi hồ sơ" value={assignedOnly ? "assigned" : "all"}
+          <span className={managementStyles.campaignCount}>
+            {rows ? `${rows.totalCount.toLocaleString("vi-VN")} hồ sơ` : "Đang tải…"}
+          </span>
+        </div>
+        <div className={managementStyles.campaignFilters} role="search" aria-label="Lọc chiến dịch">
+            {(owner || manager) && <label className={managementStyles.campaignFilterField}>
+              <span>Phạm vi</span>
+              <select aria-label="Phạm vi hồ sơ" value={assignedOnly ? "assigned" : "all"}
               onChange={(e) => { setAssignedOnly(e.target.value === "assigned"); setPage(1); }}>
               <option value="all">Hồ sơ có quyền xem</option>
               <option value="assigned">Được phân công</option>
-            </select>}
-            <select aria-label="Lọc theo loại hồ sơ" value={typeFilter}
+              </select>
+            </label>}
+            <label className={managementStyles.campaignFilterField}>
+              <span>Loại hồ sơ</span>
+              <select aria-label="Lọc theo loại hồ sơ" value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
               <option value="ALL">Tất cả loại hồ sơ</option>
               <option value="CAMPAIGN">{campaignTypes.CAMPAIGN}</option>
               <option value="EVENT">{campaignTypes.EVENT}</option>
-            </select>
-            <input
+              </select>
+            </label>
+            <label className={`${managementStyles.campaignFilterField} ${managementStyles.campaignSearch}`}>
+              <span>Tìm kiếm</span>
+              <input
               aria-label="Tìm kiếm chiến dịch"
               placeholder="Tìm kiếm chiến dịch..."
               maxLength={200}
@@ -113,7 +128,10 @@ export default function CampaignList({
                 setPage(1);
               }}
             />
-            <select
+            </label>
+            <label className={managementStyles.campaignFilterField}>
+              <span>Trạng thái</span>
+              <select
               aria-label="Lọc trạng thái chiến dịch"
               value={statusFilter}
               onChange={(e) => {
@@ -127,8 +145,8 @@ export default function CampaignList({
                   {label}
                 </option>
               ))}
-            </select>
-          </div>
+              </select>
+            </label>
         </div>
         {rows?.items.map((c) => (
             <article className={managementStyles.campaignRow} key={c.id}>
@@ -215,13 +233,37 @@ export default function CampaignList({
               </div>
             </article>
           ))}
-        {rows?.items.length === 0 && <p>Không tìm thấy hồ sơ phù hợp.</p>}
-        <div className="actions">
-          <button disabled={busy || page === 1} onClick={() => setPage((p) => p - 1)}>
+        {!rows && <div className={managementStyles.campaignEmpty} role="status">
+          <span className={managementStyles.campaignEmptyIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none">
+            <path d="M10.8 18.3a7.5 7.5 0 1 1 5.3-2.2m-.1-.1 4.5 4.5M7.1 10.5h6.2m-6.2 3.7h3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg></span>
+          <strong>Đang tải danh sách</strong>
+          <p>Thông tin chiến dịch sẽ xuất hiện tại đây.</p>
+        </div>}
+        {rows?.items.length === 0 && <div className={managementStyles.campaignEmpty}>
+          <span className={managementStyles.campaignEmptyIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none">
+            <path d="M10.8 18.3a7.5 7.5 0 1 1 5.3-2.2m-.1-.1 4.5 4.5M7.1 10.5h6.2m-6.2 3.7h3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg></span>
+          <strong>{hasFilters ? "Chưa tìm thấy hồ sơ phù hợp" : manager ? "Chưa có chiến dịch nào" : "Chưa có hồ sơ để hiển thị"}</strong>
+          <p>{hasFilters
+            ? "Thử đổi từ khóa hoặc bộ lọc để tìm hồ sơ khác."
+            : "Khi có đề xuất mới, trạng thái và các bước tiếp theo sẽ được cập nhật tại đây."}</p>
+          {hasFilters && <button className="secondary" type="button" onClick={() => {
+            setSearch("");
+            setAssignedOnly(false);
+            setStatusFilter("ALL");
+            setTypeFilter("ALL");
+            setPage(1);
+          }}>Xóa bộ lọc</button>}
+          {!hasFilters && manager && <Link className="button" href={`${campaignsPath}/create`}>Tạo chiến dịch đầu tiên</Link>}
+        </div>}
+        <div className={managementStyles.campaignPagination}>
+          <button className="secondary" disabled={busy || page === 1} onClick={() => setPage((p) => p - 1)}>
             Trước
           </button>
-          <span>Trang {page}</span>
+          <span>{rows?.totalCount ? `Trang ${page} · ${rows.totalCount.toLocaleString("vi-VN")} hồ sơ` : `Trang ${page}`}</span>
           <button
+            className="secondary"
             disabled={busy || !rows || page * pageSize >= rows.totalCount}
             onClick={() => setPage((p) => p + 1)}
           >

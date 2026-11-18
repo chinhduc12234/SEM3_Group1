@@ -44,6 +44,11 @@ public sealed class CampaignsController(ICampaignApplication service) : Controll
     public Task<CampaignView> Assign(Guid id, CampaignAssignmentRequest request, CancellationToken ct) => service.Assign(id, request, Actor, ct);
     [Authorize, HttpGet("{id:guid}/operations")]
     public Task<OperationsView> Operations(Guid id, CancellationToken ct) => service.Operations(id, Actor, ct);
+    [Authorize, HttpGet("{id:guid}/operations/photo-reports")]
+    public Task<ActivityPhotoReport[]> ActivityPhotoReports(Guid id, CancellationToken ct) => service.ActivityPhotoReports(id, Actor, ct);
+    [Authorize, HttpPost("{id:guid}/operations/activities/{activityId:guid}/photo-reports"), RequestSizeLimit(5600000)]
+    public Task<ActivityPhotoReport> SendActivityPhoto(Guid id, Guid activityId, [FromForm] Guid reportId,
+        [FromForm] string? note, IFormFile file, CancellationToken ct) => service.SendActivityPhoto(id, activityId, reportId, note, file, Actor, ct);
     [Authorize, HttpPut("{id:guid}/operations")]
     public Task<OperationsView> SaveOperations(Guid id, CampaignOperationsRequest request, CancellationToken ct) => service.SaveOperations(id, request, Actor, ct);
     [Authorize, HttpPut("{id:guid}/operations/activities/{activityId:guid}/attendance")]
@@ -65,6 +70,7 @@ public sealed class CampaignsController(ICampaignApplication service) : Controll
     public async Task<IActionResult> Media(Guid id, Guid mediaId, CancellationToken ct)
     {
         var media = await service.Download(id, mediaId, OptionalActor, ct);
+        if (media.Kind == "ACTIVITY_REPORT") Response.Headers.CacheControl = "private, no-store";
         Response.Headers.ContentDisposition = media.Kind == "DOCUMENT" ? "attachment" : "inline";
         return File(media.Content, media.ContentType);
     }

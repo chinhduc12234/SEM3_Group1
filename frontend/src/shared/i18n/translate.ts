@@ -28,6 +28,7 @@ export function translateText(text: string, locale: Locale) {
     const page = trimmed.match(/^Trang (\d+)(?: \/ (\d+))?$/);
     const unread = trimmed.match(/^(\d+) chưa đọc$/);
     const campaignCount = trimmed.match(/^(\d+) chiến dịch$/);
+    const profileCount = trimmed.match(/^(\d+) hồ sơ$/);
     const localizedDate = trimmed.match(
       /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:, (\d{1,2}):(\d{2})(?::(\d{2}))?)?$/,
     );
@@ -36,6 +37,7 @@ export function translateText(text: string, locale: Locale) {
     if (page) result = `Page ${page[1]}${page[2] ? ` / ${page[2]}` : ""}`;
     else if (unread) result = `${unread[1]} unread`;
     else if (campaignCount) result = `${campaignCount[1]} campaigns`;
+    else if (profileCount) result = `${Number(profileCount[1]).toLocaleString("en-US")} records`;
     else if (localizedDate) {
       const [, day, month, year, hour, minute, second] = localizedDate;
       const date = `${Number(month)}/${Number(day)}/${year}`;

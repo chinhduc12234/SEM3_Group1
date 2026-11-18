@@ -8,6 +8,8 @@ export default function WorkspaceMembersScreen() {
       id={data.id}
       canManage={data.canManageMembers}
       inviteRoles={data.invitableRoles}
+      organizationName={data.profile.displayName}
+      ownerStats={data.statistics}
       onChange={reload}
       heading="h1"
     />

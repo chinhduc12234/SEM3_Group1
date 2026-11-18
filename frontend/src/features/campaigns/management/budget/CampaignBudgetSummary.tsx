@@ -1,5 +1,6 @@
 import { formatCampaignDate } from "../../formatCampaignDate";
 import styles from "../CampaignManagement.module.css";
+import finance from "./BudgetDashboard.module.css";
 import { eventScopes, expenseAmount, formatBudgetAmount, type BudgetPlan, type BudgetTotals, type BudgetView } from "./budget";
 import { BudgetReceivingSummary } from "./BudgetReceivingFields";
 
@@ -9,8 +10,8 @@ export function BudgetStatus({ confirmedAt, needsReview }: Pick<BudgetView, "con
   </span>;
 }
 
-export function BudgetFigures({ totals, minimum }: { totals: BudgetTotals; minimum: number }) {
-  return <dl className={styles.operationsSummaryStats}>
+export function BudgetFigures({ totals, minimum, dashboard = false }: { totals: BudgetTotals; minimum: number; dashboard?: boolean }) {
+  return <dl className={dashboard ? finance.figures : styles.operationsSummaryStats}>
     <div><dt>Tổng dự toán</dt><dd>{formatBudgetAmount(totals.estimated)}</dd></div>
     <div><dt>Nguồn vốn đã xác nhận</dt><dd>{formatBudgetAmount(totals.confirmedFunding)}</dd></div>
     <div><dt>Nguồn vốn dự kiến</dt><dd>{formatBudgetAmount(totals.expectedFunding)}</dd></div>
@@ -19,13 +20,13 @@ export function BudgetFigures({ totals, minimum }: { totals: BudgetTotals; minim
   </dl>;
 }
 
-export function ExpenseVariance({ expense }: { expense: BudgetPlan["expenses"][number] }) {
+export function ExpenseVariance({ expense, compact = false }: { expense: BudgetPlan["expenses"][number]; compact?: boolean }) {
   const planned = expenseAmount(expense);
   const actual = expense.actualAmount;
-  return <dl>
-    <dt>Dự toán</dt><dd>{formatBudgetAmount(planned)}</dd>
-    <dt>Chi thực tế</dt><dd>{actual == null ? "Chưa ghi nhận" : formatBudgetAmount(actual)}</dd>
-    {actual != null && <><dt>Chênh lệch so với dự toán</dt><dd>{formatBudgetAmount(actual - planned)}</dd></>}
+  return <dl className={compact ? finance.variance : undefined}>
+    <div><dt>Dự toán</dt><dd>{formatBudgetAmount(planned)}</dd></div>
+    <div><dt>Chi thực tế</dt><dd>{actual == null ? "Chưa ghi nhận" : formatBudgetAmount(actual)}</dd></div>
+    {actual != null && <div><dt>Chênh lệch so với dự toán</dt><dd data-over-budget={actual > planned}>{formatBudgetAmount(actual - planned)}</dd></div>}
   </dl>;
 }
 
@@ -35,7 +36,7 @@ export default function CampaignBudgetSummary({ campaignId, view, plan, totals }
   const categories = new Map(view.categories.map((category) => [category.id, category.name]));
   const activities = new Map(view.activities.map((activity) => [activity.id, activity]));
   const { fundraising } = plan;
-  return <div className={styles.detailOperationsGrid}>
+  return <div className={`${styles.detailOperationsGrid} ${finance.columns}`}>
     <section className={styles.reviewBlock}>
       <h3>Dự toán chi phí</h3>
       {plan.eventScope && <p>{eventScopes[plan.eventScope]}</p>}

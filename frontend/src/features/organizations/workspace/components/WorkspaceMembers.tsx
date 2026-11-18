@@ -153,6 +153,7 @@ function PersonnelEditor({
               <Avatar name={profile.fullName || "Nhân sự"} photo={profile.photo} />
               <div>
                 <strong className={styles.photoTitle}>Ảnh nhân sự</strong>
+                <small className={styles.photoHelp}>Ảnh sẽ hiển thị cùng hồ sơ trong danh sách thành viên.</small>
                 <label className={styles.fileLabel}>
                   {profile.photo ? "Đổi ảnh" : "Chọn ảnh"}
                   <input
@@ -180,6 +181,10 @@ function PersonnelEditor({
                 {photoError && <small role="alert">{photoError}</small>}
               </div>
             </div>
+            <div className={styles.formSectionTitle}>
+              <span>01</span>
+              <div><strong>Thông tin cá nhân</strong><small>Cập nhật thông tin liên hệ và nhận diện thành viên.</small></div>
+            </div>
             <label>
               Họ và tên <span aria-hidden="true">*</span>
               <input required minLength={2} maxLength={120} value={profile.fullName} onChange={(event) => update("fullName", event.target.value)} placeholder="Nguyễn Văn An" />
@@ -187,6 +192,7 @@ function PersonnelEditor({
             <label>
               Số điện thoại
               <input type="tel" maxLength={26} value={profile.phone} onChange={(event) => update("phone", event.target.value)} placeholder="090 123 4567" />
+              <small>Có thể để trống nếu chưa có số điện thoại.</small>
             </label>
             <label>
               Số CCCD
@@ -198,8 +204,13 @@ function PersonnelEditor({
                 onChange={(event) => update("identityNumber", event.target.value.replace(/[^0-9]/g, ""))}
                 placeholder="12 chữ số"
               />
+              <small>Nhập đủ 12 chữ số nếu cần lưu thông tin CCCD.</small>
             </label>
             <div className={styles.fullField}>
+              <div className={styles.formSectionTitle}>
+                <span>02</span>
+                <div><strong>Vai trò và quyền hạn</strong><small>Vai trò quyết định các khu vực mà thành viên có thể truy cập.</small></div>
+              </div>
               <label>
                 Vai trò trong tổ chức <span aria-hidden="true">*</span>
                 <select
@@ -252,6 +263,10 @@ function PersonnelDetail({
   onChangeState: () => Promise<void>;
 }) {
   const { member, profile } = detail;
+  const { locale } = useLocale();
+  const joinedAt = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "vi-VN", {
+    day: "2-digit", month: "long", year: "numeric",
+  }).format(new Date(member.joinedAt));
   const [inviting, setInviting] = useState(false);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -285,31 +300,44 @@ function PersonnelDetail({
         onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
       >
         <div className={styles.dialogHead}>
-          <h2 id="personnel-detail-title">Chi tiết nhân sự</h2>
+          <div>
+            <span className={styles.dialogEyebrow}>HỒ SƠ THÀNH VIÊN</span>
+            <h2 id="personnel-detail-title">Chi tiết nhân sự</h2>
+          </div>
           <button type="button" className="secondary" disabled={busy} onClick={onClose} aria-label="Đóng">×</button>
         </div>
         <div className={styles.detailBody}>
-          <div className={styles.photoField}>
-            <Avatar name={profile.fullName || member.fullName} photo={profile.photo} />
-            <div>
-              <strong>{profile.fullName || member.fullName}</strong>
-              <Roles roles={profile.roles} />
+          <section className={styles.detailProfileHero} aria-label="Thông tin thành viên">
+            <div className={styles.photoField}>
+              <Avatar name={profile.fullName || member.fullName} photo={profile.photo} />
+              <div>
+                <strong>{profile.fullName || member.fullName}</strong>
+                <Roles roles={profile.roles} />
+              </div>
             </div>
-          </div>
+            <span className={styles.detailMemberState} data-state={!profile.userId ? "pending" : profile.isActive ? "active" : "inactive"}>
+              <i aria-hidden="true" />
+              {!profile.userId ? "Chưa liên kết tài khoản" : profile.isActive ? "Đang được cấp quyền" : "Đã thu hồi quyền"}
+            </span>
+          </section>
+          <div className={styles.detailSectionLabel}><span>THÔNG TIN HỒ SƠ</span><i /></div>
           <dl className={styles.detailFields}>
             <div><dt>Số điện thoại</dt><dd>{profile.phone || "—"}</dd></div>
             <div><dt>Số CCCD</dt><dd>{profile.identityNumber || "—"}</dd></div>
             <div><dt>Email đăng nhập</dt><dd>{profile.email || (profile.userId ? "Không tìm thấy tài khoản" : "Chưa liên kết tài khoản")}</dd></div>
-            <div><dt>Quyền trong tổ chức</dt><dd>{accessStatus(profile)}</dd></div>
+            <div><dt>Tình trạng tài khoản</dt><dd>{profile.userId ? profile.accountActive ? "Tài khoản đang hoạt động" : "Tài khoản không hoạt động" : "Chưa có tài khoản liên kết"}</dd></div>
+            <div><dt>Quyền truy cập tổ chức</dt><dd>{profile.isActive ? "Đang được cấp quyền" : "Đã thu hồi quyền"}</dd></div>
+            <div><dt>Ngày tham gia</dt><dd>{joinedAt}</dd></div>
           </dl>
           {profile.userId && (
-            <p className={styles.passwordHint}>Mật khẩu được bảo vệ. Thành viên có thể đổi mật khẩu trong mục Bảo mật của tài khoản Give-AID.</p>
+            <p className={styles.passwordHint}><span aria-hidden="true">i</span><span><strong>Bảo mật tài khoản</strong>Mật khẩu được bảo vệ. Thành viên có thể đổi mật khẩu trong mục Bảo mật của tài khoản Give-AID.</span></p>
           )}
           {inviting && (
             <form className={styles.inviteForm} onSubmit={(event) => {
               event.preventDefault();
               void perform(() => onInvite(email.trim()));
             }}>
+              <div className={styles.inviteHeading}><strong>Liên kết tài khoản Give-AID</strong><small>Gửi lời mời đến email đã đăng ký của thành viên.</small></div>
               <label>
                 Email tài khoản
                 <input required type="email" maxLength={256} value={email} disabled={busy} onChange={(event) => setEmail(event.target.value)} />
@@ -337,13 +365,15 @@ function PersonnelDetail({
 }
 
 export default function WorkspaceMembers({
-  id, canManage = false, inviteRoles = [], onChange, heading: Heading = "h2",
+  id, canManage = false, inviteRoles = [], onChange, heading: Heading = "h2", organizationName, ownerStats,
 }: {
   id: string;
   canManage?: boolean;
   inviteRoles?: string[];
   onChange?: () => Promise<void>;
   heading?: "h1" | "h2";
+  organizationName?: string;
+  ownerStats?: { activeMembers: number; staffCount: number; pendingInvitations: number };
 }) {
   const { locale, t } = useLocale();
   const [tab, setTab] = useState<Tab>("members");
@@ -351,7 +381,7 @@ export default function WorkspaceMembers({
   const [invitations, setInvitations] = useState<PageResult<Invitation> | null>(null);
   const [page, setPage] = useState(1);
   const [invitePage, setInvitePage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = 10;
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
@@ -499,9 +529,10 @@ export default function WorkspaceMembers({
 
   return (
     <LocalizedTree>
-      <section className={styles.directory} aria-label="Quản lý nhân sự">
+      <section className={`${styles.directory} ${ownerStats ? styles.ownerDirectory : ""}`} aria-label="Quản lý nhân sự">
         <header className={styles.header}>
           <div>
+            {ownerStats && <span className={styles.ownerEyebrow}>KHÔNG GIAN TỔ CHỨC · {organizationName}</span>}
             <Heading>Nhân sự</Heading>
             <p>{canManage ? "Quản lý hồ sơ, vai trò và quyền truy cập của thành viên trong tổ chức." : "Danh sách thành viên và vai trò trong tổ chức."}</p>
           </div>
@@ -511,6 +542,14 @@ export default function WorkspaceMembers({
             </button>
           )}
         </header>
+
+        {ownerStats && (
+          <section className={styles.ownerMemberStats} aria-label="Tổng quan nhân sự">
+            <article><span>Thành viên đang hoạt động</span><strong>{ownerStats.activeMembers}</strong><small>Đang đồng hành cùng tổ chức</small></article>
+            <article><span>Đội ngũ nhân sự</span><strong>{ownerStats.staffCount}</strong><small>Không bao gồm chủ tổ chức</small></article>
+            <article><span>Lời mời đang chờ</span><strong>{ownerStats.pendingInvitations}</strong><small>Có thể theo dõi trong tab Lời mời</small></article>
+          </section>
+        )}
 
         {message && <p className="notice success" role="status">{message}</p>}
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -549,12 +588,6 @@ export default function WorkspaceMembers({
                   {canManage && <option value="UNLINKED">Chưa liên kết tài khoản</option>}
                   <option value="ACTIVE">Đang cấp quyền</option>
                   <option value="SUSPENDED">Đã thu hồi quyền</option>
-                </select>
-              </label>
-              <label>
-                Số dòng
-                <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>
-                  {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
                 </select>
               </label>
               {(input || search || role || status) && <button type="button" className="quiet" onClick={clearFilters}>Xóa bộ lọc</button>}

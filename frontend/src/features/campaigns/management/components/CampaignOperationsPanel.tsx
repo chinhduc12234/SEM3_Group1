@@ -8,6 +8,10 @@ import CampaignRouteMap, { type RouteStop } from "../../components/CampaignRoute
 import type { Campaign, PlannedCampaignAddress } from "../../types/campaigns";
 import { formatPlannedAddress } from "../campaignConceptFields";
 import { operationsRouteStops } from "./operationsRouteStops";
+import ops from "./OperationsDashboard.module.css";
+import { OperationsMetrics } from "./OperationsDashboard";
+import OperationsStatusBadge from "./OperationsStatusBadge";
+import { ActivityPhotoSection, useActivityPhotoReports } from "./ActivityPhotoReports";
 
 type Member = { userId: string; fullName: string };
 type Attendance = { staffConfirmed: number; staffPresent: number; volunteersConfirmed: number; volunteersPresent: number };
@@ -117,6 +121,7 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
   const summaryRef = useRef<HTMLDivElement>(null);
   const focusSummary = useRef(false);
   const endpoint = `/api/campaigns/${campaignId}/operations`;
+  const photoReports = useActivityPhotoReports(campaignId);
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -204,32 +209,40 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
   const activities = plan?.days.flatMap((day) => day.activities.map((activity) => ({ day, activity }))) ?? [];
   const teams = plan?.teams.map((team) => ({ id: team.id, name: team.name || "Đội chưa đặt tên" })) ?? [];
 
-  return <section className={styles.reviewBlock} aria-labelledby="operations-title">
-    <h3 id="operations-title">Kế hoạch vận hành</h3>
-    {view && <p className="muted">{!confirmed && "Bản nháp vận hành"}{startDate && endDate &&
-      `${confirmed ? "" : " · "}Khoảng đã duyệt ${formatCampaignDate(startDate)} – ${formatCampaignDate(endDate)}`}</p>}
+  return <section className={ops.surface} aria-labelledby="operations-title">
+    <header className={ops.panelHeader}>
+      <div><h2 id="operations-title">Kế hoạch vận hành</h2>
+        {startDate && endDate && <p className="muted">{formatCampaignDate(startDate)} – {formatCampaignDate(endDate)}</p>}
+      </div>
+      {view && <OperationsStatusBadge confirmedAt={view.confirmedAt} />}
+    </header>
     {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet"
       disabled={busy} onClick={() => setRetry(retry + 1)}>Tải lại kế hoạch</button></p>}
     {message && <p className="notice success" role="status">{message}</p>}
     {!view && !error && <p role="status">Đang tải kế hoạch…</p>}
     {view && plan && <>
+      <OperationsMetrics items={[
+        ["Ngày triển khai", plan.days.length], ["Hoạt động", activities.length],
+        ["Đội phụ trách", plan.teams.length], ["Nhóm tình nguyện", plan.volunteerGroups.length],
+      ]} />
       {confirmed && <div ref={summaryRef} tabIndex={-1}>
         <CampaignOperationsSummary view={view} />
         {plan !== view.plan && <p className="muted">Có thay đổi chưa lưu. Bản tổng quan đang hiển thị kế hoạch đã xác nhận.</p>}
       </div>}
-      <div className="actions" aria-label="Các phần kế hoạch vận hành">
+      <div className={ops.tabs} role="group" aria-label="Các phần kế hoạch vận hành">
         {([["days", "Ngày triển khai", plan.days.length], ["activities", "Hoạt động theo ngày", activities.length],
           ["teams", "Đội và nhân sự", plan.teams.length], ["volunteerGroups", "Nhóm tình nguyện", plan.volunteerGroups.length],
           ["route", "Bản đồ triển khai", plan.days.length], ["attendance", "Ghi nhận quân số", activities.length]] as const)
-          .filter(([key]) => key === "route" || (key === "attendance" ? view.canRecordAttendance : view.canEdit))
+          .filter(([key]) => key === "route" || (key === "attendance" ? view.canRecordAttendance :
+            view.canEdit || (key === "activities" && view.canRecordAttendance)))
           .map(([key, label, count]) =>
           <button key={key} type="button" aria-pressed={tab === key} className={tab === key ? "primary" : "secondary"}
-            onClick={() => setTab(key)}>{label} ({count})</button>
+            onClick={() => setTab(key)}>{label} <span>{count}</span></button>
         )}
       </div>
       {tab === "route" && <CampaignRouteMap stops={operationsRouteStops(plan.days, campaign)} province="" />}
       {(tab === "days" || tab === "activities" || tab === "attendance") && selectedDay && (
-        <label className={styles.operationsDayPicker}>Chọn ngày
+        <label className={ops.dayPicker}>Chọn ngày
           <select value={selectedDay.id} disabled={busy} onChange={(e) => setDayId(e.target.value)}>
             {plan.days.map((day, index) => <option key={day.id} value={day.id}>{dayLabel(day, index)}</option>)}
           </select>
@@ -249,7 +262,7 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
           {!selectedDay.extraApprovedAt && <p className="muted">Cần Owner duyệt trước khi xác nhận kế hoạch.</p>}
         </div>
       )}
-      <fieldset className={styles.conceptForm} disabled={!view.canEdit || busy}>
+      <fieldset className={styles.conceptForm} disabled={busy || (!view.canEdit && tab !== "activities")}>
         {tab === "days" && <>
           {plan.days.length === 0 && <p>Chưa có ngày triển khai.</p>}
           {startDate && endDate && !view.hasAutomaticCalendar &&
@@ -325,8 +338,16 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
                 if (activity.leadUserId) assignedStaff.add(activity.leadUserId);
                 const volunteerTarget = activeTeams.reduce((count, team) => count + team.volunteersNeeded, 0);
                 const linkedGroups = plan.volunteerGroups.filter((group) => group.activityId === activity.id);
-                return <div key={activity.id} className={styles.operationsItem}>
-                  <h5>Hoạt động {activityIndex + 1}</h5>
+                const saved = view.plan.days.some((day) => day.activities.some((item) => item.id === activity.id));
+                const reports = photoReports.reports?.filter((report) => report.activityId === activity.id) ?? [];
+                return <article key={activity.id} className={ops.activity}>
+                  <header className={ops.activityHeader}>
+                    <h4>{activity.title || `Hoạt động ${activityIndex + 1}`}</h4>
+                    <p>{activity.start && activity.end ? `${activity.start.slice(0, 5)} – ${activity.end.slice(0, 5)}` : "Chưa đặt giờ"}
+                      {activity.location && ` · ${activity.location}`}</p>
+                  </header>
+                  <div className={ops.activityBody}>
+                  <fieldset className={styles.conceptForm} disabled={!view.canEdit}>
                   <div className={styles.operationsFields}>
                     {field("Tên hoạt động", activity.title, (title) => updateActivity({ title }))}
                     {field("Địa điểm", activity.location, (location) => updateActivity({ location }))}
@@ -352,7 +373,11 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
                     ...p, days: replace(p.days, day.id, { activities: day.activities.filter((item) => item.id !== activity.id), activitiesDone: false }),
                     volunteerGroups: p.volunteerGroups.map((r) => r.activityId === activity.id ? { ...r, activityId: null } : r),
                   }))}>Bỏ hoạt động</button>}
-                </div>;
+                  </fieldset>
+                  <ActivityPhotoSection campaignId={campaignId} activityId={activity.id} saved={saved} reports={reports}
+                    error={photoReports.error} reload={photoReports.reload} onSent={photoReports.add} />
+                  </div>
+                </article>;
               })}
               {view.canEdit && <div className="actions">
                 <button type="button" className="secondary" onClick={() => update({ activities: [...day.activities, {
@@ -466,9 +491,12 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
             }] };
           })}>Thêm nhóm tình nguyện</button>}
         </>}
-        {view.canEdit && <div className="actions">
-          <button type="button" className="secondary" onClick={() => void save(false)}>Lưu bản nháp vận hành</button>
-          <button type="button" onClick={() => void save(true)}>Gửi xác nhận kế hoạch vận hành</button>
+        {view.canEdit && <div className={ops.saveBar}>
+          <p>{busy ? "Đang lưu…" : plan !== view.plan ? "Có thay đổi chưa lưu" : "Đã đồng bộ kế hoạch"}</p>
+          <div className={ops.actions}>
+            <button type="button" className="secondary" onClick={() => void save(false)}>Lưu bản nháp vận hành</button>
+            <button type="button" onClick={() => void save(true)}>Gửi xác nhận kế hoạch vận hành</button>
+          </div>
         </div>}
       </fieldset>
     </>}

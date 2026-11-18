@@ -1,0 +1,11 @@
+.composer { display: grid; gap: .85rem; margin-block: .7rem; }
+.actions { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; }
+.actions button { min-height: 44px; }
+.file { max-width: 100%; min-width: 0; }
+.capture { display: grid; gap: .6rem; justify-items: start; }
+.capture video, .preview { display: block; width: min(100%, 24rem); max-height: 18rem; object-fit: contain; border-radius: .7rem; background: #e7efe9; }
+.history { display: grid; gap: .6rem; list-style: none; padding: 0; margin-block: .8rem; }
+.history li { padding: .75rem 1rem; border: 1px solid #d5e4db; background: #f7faf7; border-radius: .75rem; overflow-wrap: anywhere; }
+.history p { margin: .3rem 0 .6rem; }
+.section { margin-block: .9rem 0; padding: .8rem 1rem; background: #eff7ef; border-radius: .75rem; }
+.section summary { cursor: pointer; font-weight: 750; }

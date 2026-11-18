@@ -58,6 +58,8 @@ public static class ApiSetup
             // Global to the service instance: no trust in caller-supplied forwarding headers.
             options.AddPolicy("auth", _ => RateLimitPartition.GetFixedWindowLimiter("auth", _ => new FixedWindowRateLimiterOptions
             { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            options.AddPolicy("auth-session", _ => RateLimitPartition.GetFixedWindowLimiter("auth-session", _ => new FixedWindowRateLimiterOptions
+            { PermitLimit = 300, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("organization", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.User.FindFirst("sub")?.Value ?? "anonymous", _ => new FixedWindowRateLimiterOptions
                 { PermitLimit = 120, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

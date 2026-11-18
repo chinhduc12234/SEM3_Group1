@@ -50,7 +50,7 @@ Tất cả API trừ config cần JWT. Các thao tác ghi cần `X-Requested-Wit
 | DELETE | `/api/notifications/push-subscriptions/current-session` | Tắt token thuộc phiên hiện tại |
 | GET | `/api/notifications/config` | Chỉ cấu hình Firebase Web public |
 
-Hub `/hubs/notifications` cần JWT; hết hạn access token sẽ đóng kết nối để client refresh/reconnect. Chỉ hub nhận query `access_token`; gateway và backend tắt request logging ở đường này. REST không nhận bearer token từ query. Token push được mã hóa bằng Data Protection và gắn cả user ID lẫn session ID. Logout thu hồi session trong Redis ngay cả khi xóa token trình duyệt gặp lỗi. Push chỉ chứa câu thông báo chung và dẫn đến inbox cần đăng nhập.
+Hub `/hubs/notifications` nhận JWT qua header `Authorization`. Trình duyệt dùng SignalR long polling để gửi header trên mỗi yêu cầu. Khi access token hết hạn, kết nối sẽ đóng để client làm mới phiên và kết nối lại. Token push được mã hóa bằng Data Protection và gắn cả user ID lẫn session ID. Logout thu hồi session trong Redis ngay cả khi xóa token trình duyệt gặp lỗi. Push chỉ chứa câu thông báo chung và dẫn đến inbox cần đăng nhập.
 
 ## Kiểm tra
 

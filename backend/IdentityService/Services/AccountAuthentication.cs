@@ -9,16 +9,32 @@ namespace IdentityService.Services;
 
 public sealed class AccountAuthentication(UserManager<Account> users, IdentityDb db, TokenIssuer tokens, SessionStore sessions)
 {
+    private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(12);
+
     public async Task Register(RegisterRequest request)
     {
         var email = request.Email.Trim();
         var name = request.FullName.Trim();
         if (name.Length < 2) throw new ApiException(400, "Họ tên cần ít nhất 2 ký tự.");
+        try
+        {
+            await CreateUser(email, name, request.Password);
+        }
+        catch (Exception ex) when (ex is SqlException { Number: 1205 } or DbUpdateException { InnerException: SqlException { Number: 1205 } })
+        {
+            // SQL rolled back the entire transaction. Retry with a clean change tracker.
+            db.ChangeTracker.Clear();
+            await CreateUser(email, name, request.Password);
+        }
+    }
+
+    private async Task CreateUser(string email, string name, string password)
+    {
         var account = new Account { Id = Guid.NewGuid(), Email = email, UserName = email, FullName = name, LockoutEnabled = true };
         // Create account and assign the fixed USER role atomically; client-supplied roles are ignored.
         await using var transaction = await db.Database.BeginTransactionAsync();
         IdentityResult created;
-        try { created = await users.CreateAsync(account, request.Password); }
+        try { created = await users.CreateAsync(account, password); }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
         { throw new ApiException(409, "Không thể đăng ký với email này."); }
         if (!created.Succeeded) throw new ApiException(400, "Không thể đăng ký. Email có thể đã được sử dụng hoặc mật khẩu chưa đủ mạnh.");
@@ -39,11 +55,17 @@ public sealed class AccountAuthentication(UserManager<Account> users, IdentityDb
         }
         await users.ResetAccessFailedCountAsync(account);
         var raw = TokenIssuer.RandomToken();
-        var session = new RefreshSession { UserId = account.Id, User = account, TokenHash = TokenIssuer.Hash(raw), ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) };
+        var session = new RefreshSession { UserId = account.Id, User = account, TokenHash = TokenIssuer.Hash(raw), ExpiresAt = DateTimeOffset.UtcNow.Add(SessionLifetime) };
         db.RefreshSessions.Add(session);
         await db.SaveChangesAsync();
         await sessions.Activate(session.Id, account.Id, session.ExpiresAt);
-        return new SessionCredentials(raw, session.ExpiresAt, await ResponseFor(account, session.Id));
+        // A password change may have committed while this request was checking the old password.
+        if (!await db.Users.AnyAsync(x => x.Id == account.Id && x.IsActive && x.SecurityStamp == account.SecurityStamp))
+        {
+            await sessions.Revoke(session.Id);
+            throw new ApiException(401, "Phiên đăng nhập đã thay đổi. Vui lòng đăng nhập lại.");
+        }
+        return new SessionCredentials(raw, await ResponseFor(account, session.Id));
     }
 
     public async Task<SessionCredentials> Refresh(string? raw)
@@ -51,8 +73,13 @@ public sealed class AccountAuthentication(UserManager<Account> users, IdentityDb
         if (string.IsNullOrEmpty(raw) || raw.Length > 256) throw new ApiException(401, "Phiên đăng nhập đã hết hạn.");
         var hash = TokenIssuer.Hash(raw);
         var session = await db.RefreshSessions.Include(x => x.User).SingleOrDefaultAsync(x => x.TokenHash == hash);
-        if (session is null || session.Revoked || session.ExpiresAt <= DateTimeOffset.UtcNow || !session.User.IsActive || await users.IsLockedOutAsync(session.User))
+        if (session is null || session.Revoked)
             throw new ApiException(401, "Phiên đăng nhập đã hết hạn.");
+        if (session.ExpiresAt <= DateTimeOffset.UtcNow || !session.User.IsActive || await users.IsLockedOutAsync(session.User))
+        {
+            await sessions.Revoke(session.Id);
+            throw new ApiException(401, "Phiên đăng nhập đã hết hạn.");
+        }
         if (!await sessions.Exists(session.Id, session.UserId)) throw new ApiException(401, "Phiên đăng nhập đã bị thu hồi.");
         // Rowversion ensures only one concurrent refresh can rotate this credential.
         var next = TokenIssuer.RandomToken();
@@ -60,19 +87,24 @@ public sealed class AccountAuthentication(UserManager<Account> users, IdentityDb
         try { await db.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException) { throw new ApiException(401, "Phiên đăng nhập đã thay đổi. Vui lòng đăng nhập lại."); }
         // Refresh never reactivates a revoked Redis marker, including concurrent logout.
-        return new SessionCredentials(next, session.ExpiresAt, await ResponseFor(session.User, session.Id));
+        return new SessionCredentials(next, await ResponseFor(session.User, session.Id));
     }
 
     public async Task Logout(string? raw, Guid sid)
     {
-        var hash = !string.IsNullOrEmpty(raw) && raw.Length <= 256 ? TokenIssuer.Hash(raw) : "";
-        var ids = await db.RefreshSessions.Where(x => x.TokenHash == hash || x.Id == sid).Select(x => x.Id).ToListAsync();
-        foreach (var id in ids) await sessions.Revoke(id);
-        if (ids.Count > 0)
+        // The cookie identifies the current browser session. Fall back to the verified JWT
+        // when the cookie is absent or has already been rotated.
+        var id = sid;
+        if (!string.IsNullOrEmpty(raw) && raw.Length <= 256)
         {
-            // A set-based revocation also wins against a concurrently rotating SQL rowversion.
-            await db.RefreshSessions.Where(x => ids.Contains(x.Id)).ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Revoked, true));
+            var hash = TokenIssuer.Hash(raw);
+            id = await db.RefreshSessions.Where(x => x.TokenHash == hash).Select(x => (Guid?)x.Id).SingleOrDefaultAsync() ?? sid;
         }
+        if (id == Guid.Empty) return;
+
+        await sessions.Revoke(id);
+        // Set-based revocation also wins against a concurrently rotating SQL rowversion.
+        await db.RefreshSessions.Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Revoked, true));
     }
 
     public async Task<AccountInfo?> Me(string userId)
@@ -167,11 +199,13 @@ public sealed class AccountAuthentication(UserManager<Account> users, IdentityDb
     public async Task ChangePassword(string userId, PasswordRequest request)
     {
         var account = await users.FindByIdAsync(userId) ?? throw new ApiException(401, "Tài khoản không tồn tại.");
+        await using var transaction = await db.Database.BeginTransactionAsync();
         var result = await users.ChangePasswordAsync(account, request.CurrentPassword, request.NewPassword);
         if (!result.Succeeded) throw new ApiException(400, "Mật khẩu hiện tại không đúng hoặc mật khẩu mới chưa đủ mạnh.");
-        var active = await db.RefreshSessions.Where(x => x.UserId == account.Id && !x.Revoked).ToListAsync();
-        foreach (var session in active) { await sessions.Revoke(session.Id); session.Revoked = true; }
-        await db.SaveChangesAsync();
+        var active = db.RefreshSessions.Where(x => x.UserId == account.Id && !x.Revoked && x.ExpiresAt > DateTimeOffset.UtcNow);
+        foreach (var id in await active.Select(x => x.Id).ToListAsync()) await sessions.Revoke(id);
+        await active.ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Revoked, true));
+        await transaction.CommitAsync();
     }
 
     private async Task<AccountInfo> UserInfo(Account account) =>

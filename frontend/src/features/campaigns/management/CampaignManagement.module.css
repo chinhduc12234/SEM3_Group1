@@ -1743,3 +1743,555 @@
 .inlineCheck input {
   width: auto;
 }
+
+/* Campaign workspace refresh: clearer hierarchy, calmer surfaces, and resilient layouts. */
+.campaignOverviewHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1380px;
+  margin: 0 auto 22px;
+  padding: clamp(24px, 3vw, 36px);
+  overflow: hidden;
+  border: 1px solid #d7e7dc;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 88% 20%, rgb(139 196 153 / 25%), transparent 26%),
+    linear-gradient(118deg, #fff 0%, #f3f8f3 57%, #e5f2e8 100%);
+  box-shadow: 0 14px 34px rgb(24 63 41 / 6%);
+}
+
+.campaignOverviewHeader::after {
+  content: "";
+  position: absolute;
+  right: 9%;
+  bottom: -76px;
+  width: 180px;
+  height: 180px;
+  border: 1px solid rgb(50 117 73 / 13%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgb(50 117 73 / 5%), 0 0 0 44px rgb(50 117 73 / 3%);
+  pointer-events: none;
+}
+
+.campaignOverviewHeader > div,
+.campaignCreateAction {
+  position: relative;
+  z-index: 1;
+}
+
+.campaignEyebrow {
+  margin: 0 0 10px;
+  color: #b45b45;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.campaignOverviewHeader h1 {
+  margin: 0;
+  color: #153f30;
+  font-size: clamp(1.85rem, 3vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.campaignOverviewHeader > div > p:last-child {
+  max-width: 620px;
+  margin: 10px 0 0;
+  color: #60766a;
+  font-size: 0.96rem;
+  line-height: 1.6;
+}
+
+.campaignCreateAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  flex: 0 0 auto;
+  padding: 0 18px;
+  border: 1px solid #17624a;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #17624a, #247954);
+  box-shadow: 0 8px 18px rgb(23 98 74 / 18%);
+  color: #fff;
+  font-weight: 700;
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.campaignCreateAction > span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 7px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.campaignCreateAction:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 11px 24px rgb(23 98 74 / 24%);
+}
+
+.campaignCreateAction:focus-visible {
+  outline: 3px solid #8abf99;
+  outline-offset: 3px;
+}
+
+.campaignCreateAction:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.campaignList {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dce8df;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(24 63 41 / 5%);
+}
+
+.campaignListHead {
+  align-items: flex-start;
+  margin: 0;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid #edf2ed;
+}
+
+.campaignListHead h2 {
+  color: #183f30;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.campaignListHead p {
+  max-width: 580px;
+  margin-top: 6px;
+  color: #718176;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.campaignCount {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid #dce9df;
+  border-radius: 999px;
+  background: #f3f8f4;
+  color: #37684b;
+  font-size: 0.77rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.campaignFilters {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.85fr) minmax(145px, 0.85fr) minmax(220px, 1.35fr) minmax(155px, 0.85fr);
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+  padding: 18px 26px 20px;
+  border-bottom: 1px solid #edf2ed;
+  background: #fbfdfb;
+}
+
+.campaignFilterField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  color: #536b5d;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.campaignFilterField > :is(input, select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid #d4e0d6;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #234235;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.campaignFilterField > input::placeholder {
+  color: #8a988d;
+}
+
+.campaignFilterField > :is(input, select):focus-visible {
+  outline: 3px solid rgb(57 130 82 / 24%);
+  outline-offset: 1px;
+  border-color: #4e9567;
+}
+
+.campaignRow,
+:global([data-ow-shell]) .campaignRow {
+  grid-template-columns: 148px minmax(0, 1fr) minmax(112px, 148px);
+  align-items: center;
+  gap: 18px;
+  margin: 0 26px;
+  padding: 18px 0;
+  border-top: 0;
+  border-bottom: 1px solid #edf2ed;
+}
+
+.campaignRow:last-of-type {
+  border-bottom: 0;
+}
+
+.campaignCover {
+  height: auto;
+  min-height: 92px;
+  aspect-ratio: 16 / 10;
+  border: 1px solid #e0ebe2;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #edf6ef, #e1eee4 52%, #f8fbf8);
+}
+
+.campaignCover > span {
+  padding: 12px;
+  text-align: center;
+  font-weight: 650;
+}
+
+.campaignCover small {
+  border: 1px solid rgb(255 255 255 / 75%);
+  box-shadow: 0 2px 8px rgb(18 52 34 / 12%);
+  font-weight: 700;
+}
+
+.campaignSummary strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #193f30;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.campaignSummary small {
+  display: block;
+  margin-top: 8px;
+  color: #718176;
+  font-size: 0.77rem;
+  line-height: 1.5;
+}
+
+.campaignGoal {
+  border: 1px solid #dcecdf;
+  background: linear-gradient(145deg, #f0f8f1, #e6f3e8);
+}
+
+.campaignGoal strong {
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.campaignActions,
+:global([data-ow-shell]) .campaignActions {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 166px;
+}
+
+.campaignActions :is(button, a) {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
+.campaignEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-height: 240px;
+  padding: 36px 22px;
+  align-content: center;
+  text-align: center;
+  color: #526a5c;
+}
+
+.campaignEmptyIcon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 5px;
+  border: 1px solid #d4e8d9;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #eff8f0, #e2f1e5);
+  color: #28734b;
+  font-size: 1.8rem;
+}
+
+.campaignEmptyIcon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.campaignEmpty > strong {
+  color: #204936;
+  font-size: 1.05rem;
+}
+
+.campaignEmpty > p {
+  max-width: 460px;
+  margin: 0 0 8px;
+  color: #78867c;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.campaignEmpty > :is(button, a) {
+  min-height: 42px;
+  margin-top: 4px;
+  border-radius: 10px;
+}
+
+.campaignPagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 26px;
+  border-top: 1px solid #edf2ed;
+  background: #fbfdfb;
+}
+
+.campaignPagination > span {
+  color: #6a7d70;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.campaignPagination button {
+  min-height: 38px;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+}
+
+.detailPanel {
+  padding: clamp(18px, 3vw, 34px);
+  border: 1px solid #dce8df;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgb(24 63 41 / 6%);
+}
+
+.detailBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin: 0 0 14px;
+  padding: 0 12px;
+  border: 1px solid #dce8df;
+  border-radius: 10px;
+  background: #fff;
+  color: #286046;
+  text-decoration: none;
+}
+
+.detailBack:hover {
+  background: #f1f7f2;
+  text-decoration: none;
+}
+
+.detailHeader {
+  margin-bottom: 22px;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid #d8e8dc;
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 94% 12%, rgb(141 196 153 / 22%), transparent 23%),
+    linear-gradient(120deg, #f7fbf7, #eaf5ec);
+}
+
+.detailHeader h1 {
+  margin-top: 12px;
+  color: #153f30;
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.detailMeta > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid #d5e5d8;
+  border-radius: 999px;
+  background: #fff;
+  color: #4a6d55;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.detailTabs {
+  gap: 6px;
+  margin: 0 0 22px;
+  padding: 6px;
+  border: 1px solid #e0eae2;
+  border-radius: 13px;
+  background: #f5f8f5;
+}
+
+.detailTabs a {
+  justify-content: center;
+  flex: 1 1 120px;
+  min-height: 42px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  color: #506c5b;
+  font-size: 0.84rem;
+}
+
+.detailTabs a[aria-current="page"] {
+  background: #17624a;
+  box-shadow: 0 3px 8px rgb(23 98 74 / 18%);
+  color: #fff;
+}
+
+.detailTabs a:focus-visible {
+  outline: 3px solid #91c29c;
+  outline-offset: 2px;
+}
+
+.reviewBlock {
+  margin: 14px 0;
+  padding: clamp(16px, 2.4vw, 22px);
+  border: 1px solid #e0eae2;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgb(24 63 41 / 4%);
+}
+
+.reviewBlock > :is(h3, h4) {
+  margin-top: 0;
+  color: #214c37;
+  letter-spacing: -0.015em;
+}
+
+.reviewBlock > :last-child {
+  margin-bottom: 0;
+}
+
+.detailAssignments > section,
+.detailOperationsGrid > section {
+  min-height: 100%;
+}
+
+@media (max-width: 1050px) {
+  .campaignFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .campaignSearch {
+    grid-column: 1 / -1;
+  }
+  .campaignRow,
+  :global([data-ow-shell]) .campaignRow {
+    grid-template-columns: 116px minmax(0, 1fr);
+  }
+  .campaignGoal {
+    grid-column: 1;
+  }
+  .campaignActions,
+  :global([data-ow-shell]) .campaignActions {
+    grid-column: 2;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .campaignOverviewHeader {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 16px;
+    padding: 22px;
+    border-radius: 17px;
+  }
+  .campaignCreateAction {
+    width: 100%;
+  }
+  .campaignList {
+    border-radius: 16px;
+  }
+  .campaignListHead {
+    align-items: flex-start;
+    padding: 19px 18px 14px;
+  }
+  .campaignFilters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px 18px;
+  }
+  .campaignSearch {
+    grid-column: auto;
+  }
+  .campaignRow,
+  :global([data-ow-shell]) .campaignRow {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 12px;
+    margin-inline: 18px;
+    padding: 15px 0;
+  }
+  .campaignCover {
+    min-height: 68px;
+  }
+  .campaignGoal {
+    grid-column: 1 / -1;
+    width: fit-content;
+    min-width: 140px;
+    text-align: left;
+  }
+  .campaignActions,
+  :global([data-ow-shell]) .campaignActions {
+    grid-column: 1 / -1;
+  }
+  .campaignActions :is(button, a) {
+    flex: 1 1 auto;
+    white-space: normal;
+  }
+  .campaignPagination {
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 18px;
+  }
+  .detailPanel {
+    padding: 14px;
+    border-radius: 16px;
+  }
+  .detailTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .detailTabs a:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campaignCreateAction {
+    transition: none;
+  }
+}

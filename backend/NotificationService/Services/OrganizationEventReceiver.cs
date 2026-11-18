@@ -22,7 +22,8 @@ public sealed class OrganizationEventReceiver(NotificationDb db, IHttpClientFact
     public Task ReceiveAssignment(CampaignAssignmentEvent item, CancellationToken ct)
     {
         if (item.EventId == Guid.Empty || item.OrganizationId == Guid.Empty || item.CampaignId == Guid.Empty ||
-            item.UserId == Guid.Empty || item.CampaignTitle?.Length > 200 || item.Roles is null || item.Roles.Length is < 1 or > 3 ||
+            item.UserId == Guid.Empty || string.IsNullOrWhiteSpace(item.CampaignTitle) || item.CampaignTitle.Length > 200 ||
+            item.Roles is null || item.Roles.Length is < 1 or > 3 ||
             item.Roles.Any(role => role is not ("CAMPAIGN_MANAGER" or "VOLUNTEER_COORDINATOR" or "FINANCE_MANAGER")))
             throw new ApiException(400, "Sự kiện phân công không hợp lệ.");
         var roles = item.Roles.Select(role => role switch
@@ -34,9 +35,12 @@ public sealed class OrganizationEventReceiver(NotificationDb db, IHttpClientFact
         var notification = new Notification
         {
             EventId = item.EventId, OrganizationId = item.OrganizationId, UserId = item.UserId,
-            Kind = "CAMPAIGN_ASSIGNED", Title = "Bạn được phân công một hồ sơ",
-            Message = $"Vai trò: {string.Join(", ", roles)}. Hồ sơ: {item.CampaignTitle}.",
-            Url = $"/organizations/{item.OrganizationId}/manage/campaigns?campaign={item.CampaignId}"
+            Kind = item.ActivityReportId.HasValue ? "ACTIVITY_PHOTO_REPORT" : "CAMPAIGN_ASSIGNED",
+            Title = item.ActivityReportId.HasValue ? "Có báo cáo ảnh hoạt động mới" : "Bạn được phân công một hồ sơ",
+            Message = item.ActivityReportId.HasValue ? item.CampaignTitle : $"Vai trò: {string.Join(", ", roles)}. Hồ sơ: {item.CampaignTitle}.",
+            Url = item.ActivityReportId.HasValue
+                ? $"/organizations/{item.OrganizationId}/manage/campaigns/{item.CampaignId}?tab=operations#activity-reports"
+                : $"/organizations/{item.OrganizationId}/manage/campaigns?campaign={item.CampaignId}"
         };
         return Store(item.EventId, item, () => Task.FromResult(new[] { notification }), ct);
     }

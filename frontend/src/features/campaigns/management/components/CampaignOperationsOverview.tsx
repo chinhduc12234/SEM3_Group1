@@ -7,6 +7,8 @@ import type { OperationsView } from "./CampaignOperationsPanel";
 import OperationsStatusBadge from "./OperationsStatusBadge";
 import CampaignRouteMap from "../../components/CampaignRouteMap";
 import { operationsRouteStops } from "./operationsRouteStops";
+import { useWorkspace } from "@/features/organizations/workspace/WorkspaceContext";
+import { ActivityPhotoReportList, useActivityPhotoReports } from "./ActivityPhotoReports";
 
 const sections = ["Ngày triển khai", "Hoạt động theo ngày", "Đội và nhân sự", "Nhóm tình nguyện"];
 
@@ -19,12 +21,15 @@ function OverviewSection({ title, children }: { title: string; children?: ReactN
 
 export default function CampaignOperationsOverview({ campaign, loadMapOnDemand = false }: { campaign: Campaign; loadMapOnDemand?: boolean }) {
   const { id, status } = campaign;
+  const { data } = useWorkspace();
   const [view, setView] = useState<OperationsView>();
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [showMap, setShowMap] = useState(!loadMapOnDemand);
   const planning = ["PLANNING", "PENDING_FINAL_REVIEW", "FINAL_APPROVED", "FINAL_REJECTED"].includes(status) ||
     (status === "PUBLISHED" && !!campaign.concept);
+  const showReports = planning && data.roles.includes("OWNER");
+  const photos = useActivityPhotoReports(id, showReports);
 
   useEffect(() => {
     if (!planning) return;
@@ -49,6 +54,13 @@ export default function CampaignOperationsOverview({ campaign, loadMapOnDemand =
   const person = (id: string | null) => id ? memberNames.get(id) || "Nhân sự không còn hoạt động" : "Chưa chỉ định";
 
   return <div>
+    {showReports && <section id="activity-reports" className={styles.reviewBlock} style={{ scrollMarginTop: "8rem" }}>
+      <h3>Báo cáo ảnh hoạt động</h3>
+      {photos.error ? <p className="notice error" role="alert">{photos.error} <button type="button" className="quiet"
+        onClick={photos.reload}>Tải lại</button></p> : !photos.reports ? <p role="status">Đang tải báo cáo ảnh…</p> :
+        photos.reports.length === 0 ? <p className="muted">Chưa có báo cáo ảnh từ nhân sự vận hành.</p> :
+        <ActivityPhotoReportList campaignId={id} reports={photos.reports} showActivity />}
+    </section>}
     {confirmed && <div className={styles.detailOperationsHeader}>
         <OperationsStatusBadge confirmedAt={confirmed} />
         <p className="muted">{view?.confirmedByName || "Quản lý vận hành"} · <time dateTime={confirmed}>
