@@ -16,6 +16,7 @@ public interface ICampaignApplication
     Task<CampaignMember[]> AssignmentCandidates(Guid id, Guid actor, CancellationToken ct);
     Task<CampaignView> Assign(Guid id, CampaignAssignmentRequest request, Guid actor, CancellationToken ct);
     Task<OperationsView> Operations(Guid id, Guid actor, CancellationToken ct);
+    Task<CampaignVolunteerOpenings> VolunteerOpenings(Guid id, CancellationToken ct);
     Task<ActivityPhotoReport[]> ActivityPhotoReports(Guid id, Guid actor, CancellationToken ct);
     Task<ActivityPhotoReport> SendActivityPhoto(Guid id, Guid activityId, Guid reportId, string? note, IFormFile file, Guid actor, CancellationToken ct);
     Task<OperationsView> SaveOperations(Guid id, CampaignOperationsRequest request, Guid actor, CancellationToken ct);

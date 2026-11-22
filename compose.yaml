@@ -62,6 +62,7 @@ services:
       ORGANIZATION_DB_PASSWORD: ${ORGANIZATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       CAMPAIGN_DB_PASSWORD: ${CAMPAIGN_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
+      VOLUNTEER_DB_PASSWORD: ${VOLUNTEER_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
     volumes:
       - ./infra/provision-databases.sql:/provision.sql:ro
     depends_on:
@@ -233,6 +234,22 @@ services:
       organization: { condition: service_started }
       redis: { condition: service_healthy }
 
+  volunteer-migrate:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: VolunteerService }
+    restart: "no"
+    command: [--migrate]
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Volunteer;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      sql-provision: { condition: service_completed_successfully }
+
   donation:
     <<: *backend
     build:
@@ -252,8 +269,15 @@ services:
       args: { SERVICE: VolunteerService }
     environment:
       <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Volunteer;User Id=giveaid_volunteer;Password=${VOLUNTEER_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      InternalApi__CampaignUrl: http://campaign:8080/
+      InternalApi__Key: ${INTERNAL_API_KEY}
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      volunteer-migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      campaign: { condition: service_started }
 
   content:
     <<: *backend

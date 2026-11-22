@@ -44,6 +44,8 @@ public sealed class CampaignsController(ICampaignApplication service) : Controll
     public Task<CampaignView> Assign(Guid id, CampaignAssignmentRequest request, CancellationToken ct) => service.Assign(id, request, Actor, ct);
     [Authorize, HttpGet("{id:guid}/operations")]
     public Task<OperationsView> Operations(Guid id, CancellationToken ct) => service.Operations(id, Actor, ct);
+    [HttpGet("{id:guid}/volunteer-openings")]
+    public Task<CampaignVolunteerOpenings> VolunteerOpenings(Guid id, CancellationToken ct) => service.VolunteerOpenings(id, ct);
     [Authorize, HttpGet("{id:guid}/operations/photo-reports")]
     public Task<ActivityPhotoReport[]> ActivityPhotoReports(Guid id, CancellationToken ct) => service.ActivityPhotoReports(id, Actor, ct);
     [Authorize, HttpPost("{id:guid}/operations/activities/{activityId:guid}/photo-reports"), RequestSizeLimit(5600000)]
