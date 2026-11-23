@@ -10,4 +10,4 @@ public sealed record PublicCampaignActivity(string Title, TimeOnly? Start, TimeO
 public sealed record PublicCampaignDay(Guid Id, DateOnly? Date, string Title, string Description, string Location,
     string? Province, string? District, string? Ward, OperationsMapPin? MapPin, PublicCampaignActivity[] Activities);
 public sealed record PublicCampaignPlan(string Summary, string Goal, string Outcomes, string? EventFormat,
-    string FundraisingPurpose, PublicCampaignDay[] Days);
+    string FundraisingPurpose, PublicCampaignDay[] Days, BudgetReceiving? Receiving = null);

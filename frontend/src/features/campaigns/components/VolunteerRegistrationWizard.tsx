@@ -124,8 +124,12 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
     }
   }
 
-  const bankTransfer = details.methods?.includes("Chuyển khoản ngân hàng");
-  const bankQr = details.methods?.includes("Mã QR ngân hàng");
+  const publicBank = campaign.publicPlan?.receiving?.bank;
+  const qrMediaId = publicBank?.qrMediaId ?? campaign.media.find((media) => media.kind === "FUNDRAISING_QR")?.id;
+  const bankTransfer = !!publicBank || details.methods?.includes("Chuyển khoản ngân hàng") === true;
+  const bankQr = !!qrMediaId;
+  const bankName = publicBank?.bankName ||
+    (details.bank?.name === "Ngân hàng khác" ? details.bank.otherName : details.bank?.name);
 
   return <>
     <section className={styles.callout} aria-labelledby="volunteer-callout-title">
@@ -208,12 +212,14 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
               {(bankTransfer || bankQr) ? <div className={styles.bankCard}>
                 <div><span className={styles.kicker}>THÔNG TIN NHẬN TÀI TRỢ CỦA CHIẾN DỊCH</span>
                   {bankTransfer && <dl>
-                    <div><dt>Ngân hàng</dt><dd>{details.bank?.name === "Ngân hàng khác" ? details.bank.otherName : details.bank?.name || "—"}</dd></div>
-                    <div><dt>Chủ tài khoản</dt><dd>{details.bank?.accountHolder || "—"}</dd></div>
-                    <div><dt>Số tài khoản</dt><dd>{details.bank?.accountNumber || "—"}</dd></div>
+                    <div><dt>Ngân hàng</dt><dd>{bankName || "—"}</dd></div>
+                    <div><dt>Chủ tài khoản</dt><dd>{publicBank?.accountHolder || details.bank?.accountHolder || "—"}</dd></div>
+                    <div><dt>Số tài khoản</dt><dd>{publicBank?.accountNumber || details.bank?.accountNumber || "—"}</dd></div>
+                    {publicBank?.transferNote &&
+                      <div><dt>Nội dung chuyển khoản</dt><dd>{publicBank.transferNote}</dd></div>}
                   </dl>}
                 </div>
-                {bankQr && <figure><img src="/campaign-bank-qr.jpg" alt="Mã QR nhận tài trợ của chiến dịch" /><figcaption>Mã QR nhận tài trợ</figcaption></figure>}
+                {bankQr && <figure><img src={"/api/campaigns/" + campaign.id + "/media/" + qrMediaId} alt="Mã QR nhận tài trợ của chiến dịch" /><figcaption>Mã QR nhận tài trợ</figcaption></figure>}
               </div> : <p className={styles.noBank}>Chiến dịch chưa cung cấp thông tin chuyển khoản hoặc mã QR.</p>}
               {!user && <section className={styles.authBox} aria-labelledby="volunteer-auth-title">
                 <div className={styles.authHeading}><div><h3 id="volunteer-auth-title">Đăng nhập để gửi hồ sơ</h3>

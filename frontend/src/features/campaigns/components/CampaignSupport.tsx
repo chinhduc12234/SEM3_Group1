@@ -22,6 +22,7 @@ export default function CampaignSupport({
     ? gallery.filter((media) => details.galleryFiles?.includes(media.fileName))
     : gallery.filter((media) => !evidence.includes(media));
   const fundingMethods = details.methods || [];
+  const qrMedia = campaign.media.find((media) => media.kind === "FUNDRAISING_QR");
   return (
     <CampaignLocalizedTree>
       <>
@@ -77,10 +78,10 @@ export default function CampaignSupport({
                 </div>
               </dl>
             )}
-            {fundingMethods.includes("Mã QR ngân hàng") && (
+            {fundingMethods.includes("Mã QR ngân hàng") && qrMedia && (
               <div className={styles.publicQr}>
                 <strong>Mã QR ngân hàng</strong>
-                <img src="/campaign-bank-qr.jpg" alt="Mã QR nhận quyên góp" />
+                <img src={"/api/campaigns/" + id + "/media/" + qrMedia.id} alt="Mã QR nhận quyên góp" />
                 <small>Quét mã QR để xem thông tin chuyển khoản.</small>
               </div>
             )}

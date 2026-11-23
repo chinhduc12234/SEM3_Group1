@@ -122,6 +122,6 @@ public sealed partial class CampaignApplication
                     new PublicCampaignActivity(activity.Title, activity.Start, activity.End, online ? "Trực tuyến" : activity.Location)).ToArray());
         }).ToArray();
         return new(concept.ShortDescription, concept.PrimaryGoal, concept.ExpectedOutcomes,
-            concept.EventFormat, snapshot.Budget.Fundraising.PublicExplanation, days);
+            concept.EventFormat, snapshot.Budget.Fundraising.PublicExplanation, days, snapshot.Budget.Receiving);
     }
 }
