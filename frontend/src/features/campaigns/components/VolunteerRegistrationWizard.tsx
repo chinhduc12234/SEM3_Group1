@@ -6,6 +6,7 @@ import type { Campaign } from "@/features/campaigns/types/campaigns";
 import type { CampaignSubmissionDetails } from "@/features/campaigns/types/submission";
 import { api, type Account } from "@/shared/api/api";
 import styles from "./VolunteerRegistrationWizard.module.css";
+import DonationPanel from "./DonationPanel";
 
 type OpeningGroup = {
   id: string; name: string; category: string; target: number; date: string | null;
@@ -22,8 +23,8 @@ const emptyForm: VolunteerForm = {
   skills: "", experience: "", motivation: "", emergencyContactName: "", emergencyContactPhone: "", groupIds: [],
 };
 
-export default function VolunteerRegistrationWizard({ campaign, details }: {
-  campaign: Campaign; details: CampaignSubmissionDetails;
+export default function VolunteerRegistrationWizard({ campaign, details, autoOpen = false, onClose }: {
+  campaign: Campaign; details: CampaignSubmissionDetails; autoOpen?: boolean; onClose?: () => void;
 }) {
   const { user, login } = useAuth();
   const [open, setOpen] = useState(false);
@@ -41,6 +42,20 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
     if (!user) return;
     setForm((current) => ({ ...current, fullName: user.fullName, email: user.email }));
   }, [user]);
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    let active = true;
+    setOpen(true);
+    setStep(1);
+    setError("");
+    setBusy(true);
+    api<Openings>(`/api/campaigns/${campaign.id}/volunteer-openings`)
+      .then((value) => { if (active) setOpenings(value); })
+      .catch((failure: Error) => { if (active) setError(failure.message); })
+      .finally(() => { if (active) setBusy(false); });
+    return () => { active = false; };
+  }, [autoOpen, campaign.id]);
 
   async function begin() {
     setOpen(true);
@@ -132,7 +147,7 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
     (details.bank?.name === "Ngân hàng khác" ? details.bank.otherName : details.bank?.name);
 
   return <>
-    <section className={styles.callout} aria-labelledby="volunteer-callout-title">
+    {!autoOpen && <section className={styles.callout} aria-labelledby="volunteer-callout-title">
       <div>
         <p className={styles.kicker}>CÙNG THAM GIA</p>
         <h2 id="volunteer-callout-title">Trở thành tình nguyện viên</h2>
@@ -141,22 +156,22 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
       <button type="button" className={styles.primaryButton} onClick={() => void begin()}>
         Đăng ký tham gia <span aria-hidden="true">↗</span>
       </button>
-    </section>
+    </section>}
 
     {open && <div className={styles.backdrop} role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget && !busy) setOpen(false);
+      if (event.target === event.currentTarget && !busy) { setOpen(false); onClose?.(); }
     }}>
       <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="volunteer-form-title">
         <header className={styles.dialogHeader}>
           <div><p className={styles.kicker}>THAM GIA CHIẾN DỊCH</p>
             <h2 id="volunteer-form-title">{submitted ? "Đã gửi hồ sơ" : "Đăng ký tình nguyện"}</h2>
             <p>{campaign.title}</p></div>
-          <button type="button" className={styles.close} aria-label="Đóng" onClick={() => setOpen(false)}>×</button>
+          <button type="button" className={styles.close} aria-label="Đóng" onClick={() => { setOpen(false); onClose?.(); }}>×</button>
         </header>
         {submitted ? <div className={styles.success} role="status">
           <span aria-hidden="true">✓</span><h3>Hồ sơ đã được gửi đến quản lý chiến dịch.</h3>
           <p>Bạn có thể theo dõi kết quả xét duyệt trong tài khoản của mình.</p>
-          <button type="button" className={styles.primaryButton} onClick={() => setOpen(false)}>Hoàn tất</button>
+          <button type="button" className={styles.primaryButton} onClick={() => { setOpen(false); onClose?.(); }}>Hoàn tất</button>
         </div> : <>
           <div className={styles.progress} aria-label={`Bước ${step} trên 2`}>
             <span className={step === 1 ? styles.activeStep : styles.doneStep}>01 <small>Hồ sơ</small></span>
@@ -164,8 +179,8 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
           </div>
           {error && <p className={styles.error} role="alert">{error}</p>}
           {!openings && !error && <p role="status" className={styles.loading}>Đang tải các nhóm đang tuyển…</p>}
-          {openings && <form onSubmit={step === 1 ? (event) => { event.preventDefault(); setError(""); setStep(2); } : finish}>
-            {step === 1 ? <div className={styles.formBody}>
+          {openings && step === 1 && <form onSubmit={(event) => { event.preventDefault(); setError(""); setStep(2); }}>
+            <div className={styles.formBody}>
               <p className={styles.sectionLead}>Thông tin liên hệ và nhóm bạn muốn tham gia.</p>
               <div className={styles.fields}>
                 <label>Họ và tên<input required minLength={2} maxLength={200} autoComplete="name"
@@ -207,7 +222,16 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
               <div className={styles.formActions}><span>Bước 1 / 2</span>
                 <button type="submit" className={styles.primaryButton}>Tiếp tục <span aria-hidden="true">→</span></button>
               </div>
-            </div> : <div className={styles.formBody}>
+            </div>
+          </form>}
+          {openings && step === 2 && <>
+            <details className={styles.optionalDonation}>
+              <summary>Ủng hộ tài chính <span>(không bắt buộc)</span></summary>
+              <p>Hồ sơ tình nguyện vẫn gửi được nếu bạn bỏ qua. Bạn có thể ủng hộ bằng tiền hoặc hiện vật; khoản tiền cần xác nhận OTP sandbox.</p>
+              <DonationPanel campaign={campaign} />
+            </details>
+            <form onSubmit={finish}>
+              <div className={styles.formBody}>
               <p className={styles.sectionLead}>Thông tin nhận tài trợ của chiến dịch chỉ để tham khảo; không cần chuyển khoản để đăng ký tình nguyện.</p>
               {(bankTransfer || bankQr) ? <div className={styles.bankCard}>
                 <div><span className={styles.kicker}>THÔNG TIN NHẬN TÀI TRỢ CỦA CHIẾN DỊCH</span>
@@ -241,8 +265,9 @@ export default function VolunteerRegistrationWizard({ campaign, details }: {
                   <span aria-hidden="true">↗</span>
                 </button>
               </div>
-            </div>}
-          </form>}
+              </div>
+            </form>
+          </>}
         </>}
       </section>
     </div>}

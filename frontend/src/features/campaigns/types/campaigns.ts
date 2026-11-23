@@ -101,7 +101,8 @@ export type Campaign = {
 
 export type PublicCampaignPlan = {
   summary: string; goal: string; outcomes: string; eventFormat: string | null; fundraisingPurpose: string;
-  fundingTargets?: { id: string; name: string; category: string; amount: number }[] | null;
+  fundingTargets?: { id: string; name: string; category: string; amount: number; quantity: number; unit: string; acceptsInKind: boolean }[] | null;
+  inKindTargets?: { id: string; name: string; category: string; amount: number; quantity: number; unit: string; acceptsInKind: boolean }[] | null;
   receiving?: {
     bank?: {
       bankName: string; accountHolder: string; accountNumber: string; qrMediaId: string | null; transferNote: string;

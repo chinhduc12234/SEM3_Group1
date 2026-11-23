@@ -1,5 +1,7 @@
 .panel { display: grid; gap: 1.2rem; margin-block: 1.5rem; padding: clamp(1.1rem, 2.8vw, 2rem); border: 1px solid #d3e4d9; border-radius: 1rem; background: linear-gradient(135deg, #f1f8f3, #fff 72%); color: #153b34; }
 .intro, .sectionHead, .targetHead, .actions, .successHead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .7rem 1rem; }
+.headerActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .55rem; }
+.panel .backButton { min-height: 2.3rem; padding: .45rem .7rem; border-color: #c7dace; background: #fff; color: #155443; font-size: .82rem; }
 .eyebrow { margin: 0 0 .45rem; color: #b84e37; font-size: .72rem; font-weight: 800; letter-spacing: .14em; }
 .intro h2 { margin: 0; font-size: clamp(1.3rem, 2.5vw, 1.8rem); color: #153b34; }
 .intro p:not(.eyebrow), .sectionHead p { margin: .45rem 0 0; color: #526c61; }
@@ -15,6 +17,15 @@
 .panel button:disabled { cursor: not-allowed; opacity: .55; }
 .panel a { color: #155443; font-weight: 750; }
 .progressList { display: grid; gap: .55rem; }
+.subheading { margin: .25rem 0; color: #153b34; font-size: 1rem; }
+.modeTabs { display: flex; flex-wrap: wrap; gap: .45rem; padding: .35rem; border-radius: .75rem; background: #eaf3ed; }
+.panel .modeTabs button { min-height: 2.35rem; padding: .45rem .8rem; border-color: #c7dace; background: #fff; color: #155443; }
+.panel .modeTabs button[aria-selected="true"] { border-color: #155443; background: #155443; color: #fff; }
+.closed { padding: 1rem; border: 1px solid #b8dec4; border-radius: .75rem; background: #eaf7ee; }
+.closed p { margin: .35rem 0 0; color: #526c61; }
+.goodsInfo { padding: .85rem 1rem; border: 1px solid #d3e4d9; border-radius: .7rem; background: #fff; color: #294c40; }
+.goodsInfo p { margin: .35rem 0 0; color: #526c61; }
+.form .fullField { grid-column: 1 / -1; }
 .target { padding: .7rem .85rem; border: 1px solid #d3e4d9; border-radius: .7rem; background: #fff; }
 .targetHead { color: #24483d; font-weight: 700; }
 .targetHead span:last-child { color: #526c61; font-size: .87rem; font-weight: 600; }

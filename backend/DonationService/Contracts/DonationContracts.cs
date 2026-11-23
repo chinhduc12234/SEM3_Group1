@@ -25,9 +25,24 @@ public sealed record DonationManagerRow(Guid Id, string DonorName, string DonorE
 public sealed record DonationTargetProgress(Guid BudgetItemId, string Name, decimal TargetAmount,
     decimal DonatedAmount, decimal RemainingAmount, bool IsComplete);
 public sealed record DonationSummary(Guid CampaignId, decimal TargetAmount, decimal DonatedAmount,
-    decimal RemainingAmount, int ConfirmedDonationCount, DonationTargetProgress[] Targets);
+    decimal RemainingAmount, int ConfirmedDonationCount, DonationTargetProgress[] Targets,
+    InKindTargetProgress[] InKindTargets, bool IsClosed);
+public sealed record InKindTargetProgress(Guid BudgetItemId, string Name, decimal TargetQuantity, string Unit,
+    decimal ReceivedQuantity, decimal ReservedQuantity, decimal RemainingQuantity, bool IsComplete);
+public sealed record CreateInKindPledgeRequest(Guid CampaignId, Guid BudgetItemId,
+    [Range(typeof(decimal), "1", "1000000")] decimal Quantity,
+    [MaxLength(1000)] string? Note);
+public sealed record ReviewInKindPledgeRequest([Required, RegularExpression("^(APPROVE|REJECT)$")] string Decision,
+    [MaxLength(1000)] string? Note);
+public sealed record ReceiveInKindPledgeRequest([Range(typeof(decimal), "0.01", "1000000")] decimal Quantity);
+public sealed record InKindPledgeView(Guid Id, Guid BudgetItemId, string DonorName, string DonorEmail,
+    string TargetName, decimal Quantity, decimal ReceivedQuantity, string Unit, string? Note,
+    string Status, DateTimeOffset CreatedAt, DateTimeOffset? ReviewedAt, DateTimeOffset? CompletedAt);
+public sealed record InKindManagerView(InKindTargetProgress[] Targets, InKindPledgeView[] Pledges);
 public sealed record DonationManagerView(DonationSummary Summary, int PendingCount, DonationManagerRow[] Donations);
 public sealed record CampaignDonationTarget(Guid Id, string Name, string Category, decimal Amount);
+public sealed record CampaignInKindTarget(Guid Id, string Name, string Category, decimal Amount,
+    decimal Quantity, string Unit, bool AcceptsInKind);
 public sealed record CampaignDonationContext(Guid CampaignId, Guid OrganizationId, string CampaignTitle,
-    CampaignDonationTarget[] Targets, Guid[] FinanceUserIds);
+    CampaignDonationTarget[] Targets, CampaignInKindTarget[] InKindTargets, Guid[] ManagerUserIds);
 public sealed record AccountDonationRecipient(string Email, string FullName);

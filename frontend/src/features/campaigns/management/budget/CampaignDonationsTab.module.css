@@ -1,4 +1,12 @@
 .wrap { display: grid; gap: 1rem; }
+.tabs { display: flex; flex-wrap: wrap; gap: .45rem; padding: .4rem; border-radius: .8rem; background: #eaf3ed; }
+.tabs button { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.6rem; padding: .55rem .9rem; border: 1px solid #cfdfd5; border-radius: .6rem; background: #fff; color: #205340; font: inherit; font-weight: 700; cursor: pointer; transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.tabs button:hover { border-color: #78a48c; background: #f8fcf9; }
+.tabs button:focus-visible, .pagination button:focus-visible { outline: 3px solid #e19a54; outline-offset: 2px; }
+.tabs button.activeTab { border-color: #176348; background: #176348; color: #fff; box-shadow: 0 3px 8px rgb(23 99 72 / 16%); }
+.tabs button span { display: inline-grid; min-width: 1.35rem; height: 1.35rem; place-items: center; padding: 0 .25rem; border-radius: 99px; background: #e1efe5; color: #205340; font-size: .75rem; }
+.tabs button.activeTab span { background: rgb(255 255 255 / 18%); color: #fff; }
+.tabPanel { display: grid; gap: 1rem; min-width: 0; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .65rem; margin: 0; }
 .stats > div, .target { display: grid; gap: .35rem; padding: .9rem; border: 1px solid #d6e5dc; border-radius: .75rem; background: #f2f8f4; }
 .stats dt, .target small { color: #4e665f; font-size: .82rem; }
@@ -13,4 +21,24 @@
 .table td small { display: block; margin-top: .2rem; color: #61766d; }
 .status { display: inline-flex; padding: .25rem .55rem; border-radius: 99px; background: #fff3dd; color: #7b541e; font-size: .78rem; font-weight: 750; white-space: nowrap; }
 .status[data-confirmed="true"] { background: #dff3e5; color: #18593f; }
+.rowActions { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; margin-top: .55rem; }
+.rowActions button { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 2.15rem; padding: .45rem .72rem; border: 1px solid transparent; border-radius: .55rem; font: inherit; font-size: .82rem; font-weight: 750; line-height: 1.2; cursor: pointer; transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.rowActions button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgb(21 73 55 / 12%); }
+.rowActions button:active { transform: translateY(0); box-shadow: none; }
+.rowActions button:focus-visible { outline: 3px solid #e19a54; outline-offset: 2px; }
+.rowActions button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+.approveButton { background: #176348; color: #fff; }
+.approveButton:hover { background: #104f39; }
+.rejectButton { border-color: #f0c4bb !important; background: #fff3f0; color: #a43f32; }
+.rejectButton:hover { border-color: #df9d91 !important; background: #ffe5df; color: #862d23; }
+.receiveButton { background: #e8f2fc; border-color: #c4d9ed !important; color: #285a80; }
+.receiveButton:hover { background: #d8eafb; border-color: #a9c9e3 !important; color: #1d496c; }
+.rowActions input { width: 7rem; min-height: 2rem; padding: .3rem .45rem; border: 1px solid #c7dace; border-radius: .4rem; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .8rem; color: #526b60; font-size: .85rem; }
+.pagination > div { display: flex; align-items: center; gap: .65rem; }
+.pagination strong { color: #234c3e; font-size: .82rem; }
+.pagination button { min-height: 2.2rem; padding: .4rem .7rem; border: 1px solid #cbded2; border-radius: .55rem; background: #fff; color: #205340; font: inherit; font-weight: 650; cursor: pointer; }
+.pagination button:hover:not(:disabled) { border-color: #8db39b; background: #edf6f0; }
+.pagination button:disabled { color: #9bab9f; background: #f5f7f5; cursor: not-allowed; }
 .empty { padding: 1rem; border: 1px dashed #aebfb6; border-radius: .75rem; color: #4e665f; background: #f2f8f4; }
+@media (max-width: 520px) { .pagination { align-items: flex-start; flex-direction: column; } .pagination > div { width: 100%; justify-content: space-between; } }

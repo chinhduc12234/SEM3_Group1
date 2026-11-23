@@ -9,7 +9,7 @@ using Shared;
 namespace DonationService.Services;
 
 public sealed class DonationSandboxPaymentService(DonationDb db, CampaignDonationClient campaigns,
-    IConfiguration configuration, IHostEnvironment environment)
+    FundraisingProgressService progress, IConfiguration configuration, IHostEnvironment environment)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan OtpLifetime = TimeSpan.FromMinutes(3);
@@ -25,6 +25,16 @@ public sealed class DonationSandboxPaymentService(DonationDb db, CampaignDonatio
             ?? throw new ApiException(404, "Không tìm thấy khoản ủng hộ.");
         if (donation.Status == "CONFIRMED") throw new ApiException(409, "Khoản ủng hộ này đã được xác nhận.");
         if (donation.Status is not ("PENDING" or "OTP_PENDING")) throw new ApiException(409, "Trạng thái giao dịch sandbox không hợp lệ.");
+
+        var context = await campaigns.Get(donation.CampaignId, ct);
+        var target = context.Targets.SingleOrDefault(x => x.Id == donation.BudgetItemId)
+            ?? throw new ApiException(409, "Khoản dự toán đã thay đổi; không thể tiếp tục giao dịch.");
+        await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), $"GiveAid.Fundraising.{context.CampaignId:N}");
+        if (!await gate.Acquire(ct)) throw new ApiException(409, "Đang ghi nhận hỗ trợ khác cho chiến dịch này; vui lòng thử lại.");
+        var summary = await progress.Summary(context, ct);
+        var targetProgress = summary.Targets.SingleOrDefault(x => x.BudgetItemId == target.Id);
+        if (summary.IsClosed || targetProgress is null || targetProgress.IsComplete)
+            throw new ApiException(409, "Mục tiêu này đã đủ; chiến dịch không nhận thêm khoản ủng hộ này.");
 
         var now = DateTimeOffset.UtcNow;
         var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
@@ -74,10 +84,19 @@ public sealed class DonationSandboxPaymentService(DonationDb db, CampaignDonatio
         var context = await campaigns.Get(donation.CampaignId, ct);
         var target = context.Targets.SingleOrDefault(x => x.Id == donation.BudgetItemId)
             ?? throw new ApiException(409, "Khoản dự toán đã thay đổi; không thể xác nhận khoản ủng hộ.");
+        await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), $"GiveAid.Fundraising.{context.CampaignId:N}");
+        if (!await gate.Acquire(ct)) throw new ApiException(409, "Đang ghi nhận hỗ trợ khác cho chiến dịch này; vui lòng thử lại.");
+        var summary = await progress.Summary(context, ct);
+        var targetProgress = summary.Targets.SingleOrDefault(x => x.BudgetItemId == target.Id);
+        var otherPending = await db.Donations.Where(x => x.CampaignId == context.CampaignId && x.BudgetItemId == target.Id &&
+            x.Id != donation.Id && (x.Status == "PENDING" || x.Status == "OTP_PENDING") &&
+            x.CreatedAt > DateTimeOffset.UtcNow.AddMinutes(-15)).SumAsync(x => (decimal?)x.Amount, ct) ?? 0m;
+        if (summary.IsClosed || targetProgress is null || donation.Amount + otherPending > targetProgress.RemainingAmount)
+            throw new ApiException(409, "Mục tiêu đã đủ hoặc không còn đủ số dư cho giao dịch này. Tạo khoản mới với số tiền nhỏ hơn nếu còn mục tiêu khác.");
         var confirmedAt = DateTimeOffset.UtcNow;
         var eventItem = new DonationConfirmedNotificationEvent(donation.Id, donation.Id, donation.CampaignId,
             context.OrganizationId, donation.DonorUserId, donation.DonorName, donation.Amount, target.Name,
-            context.CampaignTitle, context.FinanceUserIds, confirmedAt);
+            context.CampaignTitle, context.ManagerUserIds, confirmedAt);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         challenge.UsedAt = confirmedAt;
         donation.Status = "CONFIRMED";
@@ -89,6 +108,7 @@ public sealed class DonationSandboxPaymentService(DonationDb db, CampaignDonatio
             NextAttemptAt = confirmedAt
         });
         await db.SaveChangesAsync(ct);
+        await progress.CloseIfComplete(context, ct);
         await transaction.CommitAsync(ct);
         return View(donation);
     }

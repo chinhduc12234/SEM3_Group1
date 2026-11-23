@@ -9,7 +9,8 @@ public sealed record FinalReviewRequest([Required] string Version, Guid Submissi
 public sealed record PublicCampaignActivity(string Title, TimeOnly? Start, TimeOnly? End, string Location);
 public sealed record PublicCampaignDay(Guid Id, DateOnly? Date, string Title, string Description, string Location,
     string? Province, string? District, string? Ward, OperationsMapPin? MapPin, PublicCampaignActivity[] Activities);
-public sealed record PublicFundingTarget(Guid Id, string Name, string Category, decimal Amount);
+public sealed record PublicFundingTarget(Guid Id, string Name, string Category, decimal Amount,
+    decimal Quantity, string Unit, bool AcceptsInKind);
 public sealed record PublicCampaignPlan(string Summary, string Goal, string Outcomes, string? EventFormat,
     string FundraisingPurpose, PublicCampaignDay[] Days, BudgetReceiving? Receiving = null,
-    PublicFundingTarget[]? FundingTargets = null);
+    PublicFundingTarget[]? FundingTargets = null, PublicFundingTarget[]? InKindTargets = null);

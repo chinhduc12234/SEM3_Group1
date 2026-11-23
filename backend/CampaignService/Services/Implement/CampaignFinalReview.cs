@@ -114,9 +114,17 @@ public sealed partial class CampaignApplication
         var concept = snapshot.Concept;
         var online = concept.EventFormat == "ONLINE";
         var categories = snapshot.Budget.Fundraising.Categories.ToHashSet(StringComparer.Ordinal);
-        var targets = snapshot.Budget.Expenses.Where(expense => categories.Contains(expense.Category))
-            .Select(expense => new PublicFundingTarget(expense.Id, expense.Name, expense.Category,
-                expense.Quantity * (decimal)expense.Days * expense.UnitPrice)).ToArray();
+        var acceptedGoods = snapshot.Budget.Receiving?.Goods?.AcceptedItems ?? "";
+        var acceptedParts = acceptedGoods.Split([',', ';', '\n', '、', '·'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .SelectMany(part => part.Split([" và ", " and "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .ToArray();
+        bool AcceptsInKind(string name) => acceptedParts.Any(part => part.Length >= 3 &&
+            (name.Contains(part, StringComparison.OrdinalIgnoreCase) || part.Contains(name, StringComparison.OrdinalIgnoreCase)));
+        var targets = snapshot.Budget.Expenses.Select(expense => new PublicFundingTarget(expense.Id, expense.Name, expense.Category,
+            expense.Quantity * (decimal)expense.Days * expense.UnitPrice, expense.Quantity * (decimal)expense.Days,
+            expense.Unit, AcceptsInKind(expense.Name))).ToArray();
+        var financialTargets = targets.Where(target => categories.Contains(target.Category)).ToArray();
+        var inKindTargets = targets.Where(target => target.AcceptsInKind && target.Quantity > 0).ToArray();
         var days = snapshot.Operations.Days.OrderBy(day => day.Date).Select(day =>
         {
             var address = online ? null : day.Address ?? (day.Location == campaign.Location ? concept.PlannedAddress : null);
@@ -126,7 +134,8 @@ public sealed partial class CampaignApplication
                     new PublicCampaignActivity(activity.Title, activity.Start, activity.End, online ? "Trực tuyến" : activity.Location)).ToArray());
         }).ToArray();
         return new(concept.ShortDescription, concept.PrimaryGoal, concept.ExpectedOutcomes,
-            concept.EventFormat, snapshot.Budget.Fundraising.PublicExplanation, days, snapshot.Budget.Receiving, targets);
+            concept.EventFormat, snapshot.Budget.Fundraising.PublicExplanation, days, snapshot.Budget.Receiving,
+            financialTargets, inKindTargets);
     }
 
     public async Task<CampaignDonationContext> DonationContext(Guid id, CancellationToken ct)
@@ -134,8 +143,9 @@ public sealed partial class CampaignApplication
         var campaign = await Get(id, ct);
         if (campaign.Status != "PUBLISHED") throw new ApiException(404, "Chiến dịch chưa mở nhận quyên góp.");
         var plan = ReadPublicPlan(campaign) ?? throw new ApiException(409, "Chiến dịch chưa có kế hoạch gây quỹ công khai.");
-        var financeUsers = campaign.Assignments.Where(assignment => assignment.Role == "FINANCE_MANAGER" && assignment.RevokedAt is null)
+        var managerUsers = campaign.Assignments.Where(assignment =>
+            (assignment.Role is "FINANCE_MANAGER" or "CAMPAIGN_MANAGER") && assignment.RevokedAt is null)
             .Select(assignment => assignment.UserId).Distinct().ToArray();
-        return new(campaign.Id, campaign.OrganizationId, campaign.Title, plan.FundingTargets ?? [], financeUsers);
+        return new(campaign.Id, campaign.OrganizationId, campaign.Title, plan.FundingTargets ?? [], plan.InKindTargets ?? [], managerUsers);
     }
 }

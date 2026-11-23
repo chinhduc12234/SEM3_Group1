@@ -10,6 +10,7 @@ builder.Services.AddDbContext<DonationDb>(options => options.UseSqlServer(builde
 builder.Services.AddScoped<CampaignDonationClient>();
 builder.Services.AddScoped<DonationAccountDirectory>();
 builder.Services.AddScoped<DonationSandboxPaymentService>();
+builder.Services.AddScoped<FundraisingProgressService>();
 builder.Services.AddHttpClient("campaign-internal", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["InternalApi:CampaignUrl"] ?? "http://campaign:8080/");

@@ -37,7 +37,7 @@ public sealed class DonationNotificationOutboxWorker(IServiceScopeFactory scopes
         {
             using var body = new StringContent(item.Payload, Encoding.UTF8, "application/json");
             using var response = await scope.ServiceProvider.GetRequiredService<IHttpClientFactory>()
-                .CreateClient("notifications").PostAsync("internal/notifications/donation-confirmed", body, ct);
+                .CreateClient("notifications").PostAsync(item.Route, body, ct);
             response.EnsureSuccessStatusCode();
             item.DeliveredAt = DateTimeOffset.UtcNow;
             item.LastErrorCode = null;

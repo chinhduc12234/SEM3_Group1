@@ -21,6 +21,7 @@ public sealed class CampaignDonationClient(IHttpClientFactory clients)
         catch (HttpRequestException) { throw new ApiException(503, "Không kết nối được dịch vụ chiến dịch."); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ApiException(503, "Tải thông tin chiến dịch quá thời gian."); }
     }
+
 }
 
 public sealed class DonationAccountDirectory(IHttpClientFactory clients)

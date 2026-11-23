@@ -37,10 +37,38 @@ public sealed class DonationNotificationOutbox
 {
     public Guid Id { get; set; }
     public string Payload { get; set; } = "";
+    public string Route { get; set; } = "internal/notifications/donation-confirmed";
     public DateTimeOffset NextAttemptAt { get; set; } = DateTimeOffset.UtcNow;
     public int Attempts { get; set; }
     public DateTimeOffset? DeliveredAt { get; set; }
     public string? LastErrorCode { get; set; }
+}
+
+public sealed class InKindPledge
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CampaignId { get; set; }
+    public Guid BudgetItemId { get; set; }
+    public Guid DonorUserId { get; set; }
+    public string DonorName { get; set; } = "";
+    public string DonorEmail { get; set; } = "";
+    public string CampaignTitle { get; set; } = "";
+    public string TargetName { get; set; } = "";
+    public decimal Quantity { get; set; }
+    public decimal ReceivedQuantity { get; set; }
+    public string Unit { get; set; } = "";
+    public string? Note { get; set; }
+    public string Status { get; set; } = "PENDING";
+    public Guid? ReviewedBy { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? CompletedAt { get; set; }
+}
+
+public sealed class FundraisingClosure
+{
+    public Guid CampaignId { get; set; }
+    public DateTimeOffset ClosedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
 public sealed class DonationDb(DbContextOptions<DonationDb> options) : DbContext(options)
@@ -48,6 +76,8 @@ public sealed class DonationDb(DbContextOptions<DonationDb> options) : DbContext
     public DbSet<DonationRecord> Donations => Set<DonationRecord>();
     public DbSet<SandboxOtpChallenge> SandboxOtpChallenges => Set<SandboxOtpChallenge>();
     public DbSet<DonationNotificationOutbox> NotificationOutbox => Set<DonationNotificationOutbox>();
+    public DbSet<InKindPledge> InKindPledges => Set<InKindPledge>();
+    public DbSet<FundraisingClosure> FundraisingClosures => Set<FundraisingClosure>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -71,7 +101,24 @@ public sealed class DonationDb(DbContextOptions<DonationDb> options) : DbContext
         var outbox = b.Entity<DonationNotificationOutbox>();
         outbox.HasIndex(x => x.NextAttemptAt);
         outbox.Property(x => x.Payload).HasColumnType("nvarchar(max)");
+        outbox.Property(x => x.Route).HasMaxLength(100);
         outbox.Property(x => x.LastErrorCode).HasMaxLength(80);
+        var pledge = b.Entity<InKindPledge>();
+        pledge.ToTable("InKindPledges", t => t.HasCheckConstraint("CK_InKindPledges_Quantity", "[Quantity] > 0 AND [ReceivedQuantity] >= 0 AND [ReceivedQuantity] <= [Quantity]"));
+        pledge.HasIndex(x => new { x.CampaignId, x.BudgetItemId, x.Status });
+        pledge.HasIndex(x => new { x.DonorUserId, x.CreatedAt });
+        pledge.Property(x => x.Quantity).HasPrecision(18, 2);
+        pledge.Property(x => x.ReceivedQuantity).HasPrecision(18, 2);
+        pledge.Property(x => x.DonorName).HasMaxLength(200);
+        pledge.Property(x => x.DonorEmail).HasMaxLength(320);
+        pledge.Property(x => x.CampaignTitle).HasMaxLength(200);
+        pledge.Property(x => x.TargetName).HasMaxLength(200);
+        pledge.Property(x => x.Unit).HasMaxLength(40);
+        pledge.Property(x => x.Note).HasMaxLength(1000);
+        pledge.Property(x => x.Status).HasMaxLength(20);
+        var closure = b.Entity<FundraisingClosure>();
+        closure.ToTable("FundraisingClosures");
+        closure.HasKey(x => x.CampaignId);
     }
 }
 

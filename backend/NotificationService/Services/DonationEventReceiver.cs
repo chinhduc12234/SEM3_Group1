@@ -10,6 +10,37 @@ namespace NotificationService.Services;
 
 public sealed class DonationEventReceiver(NotificationDb db)
 {
+    public async Task ReceiveGoalReached(FundraisingGoalReachedNotificationEvent item, CancellationToken ct)
+    {
+        if (item.EventId == Guid.Empty || item.CampaignId == Guid.Empty || item.OrganizationId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(item.CampaignTitle) || item.CampaignTitle.Length > 200 ||
+            item.ManagerUserIds is null || item.ManagerUserIds.Length is 0 or > 100 || item.ClosedAt == default)
+            throw new ApiException(400, "Sự kiện đạt mục tiêu gây quỹ không hợp lệ.");
+        var payloadHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(item))));
+        await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), "GiveAid.Notification.Donation");
+        if (!await gate.Acquire(ct)) throw new ApiException(503, "Hệ thống đang nhận thông báo, vui lòng thử lại.");
+        var existing = await db.ReceivedEvents.AsNoTracking().SingleOrDefaultAsync(x => x.Id == item.EventId, ct);
+        if (existing is not null)
+        {
+            if (existing.PayloadHash != payloadHash) throw new ApiException(409, "Mã sự kiện đã tồn tại với nội dung khác.");
+            return;
+        }
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        db.ReceivedEvents.Add(new ReceivedEvent { Id = item.EventId, PayloadHash = payloadHash });
+        foreach (var userId in item.ManagerUserIds.Distinct())
+        {
+            db.Notifications.Add(new Notification
+            {
+                EventId = item.EventId, OrganizationId = item.OrganizationId, UserId = userId,
+                Kind = "FUNDRAISING_GOAL_REACHED", Title = "Chiến dịch đã đạt đủ mục tiêu hỗ trợ",
+                Message = $"Chiến dịch {item.CampaignTitle} đã đạt đủ các mục tiêu tiền và hiện vật. Hệ thống đã đóng nhận ủng hộ; chiến dịch vẫn tiếp tục triển khai.",
+                Url = $"/organizations/{item.OrganizationId}/manage/budget/{item.CampaignId}", CreatedAt = item.ClosedAt
+            });
+        }
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task Receive(DonationConfirmedNotificationEvent item, CancellationToken ct)
     {
         if (item.EventId == Guid.Empty || item.DonationId == Guid.Empty || item.CampaignId == Guid.Empty ||

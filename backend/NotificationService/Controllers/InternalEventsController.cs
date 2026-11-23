@@ -43,6 +43,14 @@ public sealed class InternalEventsController(OrganizationEventReceiver receiver,
         return NoContent();
     }
 
+    [HttpPost("/internal/notifications/fundraising-goal-reached")]
+    public async Task<IActionResult> ReceiveFundraisingGoalReached(FundraisingGoalReachedNotificationEvent item, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        await donationReceiver.ReceiveGoalReached(item, ct);
+        return NoContent();
+    }
+
     private bool Authorized()
     {
         var expected = configuration["InternalApi:Key"];

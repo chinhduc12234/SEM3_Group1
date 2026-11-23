@@ -1,4 +1,9 @@
 .callout { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:1.35rem; border:1px solid #dbe7dc; border-radius:1rem; background:linear-gradient(115deg,#edf4ec,#fbfaf5); margin:1.5rem 0; }
+.optionalDonation { margin: .9rem 1.5rem 1.25rem; padding: .9rem 1rem; border: 1px solid #dbe7dc; border-radius: .75rem; background: #f4f8f3; }
+.optionalDonation summary { color: #174c3b; font-weight: 800; cursor: pointer; }
+.optionalDonation summary span { color: #718278; font-weight: 500; }
+.optionalDonation > p { margin: .55rem 0; color: #61766d; font-size: .9rem; line-height: 1.5; }
+.optionalDonation :global(section[aria-labelledby="donation-title"]) { margin: .75rem 0 0; }
 .callout h2 { font-size:1.55rem; margin:.15rem 0 .4rem; }
 .callout p { color:#697a70; }
 .kicker { color:#b64f38; font-size:.68rem; font-weight:800; letter-spacing:.14em; margin:0; }
@@ -64,4 +69,4 @@
 .success > span { display:grid; place-items:center; width:55px; height:55px; border-radius:50%; color:#fff; background:#2c7958; font-size:1.7rem; }
 .success h3 { margin:0; font-size:1.25rem; }
 .success p { color:#718278; }
-@media(max-width:650px) { .callout { align-items:stretch; flex-direction:column; } .callout button { width:100%; } .fields,.groupGrid { grid-template-columns:1fr; } .bankCard { align-items:stretch; flex-direction:column; } .bankCard figure { width:min(170px,100%); flex-basis:auto; align-self:center; } .authHeading { flex-direction:column; } }
+@media(max-width:650px) { .callout { align-items:stretch; flex-direction:column; } .callout button { width:100%; } .fields,.groupGrid { grid-template-columns:1fr; } .bankCard { align-items:stretch; flex-direction:column; } .bankCard figure { width:min(170px,100%); flex-basis:auto; align-self:center; } .authHeading { flex-direction:column; } .optionalDonation { margin-inline: .7rem; } }
