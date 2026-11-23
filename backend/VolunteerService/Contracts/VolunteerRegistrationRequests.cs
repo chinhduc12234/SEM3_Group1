@@ -55,9 +55,25 @@ public sealed record VolunteerReviewResult(Guid Id, Guid CampaignId, string Stat
     DateTimeOffset ReviewedAt, string? ReviewNote, string? RejectionReason,
     VolunteerGroupAssignmentResult[] AssignedGroups);
 
-// Public, read-only opening data returned by CampaignService. CampaignService remains the source of truth.
-public sealed record CampaignVolunteerOpenings(Guid CampaignId, string CampaignTitle,
-    CampaignVolunteerOpeningGroup[] Groups);
+public sealed record VolunteerGroupsManagementView(Guid CampaignId, string CampaignTitle, int PendingRegistrations,
+    int ApprovedVolunteers, VolunteerGroupManagementItem[] Groups);
 
-public sealed record CampaignVolunteerOpeningGroup(Guid Id, string Name, string CategoryId,
-    int Target, DateOnly? Date, Guid? ActivityId);
+public sealed record VolunteerGroupManagementItem(Guid Id, string Name, string Category, int Target,
+    int AssignedCount, int Remaining, DateOnly? Date, string? ActivityTitle, string? TeamName, string? TeamLeaderName);
+
+public sealed record VolunteerGroupMember(Guid RegistrationId, string FullName, string Email, string PhoneNumber,
+    DateTimeOffset AssignedAt, Guid AssignedBy);
+
+// Public, read-only opening data returned by CampaignService. CampaignService remains the source of truth.
+public sealed record CampaignVolunteerOpenings(Guid CampaignId, string CampaignTitle, DateOnly? StartDate,
+    DateOnly? EndDate, string Location, CampaignVolunteerOpeningDay[] Days, CampaignVolunteerOpeningGroup[] Groups);
+
+public sealed record CampaignVolunteerOpeningDay(Guid Id, DateOnly? Date, string Title, string Location,
+    CampaignVolunteerOpeningActivity[] Activities);
+
+public sealed record CampaignVolunteerOpeningActivity(Guid Id, string Title, TimeOnly? Start, TimeOnly? End,
+    string Location, string Description);
+
+public sealed record CampaignVolunteerOpeningGroup(Guid Id, string Name, string CategoryId, string Category,
+    int Target, Guid? DayId, DateOnly? Date, string? DayTitle, Guid? ActivityId, string? ActivityTitle,
+    Guid? TeamId, string? TeamName, string? TeamLeaderName, string Notes);

@@ -28,6 +28,22 @@ public sealed class VolunteerRegistrationsController(IVolunteerRegistrationServi
         return await service.ListForReview(reviewerId, campaignId, status, page, pageSize, ct);
     }
 
+    [HttpGet("campaigns/{campaignId:guid}/groups")]
+    public async Task<VolunteerGroupsManagementView> GroupManagement(Guid campaignId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(User.FindFirstValue("sub"), out var reviewerId))
+            throw new Shared.ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
+        return await service.GroupManagement(reviewerId, campaignId, ct);
+    }
+
+    [HttpGet("campaigns/{campaignId:guid}/groups/{groupId:guid}/members")]
+    public async Task<VolunteerGroupMember[]> GroupMembers(Guid campaignId, Guid groupId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(User.FindFirstValue("sub"), out var reviewerId))
+            throw new Shared.ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
+        return await service.GroupMembers(reviewerId, campaignId, groupId, ct);
+    }
+
     [HttpGet("registrations/{registrationId:guid}")]
     public async Task<VolunteerRegistrationDetail> GetForReview(Guid registrationId, CancellationToken ct)
     {

@@ -13,4 +13,7 @@ artifacts/
 **/*.tsbuildinfo
 **/__pycache__/
 
-uploads/
+uploads/*
+!uploads/campaigns/
+uploads/campaigns/*
+!uploads/campaigns/.gitkeep

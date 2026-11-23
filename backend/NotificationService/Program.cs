@@ -16,6 +16,7 @@ builder.Services.AddOptions<InternalOptions>().BindConfiguration("InternalApi").
 builder.Services.AddScoped<NotificationRepository>();
 builder.Services.AddScoped<NotificationInbox>();
 builder.Services.AddScoped<OrganizationEventReceiver>();
+builder.Services.AddScoped<VolunteerRegistrationEventReceiver>();
 builder.Services.AddSingleton<IPushSender, FirebasePushSender>();
 builder.Services.AddSingleton<IUserIdProvider, NotificationUserIdProvider>();
 builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!, options =>
@@ -25,6 +26,12 @@ builder.Services.AddHttpClient("identity", client =>
     client.BaseAddress = new Uri(builder.Configuration["InternalApi:IdentityUrl"] ?? "http://identity:8080/");
     client.Timeout = TimeSpan.FromSeconds(10);
     client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"]);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient("campaign", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["InternalApi:CampaignUrl"] ?? "http://campaign:8080/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddDataProtection().SetApplicationName("GiveAid.Notification").PersistKeysToFileSystem(
     new DirectoryInfo(builder.Configuration["Protection:KeyDirectory"] ?? Path.Combine(builder.Environment.ContentRootPath, ".keys")));

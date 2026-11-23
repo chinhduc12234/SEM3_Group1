@@ -11,4 +11,4 @@ public sealed record CampaignVolunteerOpeningActivity(Guid Id, string Title, Tim
 
 public sealed record CampaignVolunteerOpeningGroup(Guid Id, string Name, string CategoryId, string Category,
     int Target, Guid? DayId, DateOnly? Date, string? DayTitle, Guid? ActivityId, string? ActivityTitle,
-    Guid? TeamId, string? TeamName, string Notes);
+    Guid? TeamId, string? TeamName, string? TeamLeaderName, string Notes);

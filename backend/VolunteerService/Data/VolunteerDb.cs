@@ -56,6 +56,7 @@ public sealed class VolunteerGroupAssignment
     public Guid AssignedBy { get; set; }
     public DateTimeOffset AssignedAt { get; set; } = DateTimeOffset.UtcNow;
     public string Status { get; set; } = "ACTIVE";
+    public VolunteerRegistration Registration { get; set; } = null!;
 }
 
 // ActivityId and GroupId reference the authoritative schedule and groups in CampaignService.
@@ -115,6 +116,18 @@ public sealed class VolunteerAttendance
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class VolunteerNotificationOutbox
+{
+    public Guid Id { get; set; }
+    public Guid RegistrationId { get; set; }
+    public string Payload { get; set; } = "";
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset NextAttemptAt { get; set; } = DateTimeOffset.UtcNow;
+    public int Attempts { get; set; }
+    public DateTimeOffset? DeliveredAt { get; set; }
+    public string? LastErrorCode { get; set; }
+}
+
 public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbContext(options)
 {
     public DbSet<VolunteerRegistration> Registrations => Set<VolunteerRegistration>();
@@ -123,6 +136,7 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
     public DbSet<VolunteerTask> Tasks => Set<VolunteerTask>();
     public DbSet<TaskAssignment> TaskAssignments => Set<TaskAssignment>();
     public DbSet<VolunteerAttendance> Attendances => Set<VolunteerAttendance>();
+    public DbSet<VolunteerNotificationOutbox> NotificationOutbox => Set<VolunteerNotificationOutbox>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -157,7 +171,7 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
         groupAssignment.ToTable("VolunteerGroupAssignments", t => t.HasCheckConstraint(
             "CK_VolunteerGroupAssignments_Status", "[Status] IN ('ACTIVE','REMOVED')"));
         groupAssignment.Property(x => x.Status).HasMaxLength(20);
-        groupAssignment.HasOne<VolunteerRegistration>().WithMany(x => x.GroupAssignments)
+        groupAssignment.HasOne(x => x.Registration).WithMany(x => x.GroupAssignments)
             .HasForeignKey(x => x.RegistrationId).OnDelete(DeleteBehavior.Restrict);
         groupAssignment.HasIndex(x => new { x.RegistrationId, x.GroupId }).IsUnique();
         groupAssignment.HasIndex(x => new { x.CampaignId, x.GroupId, x.Status });
@@ -202,6 +216,14 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
             .HasForeignKey(x => x.RegistrationId).OnDelete(DeleteBehavior.Restrict);
         attendance.HasIndex(x => new { x.RegistrationId, x.ActivityId }).IsUnique();
         attendance.HasIndex(x => new { x.ActivityId, x.Status });
+
+        var notification = b.Entity<VolunteerNotificationOutbox>();
+        notification.ToTable("VolunteerNotificationOutbox");
+        notification.Property(x => x.Payload).HasColumnType("nvarchar(max)");
+        notification.Property(x => x.LastErrorCode).HasMaxLength(80);
+        notification.HasKey(x => x.Id);
+        notification.HasIndex(x => new { x.DeliveredAt, x.NextAttemptAt });
+        notification.HasIndex(x => x.RegistrationId).IsUnique();
     }
 }
 

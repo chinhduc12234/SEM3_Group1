@@ -10,4 +10,6 @@ public interface IVolunteerRegistrationService
     Task<VolunteerRegistrationDetail> GetForReview(Guid reviewerId, Guid registrationId, CancellationToken ct);
     Task<VolunteerReviewResult> Review(Guid reviewerId, Guid registrationId,
         ReviewVolunteerRegistrationRequest request, CancellationToken ct);
+    Task<VolunteerGroupsManagementView> GroupManagement(Guid reviewerId, Guid campaignId, CancellationToken ct);
+    Task<VolunteerGroupMember[]> GroupMembers(Guid reviewerId, Guid campaignId, Guid groupId, CancellationToken ct);
 }

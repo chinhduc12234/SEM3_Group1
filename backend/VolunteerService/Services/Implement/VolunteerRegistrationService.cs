@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Shared;
 using VolunteerService.Contracts;
 using VolunteerService.Data;
@@ -64,7 +65,17 @@ public sealed class VolunteerRegistrationService(
             }).ToList()
         };
 
+        var notificationEvent = new VolunteerRegistrationNotificationEvent(Guid.NewGuid(), registration.CampaignId,
+            registration.Id, registration.FullName, now);
         repository.Add(registration);
+        repository.AddNotificationOutbox(new VolunteerNotificationOutbox
+        {
+            Id = notificationEvent.EventId,
+            RegistrationId = registration.Id,
+            Payload = JsonSerializer.Serialize(notificationEvent),
+            CreatedAt = now,
+            NextAttemptAt = now
+        });
         try { await repository.Save(ct); }
         catch (DbUpdateException)
         {
@@ -193,6 +204,46 @@ public sealed class VolunteerRegistrationService(
                 .OrderBy(group => group.AssignedAt)
                 .Select(group => new VolunteerGroupAssignmentResult(group.GroupId, group.Status,
                     group.AssignedBy, group.AssignedAt)).ToArray());
+    }
+
+    public async Task<VolunteerGroupsManagementView> GroupManagement(Guid reviewerId, Guid campaignId, CancellationToken ct)
+    {
+        if (reviewerId == Guid.Empty) throw new ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
+        if (campaignId == Guid.Empty) throw new ApiException(400, "Chiến dịch không hợp lệ.");
+        if (!await reviewAccess.CanReview(campaignId, reviewerId, ct))
+            throw new ApiException(403, "Bạn không được quản lý tình nguyện viên của chiến dịch này.");
+
+        var openings = await campaignOpenings.Get(campaignId, ct)
+            ?? throw new ApiException(404, "Chiến dịch chưa mở đăng ký tình nguyện viên.");
+        var groupIds = openings.Groups.Select(group => group.Id).ToArray();
+        var counts = await repository.CountActiveAssignments(campaignId, groupIds, ct);
+        var groups = openings.Groups.Select(group =>
+        {
+            var assigned = counts.GetValueOrDefault(group.Id);
+            return new VolunteerGroupManagementItem(group.Id, group.Name, group.Category, group.Target,
+                assigned, Math.Max(0, group.Target - assigned), group.Date, group.ActivityTitle, group.TeamName,
+                group.TeamLeaderName);
+        }).ToArray();
+        var pending = await repository.CountPending(campaignId, ct);
+        return new VolunteerGroupsManagementView(campaignId, openings.CampaignTitle, pending,
+            groups.Sum(group => group.AssignedCount), groups);
+    }
+
+    public async Task<VolunteerGroupMember[]> GroupMembers(Guid reviewerId, Guid campaignId, Guid groupId, CancellationToken ct)
+    {
+        if (reviewerId == Guid.Empty) throw new ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
+        if (campaignId == Guid.Empty || groupId == Guid.Empty) throw new ApiException(400, "Chiến dịch hoặc nhóm không hợp lệ.");
+        if (!await reviewAccess.CanReview(campaignId, reviewerId, ct))
+            throw new ApiException(403, "Bạn không được quản lý tình nguyện viên của chiến dịch này.");
+
+        var openings = await campaignOpenings.Get(campaignId, ct)
+            ?? throw new ApiException(404, "Chiến dịch chưa mở đăng ký tình nguyện viên.");
+        if (!openings.Groups.Any(group => group.Id == groupId))
+            throw new ApiException(404, "Không tìm thấy nhóm tình nguyện trong chiến dịch.");
+        return (await repository.GroupMembers(campaignId, groupId, ct)).Select(assignment =>
+            new VolunteerGroupMember(assignment.RegistrationId, assignment.Registration.FullName,
+                assignment.Registration.Email, assignment.Registration.PhoneNumber,
+                assignment.AssignedAt, assignment.AssignedBy)).ToArray();
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

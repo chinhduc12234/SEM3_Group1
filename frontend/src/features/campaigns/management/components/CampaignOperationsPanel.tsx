@@ -12,8 +12,9 @@ import ops from "./OperationsDashboard.module.css";
 import { OperationsMetrics } from "./OperationsDashboard";
 import OperationsStatusBadge from "./OperationsStatusBadge";
 import { ActivityPhotoSection, useActivityPhotoReports } from "./ActivityPhotoReports";
+import VolunteerManagementPanel from "./VolunteerManagementPanel";
 
-type Member = { userId: string; fullName: string };
+type Member = { userId: string; fullName: string; canLeadTeam: boolean };
 type Attendance = { staffConfirmed: number; staffPresent: number; volunteersConfirmed: number; volunteersPresent: number };
 const emptyAttendance: Attendance = { staffConfirmed: 0, staffPresent: 0, volunteersConfirmed: 0, volunteersPresent: 0 };
 const emptyAddress: PlannedCampaignAddress = { mode: "CURRENT", province: null, district: null, ward: null, detail: "" };
@@ -64,10 +65,11 @@ function quantity(label: string, value: number, change: (value: number) => void)
     step={1} value={value} onChange={(e) => change(e.target.valueAsNumber || 0)} /></label>;
 }
 
-function person(label: string, members: Member[], value: string | null, change: (value: string | null) => void) {
+function person(label: string, members: Member[], value: string | null, change: (value: string | null) => void,
+  unavailableLabel = "Nhân sự không còn hoạt động") {
   return <label>{label}<select value={value ?? ""} onChange={(e) => change(e.target.value || null)}>
     <option value="">Chưa chọn</option>
-    {value && !members.some((member) => member.userId === value) && <option value={value}>Nhân sự không còn hoạt động</option>}
+    {value && !members.some((member) => member.userId === value) && <option value={value}>{unavailableLabel}</option>}
     {members.map(({ userId, fullName }) => <option key={userId} value={userId}>{fullName}</option>)}
   </select></label>;
 }
@@ -108,6 +110,7 @@ function AttendanceForm({ activity, disabled, onSave }: { activity: Activity; di
 }
 
 export default function CampaignOperationsPanel({ campaign }: { campaign: Campaign }) {
+  const [workspaceTab, setWorkspaceTab] = useState<"plan" | "volunteers">("plan");
   const { id: campaignId, startDate, endDate } = campaign;
   const [view, setView] = useState<OperationsView>();
   const [plan, setPlan] = useState<Plan>();
@@ -211,7 +214,7 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
 
   return <section className={ops.surface} aria-labelledby="operations-title">
     <header className={ops.panelHeader}>
-      <div><h2 id="operations-title">Kế hoạch vận hành</h2>
+      <div><h2 id="operations-title">Điều phối chiến dịch</h2>
         {startDate && endDate && <p className="muted">{formatCampaignDate(startDate)} – {formatCampaignDate(endDate)}</p>}
       </div>
       {view && <OperationsStatusBadge confirmedAt={view.confirmedAt} />}
@@ -219,6 +222,13 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
     {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet"
       disabled={busy} onClick={() => setRetry(retry + 1)}>Tải lại kế hoạch</button></p>}
     {message && <p className="notice success" role="status">{message}</p>}
+    <div className={ops.tabs} role="tablist" aria-label="Điều phối chiến dịch">
+      <button type="button" role="tab" aria-selected={workspaceTab === "plan"} aria-pressed={workspaceTab === "plan"}
+        className={workspaceTab === "plan" ? "primary" : "secondary"} onClick={() => setWorkspaceTab("plan")}>Kế hoạch vận hành</button>
+      <button type="button" role="tab" aria-selected={workspaceTab === "volunteers"} aria-pressed={workspaceTab === "volunteers"}
+        className={workspaceTab === "volunteers" ? "primary" : "secondary"} onClick={() => setWorkspaceTab("volunteers")}>Quản lý tình nguyện viên</button>
+    </div>
+    {workspaceTab === "volunteers" ? <VolunteerManagementPanel campaignId={campaign.id} /> : <>
     {!view && !error && <p role="status">Đang tải kế hoạch…</p>}
     {view && plan && <>
       <OperationsMetrics items={[
@@ -399,8 +409,9 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
               <h4>{team.name || `Đội ${index + 1}`}</h4>
               <div className={styles.operationsFields}>
                 {field("Tên đội", team.name, (name) => update({ name }))}
-                {person("Trưởng đội", view.members, team.leadUserId, (leadUserId) =>
-                  update({ leadUserId, staffUserIds: team.staffUserIds.filter((id) => id !== leadUserId) }))}
+                {person("Trưởng đội", view.members.filter((member) => member.canLeadTeam), team.leadUserId, (leadUserId) =>
+                  update({ leadUserId, staffUserIds: team.staffUserIds.filter((id) => id !== leadUserId) }),
+                  "Người vận hành không thể làm trưởng đội")}
                 {field("Nhiệm vụ của đội", team.duties, (duties) => update({ duties }), "textarea")}
                 {field("Kỹ năng hoặc điều kiện tình nguyện", team.volunteerSkills, (volunteerSkills) => update({ volunteerSkills }), "textarea")}
                 {quantity("Nhân sự nội bộ dự kiến", team.staffNeeded, (staffNeeded) => update({ staffNeeded }))}
@@ -499,6 +510,7 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
           </div>
         </div>}
       </fieldset>
+    </>}
     </>}
   </section>;
 }

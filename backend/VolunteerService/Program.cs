@@ -27,6 +27,13 @@ builder.Services.AddHttpClient("campaign-internal", client =>
     client.Timeout = TimeSpan.FromSeconds(10);
     client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient("notifications", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["InternalApi:NotificationUrl"] ?? "http://notification:8080/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<VolunteerNotificationOutboxWorker>();
 
 // Domain behavior is added inside this service instead of being spread across sibling services.
 var app = builder.Build();

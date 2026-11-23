@@ -10,7 +10,11 @@ public interface IVolunteerRegistrationRepository
     Task<VolunteerRegistration?> FindForReview(Guid registrationId, CancellationToken ct);
     Task<VolunteerRegistration?> FindForUpdate(Guid registrationId, CancellationToken ct);
     Task<int> CountActiveAssignments(Guid groupId, CancellationToken ct);
+    Task<Dictionary<Guid, int>> CountActiveAssignments(Guid campaignId, Guid[] groupIds, CancellationToken ct);
+    Task<int> CountPending(Guid campaignId, CancellationToken ct);
+    Task<VolunteerGroupAssignment[]> GroupMembers(Guid campaignId, Guid groupId, CancellationToken ct);
     void Add(VolunteerRegistration registration);
+    void AddNotificationOutbox(VolunteerNotificationOutbox item);
     void AddAssignments(IEnumerable<VolunteerGroupAssignment> assignments);
     Task Save(CancellationToken ct);
 }

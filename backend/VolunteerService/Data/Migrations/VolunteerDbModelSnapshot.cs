@@ -203,6 +203,45 @@ namespace VolunteerService.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("VolunteerService.Data.VolunteerNotificationOutbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegistrationId")
+                        .IsUnique();
+
+                    b.HasIndex("DeliveredAt", "NextAttemptAt");
+
+                    b.ToTable("VolunteerNotificationOutbox", (string)null);
+                });
+
             modelBuilder.Entity("VolunteerService.Data.VolunteerRegistration", b =>
                 {
                     b.Property<Guid>("Id")
@@ -420,11 +459,13 @@ namespace VolunteerService.Data.Migrations
 
             modelBuilder.Entity("VolunteerService.Data.VolunteerGroupAssignment", b =>
                 {
-                    b.HasOne("VolunteerService.Data.VolunteerRegistration", null)
+                    b.HasOne("VolunteerService.Data.VolunteerRegistration", "Registration")
                         .WithMany("GroupAssignments")
                         .HasForeignKey("RegistrationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Registration");
                 });
 
             modelBuilder.Entity("VolunteerService.Data.VolunteerRegistration", b =>

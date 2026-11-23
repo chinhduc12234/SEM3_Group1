@@ -35,4 +35,18 @@ public sealed class InternalVolunteerReviewAccessController(CampaignDb db, IConf
                 x.Role == "VOLUNTEER_COORDINATOR" && x.RevokedAt == null, ct);
         return Ok(new { canReview });
     }
+
+    [HttpGet("{campaignId:guid}/volunteer-review-recipients")]
+    public async Task<IActionResult> VolunteerReviewRecipients(Guid campaignId, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        var campaign = await db.Campaigns.AsNoTracking().Where(x => x.Id == campaignId)
+            .Select(x => new { x.Id, x.OrganizationId, x.Title }).SingleOrDefaultAsync(ct);
+        if (campaign is null) return NotFound();
+        var userIds = await db.Campaigns.AsNoTracking().Where(x => x.Id == campaignId)
+            .SelectMany(x => x.Assignments)
+            .Where(x => x.Role == "VOLUNTEER_COORDINATOR" && x.RevokedAt == null)
+            .Select(x => x.UserId).Distinct().ToArrayAsync(ct);
+        return Ok(new Shared.VolunteerReviewRecipients(campaign.Id, campaign.OrganizationId, campaign.Title, userIds));
+    }
 }

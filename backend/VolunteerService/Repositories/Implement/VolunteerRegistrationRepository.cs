@@ -29,9 +29,28 @@ public sealed class VolunteerRegistrationRepository(VolunteerDb db) : IVolunteer
             .SingleOrDefaultAsync(x => x.Id == registrationId, ct);
 
     public Task<int> CountActiveAssignments(Guid groupId, CancellationToken ct) =>
-        db.GroupAssignments.CountAsync(x => x.GroupId == groupId && x.Status == "ACTIVE", ct);
+        db.GroupAssignments.CountAsync(x => x.GroupId == groupId && x.Status == "ACTIVE" &&
+            x.Registration.Status == "APPROVED", ct);
+
+    public async Task<Dictionary<Guid, int>> CountActiveAssignments(Guid campaignId, Guid[] groupIds, CancellationToken ct) =>
+        await db.GroupAssignments.AsNoTracking().Where(x => x.CampaignId == campaignId &&
+                groupIds.Contains(x.GroupId) && x.Status == "ACTIVE" && x.Registration.Status == "APPROVED")
+            .GroupBy(x => x.GroupId).Select(group => new { GroupId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(x => x.GroupId, x => x.Count, ct);
+
+    public Task<int> CountPending(Guid campaignId, CancellationToken ct) =>
+        db.Registrations.CountAsync(x => x.CampaignId == campaignId &&
+            (x.Status == "SUBMITTED" || x.Status == "UNDER_REVIEW"), ct);
+
+    public Task<VolunteerGroupAssignment[]> GroupMembers(Guid campaignId, Guid groupId, CancellationToken ct) =>
+        db.GroupAssignments.AsNoTracking().Include(x => x.Registration)
+            .Where(x => x.CampaignId == campaignId && x.GroupId == groupId && x.Status == "ACTIVE" &&
+                x.Registration.Status == "APPROVED")
+            .OrderBy(x => x.AssignedAt).ThenBy(x => x.Id).ToArrayAsync(ct);
 
     public void Add(VolunteerRegistration registration) => db.Registrations.Add(registration);
+
+    public void AddNotificationOutbox(VolunteerNotificationOutbox item) => db.NotificationOutbox.Add(item);
 
     public void AddAssignments(IEnumerable<VolunteerGroupAssignment> assignments) =>
         db.GroupAssignments.AddRange(assignments);
