@@ -7,7 +7,8 @@ using Shared;
 namespace NotificationService.Controllers;
 
 [ApiController, Route("internal/notifications/organization-events")]
-public sealed class InternalEventsController(OrganizationEventReceiver receiver, IConfiguration configuration) : ControllerBase
+public sealed class InternalEventsController(OrganizationEventReceiver receiver,
+    VolunteerRegistrationEventReceiver volunteerReceiver, IConfiguration configuration) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Receive(OrganizationNotificationEvent item, CancellationToken ct)
@@ -22,6 +23,14 @@ public sealed class InternalEventsController(OrganizationEventReceiver receiver,
     {
         if (!Authorized()) return Unauthorized();
         await receiver.ReceiveAssignment(item, ct);
+        return NoContent();
+    }
+
+    [HttpPost("/internal/notifications/volunteer-registration-submitted")]
+    public async Task<IActionResult> ReceiveVolunteerRegistration(VolunteerRegistrationNotificationEvent item, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        await volunteerReceiver.Receive(item, ct);
         return NoContent();
     }
 

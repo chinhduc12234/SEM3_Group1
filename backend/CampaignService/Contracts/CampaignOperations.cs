@@ -33,7 +33,7 @@ public sealed record OperationsResource(Guid Id, [MaxLength(100)] string Categor
 public sealed record VolunteerGroup(Guid Id, [MaxLength(200)] string Name, [MaxLength(40)] string CategoryId,
     [Range(0, 100000)] int VolunteerCount, Guid? DayId, Guid? ActivityId, Guid? TeamId, [MaxLength(1000)] string Notes);
 public sealed record VolunteerGroupCategory(string Id, string Name);
-public sealed record OperationsMember(Guid UserId, string FullName);
+public sealed record OperationsMember(Guid UserId, string FullName, bool CanLeadTeam);
 public sealed record OperationsView(string Version, OperationsPlan Plan, DateTimeOffset? ConfirmedAt, bool CanEdit,
     OperationsMember[] Members, bool CanApproveExtraDays, bool HasAutomaticCalendar, VolunteerGroupCategory[] VolunteerGroupCategories,
     string? ConfirmedByName, bool CanRecordAttendance);

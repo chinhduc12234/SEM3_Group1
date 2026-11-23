@@ -52,7 +52,10 @@ public sealed partial class CampaignApplication
             Resources = previousPlan.Resources,
             VolunteerGroups = request.Plan.VolunteerGroups ?? previousPlan.VolunteerGroups
         };
-        ValidateOperations(plan, members);
+        var operatorIds = campaign.Assignments
+            .Where(assignment => assignment.Role == "VOLUNTEER_COORDINATOR" && assignment.RevokedAt is null)
+            .Select(assignment => assignment.UserId).ToHashSet();
+        ValidateOperations(plan, members, operatorIds);
         if (attendance.Keys.Except(plan.Days.SelectMany(day => day.Activities).Select(activity => activity.Id)).Any())
             throw new ApiException(400, "Hoạt động đã ghi nhận quân số cần được giữ trong hồ sơ.");
         plan = plan with
@@ -171,7 +174,9 @@ public sealed partial class CampaignApplication
     private static OperationsView OperationsResult(Campaign c, OperationsPlan plan, bool canEdit, bool canApprove, CampaignMember[] members,
         bool recordAfterPublication = false) =>
         new(Convert.ToBase64String(c.Version), plan, c.OperationsConfirmedAt, canEdit,
-            members.Select(m => new OperationsMember(m.UserId, m.FullName)).ToArray(), canApprove, CalendarLength(c) > 0,
+            members.Select(m => new OperationsMember(m.UserId, m.FullName, !c.Assignments.Any(assignment =>
+                assignment.UserId == m.UserId && assignment.Role == "VOLUNTEER_COORDINATOR" && assignment.RevokedAt is null))).ToArray(),
+            canApprove, CalendarLength(c) > 0,
             VolunteerGroupCategories, OperationsConfirmer(c, members), c.OperationsConfirmedAt is not null && (canEdit || recordAfterPublication));
 
     private static string? OperationsConfirmer(Campaign c, CampaignMember[] members)
@@ -226,7 +231,7 @@ public sealed partial class CampaignApplication
         if (c.Status != "PLANNING") throw new ApiException(409, "Chỉ lập kế hoạch khi hồ sơ đã được phân công.");
     }
 
-    private static void ValidateOperations(OperationsPlan plan, CampaignMember[] members)
+    private static void ValidateOperations(OperationsPlan plan, CampaignMember[] members, HashSet<Guid> operatorIds)
     {
         if (plan.Days.Any(x => x is null || x.Activities.Any(a => a is null)) ||
             plan.Teams.Any(x => x is null) || plan.VolunteerGroups!.Any(x => x is null))
@@ -249,6 +254,8 @@ public sealed partial class CampaignApplication
         if (leads.Any(id => id.HasValue && !memberIds.Contains(id.Value)) ||
             plan.Teams.Any(t => t.StaffUserIds.Distinct().Count() != t.StaffUserIds.Length || t.StaffUserIds.Any(id => !memberIds.Contains(id))))
             throw new ApiException(400, "Người phụ trách và thành viên đội phải là nhân sự đang hoạt động trong tổ chức.");
+        if (plan.Teams.Any(team => team.LeadUserId is Guid leadUserId && operatorIds.Contains(leadUserId)))
+            throw new ApiException(400, "Người được phân công vận hành không được làm trưởng đội nhân sự.");
         if (activities.Any(activity => activity.BackupUserId.HasValue && activity.BackupUserId == activity.LeadUserId))
             throw new ApiException(400, "Người thay thế phải khác người phụ trách chính.");
         if (plan.Days.Any(day => day.Address is { } address &&
