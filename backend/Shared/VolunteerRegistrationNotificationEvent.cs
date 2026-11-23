@@ -6,3 +6,7 @@ public sealed record VolunteerRegistrationNotificationEvent(Guid EventId, Guid C
 
 public sealed record VolunteerReviewRecipients(Guid CampaignId, Guid OrganizationId, string CampaignTitle,
     Guid[] UserIds);
+
+public sealed record DonationConfirmedNotificationEvent(Guid EventId, Guid DonationId, Guid CampaignId,
+    Guid OrganizationId, Guid DonorUserId, string DonorName, decimal Amount, string TargetName,
+    string CampaignTitle, Guid[] FinanceUserIds, DateTimeOffset ConfirmedAt);

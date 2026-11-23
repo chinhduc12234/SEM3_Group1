@@ -63,6 +63,7 @@ services:
       CAMPAIGN_DB_PASSWORD: ${CAMPAIGN_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
       VOLUNTEER_DB_PASSWORD: ${VOLUNTEER_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
+      DONATION_DB_PASSWORD: ${DONATION_DB_PASSWORD:?Run scripts/init-dev.ps1 first}
     volumes:
       - ./infra/provision-databases.sql:/provision.sql:ro
     depends_on:
@@ -258,8 +259,35 @@ services:
       args: { SERVICE: DonationService }
     environment:
       <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Donation;User Id=giveaid_donation;Password=${DONATION_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
+      InternalApi__Key: ${INTERNAL_API_KEY}
+      InternalApi__IdentityUrl: http://identity:8080/
+      InternalApi__CampaignUrl: http://campaign:8080/
+      InternalApi__NotificationUrl: http://notification:8080/
+      PaymentSandbox__Enabled: "true"
     volumes:
       - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      donation-migrate: { condition: service_completed_successfully }
+      identity: { condition: service_started }
+      campaign: { condition: service_started }
+      notification: { condition: service_started }
+
+  donation-migrate:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args: { SERVICE: DonationService }
+    restart: "no"
+    command: [--migrate]
+    environment:
+      <<: *service-environment
+      ConnectionStrings__Database: Server=sqlserver;Database=GiveAid_Donation;User Id=sa;Password=${SQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True
+    volumes:
+      - ./.secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+    depends_on:
+      sql-provision: { condition: service_completed_successfully }
 
   volunteer:
     <<: *backend

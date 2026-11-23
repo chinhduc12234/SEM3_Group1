@@ -1,0 +1,16 @@
+.wrap { display: grid; gap: 1rem; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .65rem; margin: 0; }
+.stats > div, .target { display: grid; gap: .35rem; padding: .9rem; border: 1px solid #d6e5dc; border-radius: .75rem; background: #f2f8f4; }
+.stats dt, .target small { color: #4e665f; font-size: .82rem; }
+.stats dd { margin: 0; color: #153b34; font-size: 1.2rem; font-weight: 800; }
+.targets { display: grid; gap: .55rem; }
+.targetHead { display: flex; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
+.target progress { width: 100%; height: .5rem; accent-color: #176348; }
+.tableWrap { overflow-x: auto; border: 1px solid #d6e5dc; border-radius: .75rem; }
+.table { width: 100%; border-collapse: collapse; min-width: 44rem; background: #fff; }
+.table th, .table td { padding: .75rem .85rem; text-align: left; vertical-align: top; border-bottom: 1px solid #e5eee8; }
+.table th { color: #4e665f; font-size: .8rem; background: #f2f8f4; }
+.table td small { display: block; margin-top: .2rem; color: #61766d; }
+.status { display: inline-flex; padding: .25rem .55rem; border-radius: 99px; background: #fff3dd; color: #7b541e; font-size: .78rem; font-weight: 750; white-space: nowrap; }
+.status[data-confirmed="true"] { background: #dff3e5; color: #18593f; }
+.empty { padding: 1rem; border: 1px dashed #aebfb6; border-radius: .75rem; color: #4e665f; background: #f2f8f4; }

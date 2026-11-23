@@ -17,6 +17,7 @@ builder.Services.AddScoped<NotificationRepository>();
 builder.Services.AddScoped<NotificationInbox>();
 builder.Services.AddScoped<OrganizationEventReceiver>();
 builder.Services.AddScoped<VolunteerRegistrationEventReceiver>();
+builder.Services.AddScoped<DonationEventReceiver>();
 builder.Services.AddSingleton<IPushSender, FirebasePushSender>();
 builder.Services.AddSingleton<IUserIdProvider, NotificationUserIdProvider>();
 builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!, options =>

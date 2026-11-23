@@ -113,6 +113,10 @@ public sealed partial class CampaignApplication
         var snapshot = JsonSerializer.Deserialize<FinalSnapshot>(payload, SnapshotJson)!;
         var concept = snapshot.Concept;
         var online = concept.EventFormat == "ONLINE";
+        var categories = snapshot.Budget.Fundraising.Categories.ToHashSet(StringComparer.Ordinal);
+        var targets = snapshot.Budget.Expenses.Where(expense => categories.Contains(expense.Category))
+            .Select(expense => new PublicFundingTarget(expense.Id, expense.Name, expense.Category,
+                expense.Quantity * (decimal)expense.Days * expense.UnitPrice)).ToArray();
         var days = snapshot.Operations.Days.OrderBy(day => day.Date).Select(day =>
         {
             var address = online ? null : day.Address ?? (day.Location == campaign.Location ? concept.PlannedAddress : null);
@@ -122,6 +126,16 @@ public sealed partial class CampaignApplication
                     new PublicCampaignActivity(activity.Title, activity.Start, activity.End, online ? "Trực tuyến" : activity.Location)).ToArray());
         }).ToArray();
         return new(concept.ShortDescription, concept.PrimaryGoal, concept.ExpectedOutcomes,
-            concept.EventFormat, snapshot.Budget.Fundraising.PublicExplanation, days, snapshot.Budget.Receiving);
+            concept.EventFormat, snapshot.Budget.Fundraising.PublicExplanation, days, snapshot.Budget.Receiving, targets);
+    }
+
+    public async Task<CampaignDonationContext> DonationContext(Guid id, CancellationToken ct)
+    {
+        var campaign = await Get(id, ct);
+        if (campaign.Status != "PUBLISHED") throw new ApiException(404, "Chiến dịch chưa mở nhận quyên góp.");
+        var plan = ReadPublicPlan(campaign) ?? throw new ApiException(409, "Chiến dịch chưa có kế hoạch gây quỹ công khai.");
+        var financeUsers = campaign.Assignments.Where(assignment => assignment.Role == "FINANCE_MANAGER" && assignment.RevokedAt is null)
+            .Select(assignment => assignment.UserId).Distinct().ToArray();
+        return new(campaign.Id, campaign.OrganizationId, campaign.Title, plan.FundingTargets ?? [], financeUsers);
     }
 }

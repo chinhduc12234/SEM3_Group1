@@ -18,6 +18,7 @@ import { formatCampaignDate as date } from "../formatCampaignDate";
 import CampaignSupport from "../components/CampaignSupport";
 import CampaignItinerary from "../components/CampaignItinerary";
 import VolunteerRegistrationWizard from "../components/VolunteerRegistrationWizard";
+import DonationPanel from "../components/DonationPanel";
 export default function CampaignDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -165,6 +166,7 @@ export default function CampaignDetailScreen() {
                   />}
                   {campaign.status === "PUBLISHED" &&
                     <VolunteerRegistrationWizard campaign={campaign} details={details} />}
+                  {campaign.status === "PUBLISHED" && <DonationPanel campaign={campaign} />}
                   <CampaignItinerary
                     schedules={schedules}
                     stops={stops}
