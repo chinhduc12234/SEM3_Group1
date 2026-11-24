@@ -13,3 +13,8 @@ public sealed record DonationConfirmedNotificationEvent(Guid EventId, Guid Donat
 
 public sealed record FundraisingGoalReachedNotificationEvent(Guid EventId, Guid CampaignId, Guid OrganizationId,
     string CampaignTitle, Guid[] ManagerUserIds, DateTimeOffset ClosedAt);
+
+public sealed record InKindPledgeNotificationEvent(Guid EventId, Guid PledgeId, Guid CampaignId,
+    Guid OrganizationId, Guid DonorUserId, string DonorName, string TargetName, string CampaignTitle,
+    decimal Quantity, string Unit, decimal ReceivedQuantity, decimal ReceivedNow, string EventType,
+    Guid[] ManagerUserIds, DateTimeOffset OccurredAt);

@@ -1,5 +1,5 @@
 .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; margin: 1.5rem 0; }
-.option { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .8rem; min-height: 5.2rem; padding: 1rem; border: 1px solid #d5e5d9; border-radius: .9rem; background: linear-gradient(115deg, #edf4ec, #fbfaf5); color: #173f34; text-align: left; cursor: pointer; transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.option { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .8rem; min-height: 5.2rem; padding: 1rem; border: 1px solid #d5e5d9; border-radius: .9rem; background: linear-gradient(115deg, #edf4ec, #fbfaf5); color: #173f34; text-align: left; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease; }
 .option:hover { border-color: #8eb69f; box-shadow: 0 8px 20px rgb(21 73 55 / 8%); transform: translateY(-1px); }
 .option:first-child { border-color: #155443; background: #155443; color: #fff; }
 .option:first-child small { color: #e2f2e8; }
@@ -12,6 +12,9 @@
 .icon { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: 50%; background: #dcebe0; color: #155443; font-size: 1.35rem; }
 .arrow { color: #155443; font-size: 1.2rem; font-weight: 800; }
 .donation { background: linear-gradient(115deg, #f6f8ee, #fffaf4); }
+.donation:hover { border-color: #155443; background: #155443; color: #fff; }
+.donation:hover small, .donation:hover .icon, .donation:hover .arrow { color: #fff; }
+.donation:hover .icon { background: rgb(255 255 255 / 16%); }
 .donation .icon { background: #f4e6d8; color: #ad573c; }
 .donation .arrow { color: #ad573c; }
 @media (max-width: 650px) { .options { grid-template-columns: 1fr; } }

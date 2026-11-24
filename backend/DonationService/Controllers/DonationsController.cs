@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using DonationService.Contracts;
 using DonationService.Data;
 using DonationService.Services;
@@ -14,6 +15,7 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
     DonationAccountDirectory accounts, DonationSandboxPaymentService sandboxPayments,
     FundraisingProgressService progress) : ControllerBase
 {
+    private static readonly JsonSerializerOptions NotificationJson = new(JsonSerializerDefaults.Web);
     private DonationActor Actor => DonationActor.From(User);
 
     [AllowAnonymous, HttpGet("campaigns/{campaignId:guid}/summary")]
@@ -110,6 +112,7 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(), Status = "PENDING"
         };
         db.InKindPledges.Add(pledge);
+        AddInKindNotification(pledge, context, "SUBMITTED");
         await db.SaveChangesAsync(ct);
         return Created($"/api/donations/in-kind/{pledge.Id}", InKindView(pledge));
     }
@@ -145,12 +148,15 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
                 (x.Status == "APPROVED" || x.Status == "RECEIVED")).SumAsync(x => (decimal?)x.Quantity, ct) ?? 0m;
             if (committed + pledge.Quantity > target.Quantity) throw new ApiException(409, "Không thể duyệt: nhóm hiện vật đã đủ chỉ tiêu hoặc không còn đủ chỗ.");
             var currentSummary = await progress.Summary(context, ct);
-            if (currentSummary.IsClosed) throw new ApiException(409, "Chiến dịch đã đạt đủ mục tiêu hỗ trợ.");
+            var targetProgress = currentSummary.InKindTargets.SingleOrDefault(x => x.BudgetItemId == pledge.BudgetItemId);
+            if (currentSummary.IsClosed || targetProgress is null || targetProgress.IsComplete)
+                throw new ApiException(409, "Khoản này đã đủ mục tiêu bằng tiền hoặc hiện vật; không thể duyệt thêm.");
             pledge.Status = "APPROVED";
         }
         else pledge.Status = "REJECTED";
         pledge.ReviewedBy = Actor.UserId;
         pledge.ReviewedAt = DateTimeOffset.UtcNow;
+        AddInKindNotification(pledge, context, pledge.Status);
         await db.SaveChangesAsync(ct);
         await progress.CloseIfComplete(context, ct);
         return InKindView(pledge);
@@ -174,8 +180,26 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
             pledge.Status = "RECEIVED";
             pledge.CompletedAt = DateTimeOffset.UtcNow;
         }
+        AddInKindNotification(pledge, context, "RECEIVED", request.Quantity);
         await db.SaveChangesAsync(ct);
         return InKindView(pledge);
+    }
+
+    private void AddInKindNotification(InKindPledge pledge, CampaignDonationContext context,
+        string eventType, decimal receivedNow = 0m)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var item = new InKindPledgeNotificationEvent(Guid.NewGuid(), pledge.Id, pledge.CampaignId,
+            context.OrganizationId, pledge.DonorUserId, pledge.DonorName, pledge.TargetName,
+            pledge.CampaignTitle, pledge.Quantity, pledge.Unit, pledge.ReceivedQuantity, receivedNow,
+            eventType, context.ManagerUserIds, now);
+        db.NotificationOutbox.Add(new DonationNotificationOutbox
+        {
+            Id = item.EventId,
+            Route = "internal/notifications/in-kind-pledge",
+            Payload = JsonSerializer.Serialize(item, NotificationJson),
+            NextAttemptAt = now
+        });
     }
 
     private static InKindPledgeView InKindView(InKindPledge pledge) => new(pledge.Id, pledge.BudgetItemId,

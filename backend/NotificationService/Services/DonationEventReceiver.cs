@@ -10,6 +10,93 @@ namespace NotificationService.Services;
 
 public sealed class DonationEventReceiver(NotificationDb db)
 {
+    public async Task ReceiveInKindPledge(InKindPledgeNotificationEvent item, CancellationToken ct)
+    {
+        if (item.EventId == Guid.Empty || item.PledgeId == Guid.Empty || item.CampaignId == Guid.Empty ||
+            item.OrganizationId == Guid.Empty || item.DonorUserId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(item.DonorName) || item.DonorName.Length > 200 ||
+            string.IsNullOrWhiteSpace(item.TargetName) || item.TargetName.Length > 200 ||
+            string.IsNullOrWhiteSpace(item.CampaignTitle) || item.CampaignTitle.Length > 200 ||
+            string.IsNullOrWhiteSpace(item.Unit) || item.Unit.Length > 40 || item.Quantity <= 0 ||
+            item.ReceivedQuantity < 0 || item.ReceivedQuantity > item.Quantity || item.ReceivedNow < 0 ||
+            item.ReceivedNow > item.Quantity || item.OccurredAt == default ||
+            item.ManagerUserIds is null || item.ManagerUserIds.Length > 100 ||
+            item.EventType is not ("SUBMITTED" or "APPROVED" or "REJECTED" or "RECEIVED"))
+            throw new ApiException(400, "Sự kiện đề nghị tặng hiện vật không hợp lệ.");
+        if (item.EventType == "SUBMITTED" && item.ManagerUserIds.Length == 0)
+            throw new ApiException(503, "Chiến dịch chưa phân công quản lý để nhận đề nghị hiện vật.");
+
+        var payloadHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(item))));
+        await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), "GiveAid.Notification.Donation");
+        if (!await gate.Acquire(ct)) throw new ApiException(503, "Hệ thống đang nhận thông báo, vui lòng thử lại.");
+        var existing = await db.ReceivedEvents.AsNoTracking().SingleOrDefaultAsync(x => x.Id == item.EventId, ct);
+        if (existing is not null)
+        {
+            if (existing.PayloadHash != payloadHash) throw new ApiException(409, "Mã sự kiện đã tồn tại với nội dung khác.");
+            return;
+        }
+
+        var isSubmission = item.EventType == "SUBMITTED";
+        Guid[] recipients = isSubmission ? item.ManagerUserIds.Distinct().ToArray() : new[] { item.DonorUserId };
+        var message = item.EventType switch
+        {
+            "SUBMITTED" => $"{item.DonorName} đề nghị tặng {item.Quantity:N2} {item.Unit} cho khoản {item.TargetName} của chiến dịch {item.CampaignTitle}.",
+            "APPROVED" => $"Đề nghị tặng {item.Quantity:N2} {item.Unit} cho khoản {item.TargetName} trong chiến dịch {item.CampaignTitle} đã được duyệt.",
+            "REJECTED" => $"Đề nghị tặng {item.Quantity:N2} {item.Unit} cho khoản {item.TargetName} trong chiến dịch {item.CampaignTitle} đã bị từ chối.",
+            _ => $"Chiến dịch {item.CampaignTitle} đã ghi nhận thêm {item.ReceivedNow:N2} {item.Unit} cho khoản {item.TargetName}; tổng đã nhận {item.ReceivedQuantity:N2}/{item.Quantity:N2} {item.Unit}."
+        };
+        if (message.Length > 500) message = message[..497] + "...";
+        var notification = new Notification
+        {
+            EventId = item.EventId,
+            OrganizationId = item.OrganizationId,
+            UserId = recipients[0],
+            Kind = item.EventType switch
+            {
+                "SUBMITTED" => "IN_KIND_PLEDGE_SUBMITTED",
+                "APPROVED" => "IN_KIND_PLEDGE_APPROVED",
+                "REJECTED" => "IN_KIND_PLEDGE_REJECTED",
+                _ => "IN_KIND_PLEDGE_RECEIVED"
+            },
+            Title = item.EventType switch
+            {
+                "SUBMITTED" => "Có đề nghị tặng hiện vật mới",
+                "APPROVED" => "Đề nghị tặng hiện vật đã được duyệt",
+                "REJECTED" => "Đề nghị tặng hiện vật chưa được duyệt",
+                _ => "Đã ghi nhận nhận hiện vật"
+            },
+            Message = message,
+            Url = isSubmission
+                ? $"/organizations/{item.OrganizationId}/manage/budget/{item.CampaignId}"
+                : "/account/history",
+            CreatedAt = item.OccurredAt
+        };
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        db.ReceivedEvents.Add(new ReceivedEvent { Id = item.EventId, PayloadHash = payloadHash });
+        foreach (var userId in recipients)
+        {
+            var recipientNotification = new Notification
+            {
+                EventId = notification.EventId,
+                OrganizationId = notification.OrganizationId,
+                UserId = userId,
+                Kind = notification.Kind,
+                Title = notification.Title,
+                Message = notification.Message,
+                Url = notification.Url,
+                CreatedAt = notification.CreatedAt
+            };
+            db.Notifications.Add(recipientNotification);
+            var devices = await db.Subscriptions.Where(x => x.UserId == userId && x.IsActive).ToListAsync(ct);
+            foreach (var device in devices)
+                db.Deliveries.Add(new PushDelivery { NotificationId = recipientNotification.Id,
+                    SubscriptionId = device.Id, UserId = userId, SessionId = device.SessionId });
+        }
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task ReceiveGoalReached(FundraisingGoalReachedNotificationEvent item, CancellationToken ct)
     {
         if (item.EventId == Guid.Empty || item.CampaignId == Guid.Empty || item.OrganizationId == Guid.Empty ||

@@ -7,8 +7,8 @@ import { api } from "@/shared/api/api";
 import type { Campaign } from "../types/campaigns";
 import css from "./DonationPanel.module.css";
 
-type TargetProgress = { budgetItemId: string; name: string; targetAmount: number; donatedAmount: number; remainingAmount: number; isComplete: boolean };
-type InKindTarget = { budgetItemId: string; name: string; targetQuantity: number; unit: string; receivedQuantity: number; reservedQuantity: number; remainingQuantity: number; isComplete: boolean };
+type TargetProgress = { budgetItemId: string; name: string; targetAmount: number; donatedAmount: number; remainingAmount: number; isComplete: boolean; satisfiedByInKind: boolean };
+type InKindTarget = { budgetItemId: string; name: string; targetQuantity: number; unit: string; receivedQuantity: number; reservedQuantity: number; remainingQuantity: number; isComplete: boolean; satisfiedByMoney: boolean };
 type Summary = { campaignId: string; targetAmount: number; donatedAmount: number; remainingAmount: number; confirmedDonationCount: number; targets: TargetProgress[]; inKindTargets: InKindTarget[]; isClosed: boolean };
 type Donation = { id: string; campaignId: string; budgetItemId: string; campaignTitle: string; targetName: string; amount: number; status: string; paymentMethod: string; reference: string; createdAt: string };
 type InKindPledge = { id: string; budgetItemId: string; targetName: string; quantity: number; unit: string; status: string };
@@ -131,6 +131,8 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
 
   const bank = campaign.publicPlan?.receiving?.bank;
   const goods = campaign.publicPlan?.receiving?.goods;
+  const openMoneyTargets = targets.filter((target) => !summary?.targets.find((progress) => progress.budgetItemId === target.id)?.isComplete);
+  const openInKindTargets = summary?.inKindTargets.filter((target) => !target.isComplete) ?? [];
   return <section className={css.panel} aria-labelledby="donation-title">
     <header className={css.intro}>
       <div><p className={css.eyebrow}>ỦNG HỘ TÀI CHÍNH</p><h2 id="donation-title">Góp sức cho khoản cần thiết</h2>
@@ -142,22 +144,22 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
     </header>
     {summary && <dl className={css.stats}>
       <div><dt>Mục tiêu cần huy động</dt><dd>{money(summary.targetAmount)}</dd></div>
-      <div><dt>Đã xác nhận ủng hộ</dt><dd>{money(summary.donatedAmount)}</dd></div>
-      <div><dt>Còn thiếu để đạt mục tiêu</dt><dd>{money(summary.remainingAmount)}</dd></div>
+      <div><dt>Đã xác nhận tiền ủng hộ</dt><dd>{money(summary.donatedAmount)}</dd></div>
+      <div><dt>Còn cần huy động</dt><dd>{money(summary.remainingAmount)}</dd></div>
     </dl>}
     {!!summary?.targets.length && <div className={css.progressList} aria-label="Tiến độ theo khoản dự toán">
       {summary.targets.map((target) => <div className={css.target} key={target.budgetItemId}>
-        <div className={css.targetHead}><span>{target.name}</span><span>{target.isComplete ? "Đã đạt mục tiêu" : `Còn thiếu ${money(target.remainingAmount)}`}</span></div>
-        <progress max={Math.max(target.targetAmount, 1)} value={Math.min(target.donatedAmount, target.targetAmount)} />
-        <small>Đã ủng hộ {money(target.donatedAmount)} / {money(target.targetAmount)}</small>
+        <div className={css.targetHead}><span>{target.name}</span><span>{target.isComplete ? target.satisfiedByInKind ? "Đã đủ chỉ tiêu hiện vật" : "Đã đạt mục tiêu" : `Còn thiếu ${money(target.remainingAmount)}`}</span></div>
+        <progress max={Math.max(target.targetAmount, 1)} value={Math.min(target.satisfiedByInKind ? target.targetAmount : target.donatedAmount, target.targetAmount)} />
+        <small>{target.satisfiedByInKind ? "Đã đủ hiện vật, đã đóng nhận tiền cho khoản này." : `Đã ủng hộ ${money(target.donatedAmount)} / ${money(target.targetAmount)}`}</small>
       </div>)}
     </div>}
     {!!summary?.inKindTargets.length && <div className={css.progressList} aria-label="Tiến độ nhận hiện vật">
       <h3 className={css.subheading}>Tiến độ nhận hiện vật</h3>
       {summary.inKindTargets.map((target) => <div className={css.target} key={target.budgetItemId}>
-        <div className={css.targetHead}><span>{target.name}</span><span>{target.isComplete ? "Đã nhận đủ" : `Còn thiếu ${target.remainingQuantity} ${target.unit}`}</span></div>
-        <progress max={Math.max(target.targetQuantity, 1)} value={Math.min(target.receivedQuantity + target.reservedQuantity, target.targetQuantity)} />
-        <small>Đã nhận {target.receivedQuantity} / {target.targetQuantity} {target.unit}{target.reservedQuantity > 0 ? ` · ${target.reservedQuantity} ${target.unit} đã được duyệt, chờ giao` : ""}</small>
+        <div className={css.targetHead}><span>{target.name}</span><span>{target.satisfiedByMoney ? "Đã đủ bằng tiền" : target.receivedQuantity >= target.targetQuantity ? "Đã nhận đủ" : target.isComplete ? "Đủ chỗ đăng ký, chờ giao" : `Còn thiếu ${target.remainingQuantity} ${target.unit}`}</span></div>
+        <progress max={Math.max(target.targetQuantity, 1)} value={Math.min(target.satisfiedByMoney ? target.targetQuantity : target.receivedQuantity, target.targetQuantity)} />
+        <small>{target.satisfiedByMoney ? "Đã đủ mục tiêu tiền, đã đóng nhận hiện vật cho khoản này." : `Đã nhận ${target.receivedQuantity} / ${target.targetQuantity} ${target.unit}${target.reservedQuantity > 0 ? ` · ${target.reservedQuantity} ${target.unit} đã được duyệt, chờ giao` : ""}`}</small>
       </div>)}
     </div>}
     {!summary && !error && <p role="status">Đang tải tiến độ gây quỹ…</p>}
@@ -168,15 +170,16 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
       <button type="button" role="tab" aria-selected={supportMode === "money"} onClick={() => setSupportMode("money")}>Ủng hộ tài chính</button>
       <button type="button" role="tab" aria-selected={supportMode === "in-kind"} onClick={() => setSupportMode("in-kind")}>Ủng hộ hiện vật</button>
     </div>}
-    {!summary?.isClosed && supportMode === "money" && user && !donation && !!targets.length && <form className={css.form} onSubmit={(event) => void create(event)}>
+    {!summary?.isClosed && supportMode === "money" && user && !donation && openMoneyTargets.length > 0 && <form className={css.form} onSubmit={(event) => void create(event)}>
       <label>Ủng hộ cho khoản<select required value={targetId} onChange={(event) => setTargetId(event.target.value)}>
-        {targets.filter((target) => !summary?.targets.find((progress) => progress.budgetItemId === target.id)?.isComplete)
-          .map((target) => <option key={target.id} value={target.id}>{target.name} · mục tiêu {money(target.amount)}</option>)}
+        {openMoneyTargets.map((target) => <option key={target.id} value={target.id}>{target.name} · mục tiêu {money(target.amount)}</option>)}
       </select></label>
       <label>Số tiền (VND)<input required type="number" inputMode="numeric" min={1} max={1_000_000_000_000_000} step={1}
         value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
       <button type="submit" disabled={busy || !targetId}>{busy ? "Đang tạo…" : "Tiếp tục ủng hộ"} ↗</button>
     </form>}
+    {!summary?.isClosed && supportMode === "money" && summary && targets.length > 0 && openMoneyTargets.length === 0 &&
+      <p className={css.footnote}>Các khoản tiền đã đóng vì mục tiêu từng khoản đã đủ bằng tiền hoặc hiện vật.</p>}
     {!summary?.isClosed && supportMode === "in-kind" && goods && <div className={css.goodsInfo}>
       <strong>Thông tin giao nhận hiện vật</strong>
       {goods.acceptedItems && <p>Đang nhận: {goods.acceptedItems}</p>}
@@ -184,9 +187,9 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
       {goods.receivingHours && <p>Thời gian: {goods.receivingHours}</p>}
       {goods.contact && <p>Liên hệ: {goods.contact}</p>}
     </div>}
-    {!summary?.isClosed && supportMode === "in-kind" && !pledge && !!summary?.inKindTargets.length && <form className={css.form} onSubmit={(event) => void submitInKind(event)}>
+    {!summary?.isClosed && summary && supportMode === "in-kind" && !pledge && openInKindTargets.length > 0 && <form className={css.form} onSubmit={(event) => void submitInKind(event)}>
       <label>Tặng hiện vật<select required value={inKindTargetId} onChange={(event) => setInKindTargetId(event.target.value)}>
-        {summary.inKindTargets.filter((target) => !target.isComplete).map((target) => <option key={target.budgetItemId} value={target.budgetItemId}>
+        {openInKindTargets.map((target) => <option key={target.budgetItemId} value={target.budgetItemId}>
           {target.name} · còn thiếu {target.remainingQuantity} {target.unit}
         </option>)}
       </select></label>
@@ -195,6 +198,8 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
       <label className={css.fullField}>Ghi chú (không bắt buộc)<input maxLength={1000} value={inKindNote} onChange={(event) => setInKindNote(event.target.value)} placeholder="Loại, kích cỡ hoặc lưu ý giao nhận" /></label>
       <button type="submit" disabled={busy || !user || !inKindTargetId}>{busy ? "Đang gửi…" : "Gửi đề nghị tặng hiện vật"} ↗</button>
     </form>}
+    {!summary?.isClosed && summary && supportMode === "in-kind" && summary.inKindTargets.length > 0 && openInKindTargets.length === 0 &&
+      <p className={css.footnote}>Các chỉ tiêu hiện vật đã đóng vì từng khoản đã đủ bằng tiền hoặc hiện vật.</p>}
     {!summary?.isClosed && supportMode === "in-kind" && !summary?.inKindTargets.length && <p className={css.footnote}>Chiến dịch chưa khai báo chỉ tiêu hiện vật theo từng khoản.</p>}
     {supportMode === "in-kind" && !user && !loading && !summary?.isClosed && <div className={css.login}>Đăng nhập để gửi đề nghị tặng hiện vật. <Link href="/login">Đăng nhập</Link></div>}
     {donation && donation.status !== "CONFIRMED" && <section className={css.success} aria-label="Thanh toán sandbox">

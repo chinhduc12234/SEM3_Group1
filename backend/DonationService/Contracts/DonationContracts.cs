@@ -23,12 +23,12 @@ public sealed record DonationMine(Guid Id, Guid CampaignId, string CampaignTitle
 public sealed record DonationManagerRow(Guid Id, string DonorName, string DonorEmail, string TargetName, string? PayerAccountLast4,
     decimal Amount, string Status, string Reference, DateTimeOffset CreatedAt, DateTimeOffset? ConfirmedAt);
 public sealed record DonationTargetProgress(Guid BudgetItemId, string Name, decimal TargetAmount,
-    decimal DonatedAmount, decimal RemainingAmount, bool IsComplete);
+    decimal DonatedAmount, decimal RemainingAmount, bool IsComplete, bool SatisfiedByInKind);
 public sealed record DonationSummary(Guid CampaignId, decimal TargetAmount, decimal DonatedAmount,
     decimal RemainingAmount, int ConfirmedDonationCount, DonationTargetProgress[] Targets,
     InKindTargetProgress[] InKindTargets, bool IsClosed);
 public sealed record InKindTargetProgress(Guid BudgetItemId, string Name, decimal TargetQuantity, string Unit,
-    decimal ReceivedQuantity, decimal ReservedQuantity, decimal RemainingQuantity, bool IsComplete);
+    decimal ReceivedQuantity, decimal ReservedQuantity, decimal RemainingQuantity, bool IsComplete, bool SatisfiedByMoney);
 public sealed record CreateInKindPledgeRequest(Guid CampaignId, Guid BudgetItemId,
     [Range(typeof(decimal), "1", "1000000")] decimal Quantity,
     [MaxLength(1000)] string? Note);

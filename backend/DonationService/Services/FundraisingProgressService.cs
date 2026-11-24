@@ -17,32 +17,56 @@ public sealed class FundraisingProgressService(DonationDb db)
             .GroupBy(x => x.BudgetItemId)
             .Select(group => new { Id = group.Key, Amount = group.Sum(x => x.Amount), Count = group.Count() })
             .ToDictionaryAsync(x => x.Id, ct);
-        var financialTargets = context.Targets.Select(target =>
+        var rawFinancialTargets = context.Targets.Select(target =>
         {
             var total = confirmed.GetValueOrDefault(target.Id);
             var donated = total?.Amount ?? 0m;
             return new DonationTargetProgress(target.Id, target.Name, target.Amount, donated,
-                Math.Max(0m, target.Amount - donated), donated >= target.Amount);
+                Math.Max(0m, target.Amount - donated), donated >= target.Amount, false);
         }).ToArray();
         var pledges = await db.InKindPledges.AsNoTracking()
             .Where(x => x.CampaignId == context.CampaignId && (x.Status == "APPROVED" || x.Status == "RECEIVED"))
             .GroupBy(x => x.BudgetItemId)
             .Select(group => new { Id = group.Key, Quantity = group.Sum(x => x.Quantity), Received = group.Sum(x => x.ReceivedQuantity) })
             .ToDictionaryAsync(x => x.Id, ct);
-        var inKindTargets = context.InKindTargets.Where(x => x.AcceptsInKind).Select(target =>
+        var rawInKindTargets = context.InKindTargets.Where(x => x.AcceptsInKind).Select(target =>
         {
             var total = pledges.GetValueOrDefault(target.Id);
             var received = total?.Received ?? 0m;
             var reserved = Math.Max(0m, (total?.Quantity ?? 0m) - received);
             return new InKindTargetProgress(target.Id, target.Name, target.Quantity, target.Unit,
-                received, reserved, Math.Max(0m, target.Quantity - received - reserved), received + reserved >= target.Quantity);
+                received, reserved, Math.Max(0m, target.Quantity - received - reserved), received + reserved >= target.Quantity, false);
         }).ToArray();
-        var hasTargets = financialTargets.Length + inKindTargets.Length > 0;
-        var complete = hasTargets && financialTargets.All(x => x.IsComplete) && inKindTargets.All(x => x.IsComplete);
+        var rawMoneyById = rawFinancialTargets.ToDictionary(x => x.BudgetItemId);
+        var rawGoodsById = rawInKindTargets.ToDictionary(x => x.BudgetItemId);
+        var financialTargets = rawFinancialTargets.Select(target =>
+        {
+            var satisfiedByInKind = !target.IsComplete && rawGoodsById.TryGetValue(target.BudgetItemId, out var goods) && goods.IsComplete;
+            return target with
+            {
+                IsComplete = target.IsComplete || satisfiedByInKind,
+                RemainingAmount = satisfiedByInKind ? 0m : target.RemainingAmount,
+                SatisfiedByInKind = satisfiedByInKind
+            };
+        }).ToArray();
+        var inKindTargets = rawInKindTargets.Select(target =>
+        {
+            var satisfiedByMoney = !target.IsComplete && rawMoneyById.TryGetValue(target.BudgetItemId, out var money) && money.IsComplete;
+            return target with
+            {
+                IsComplete = target.IsComplete || satisfiedByMoney,
+                RemainingQuantity = satisfiedByMoney ? 0m : target.RemainingQuantity,
+                SatisfiedByMoney = satisfiedByMoney
+            };
+        }).ToArray();
+        var targetIds = rawMoneyById.Keys.Concat(rawGoodsById.Keys).Distinct().ToArray();
+        var complete = targetIds.Length > 0 && targetIds.All(id =>
+            (rawMoneyById.TryGetValue(id, out var money) && money.IsComplete) ||
+            (rawGoodsById.TryGetValue(id, out var goods) && goods.IsComplete));
         var closed = complete || await db.FundraisingClosures.AsNoTracking().AnyAsync(x => x.CampaignId == context.CampaignId, ct);
         var targetAmount = financialTargets.Sum(x => x.TargetAmount);
         var donatedAmount = financialTargets.Sum(x => x.DonatedAmount);
-        return new(context.CampaignId, targetAmount, donatedAmount, Math.Max(0m, targetAmount - donatedAmount),
+        return new(context.CampaignId, targetAmount, donatedAmount, financialTargets.Sum(x => x.RemainingAmount),
             confirmed.Values.Sum(x => x.Count), financialTargets, inKindTargets, closed);
     }
 

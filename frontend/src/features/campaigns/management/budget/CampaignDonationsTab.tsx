@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/shared/api/api";
 import css from "./CampaignDonationsTab.module.css";
 
-type Target = { budgetItemId: string; name: string; targetAmount: number; donatedAmount: number; remainingAmount: number; isComplete: boolean };
+type Target = { budgetItemId: string; name: string; targetAmount: number; donatedAmount: number; remainingAmount: number; isComplete: boolean; satisfiedByInKind: boolean };
 type Donation = { id: string; donorName: string; donorEmail: string; targetName: string; payerAccountLast4: string | null; amount: number; status: string; reference: string; createdAt: string; confirmedAt: string | null };
-type InKindTarget = { budgetItemId: string; name: string; targetQuantity: number; unit: string; receivedQuantity: number; reservedQuantity: number; remainingQuantity: number; isComplete: boolean };
+type InKindTarget = { budgetItemId: string; name: string; targetQuantity: number; unit: string; receivedQuantity: number; reservedQuantity: number; remainingQuantity: number; isComplete: boolean; satisfiedByMoney: boolean };
 type Pledge = { id: string; budgetItemId: string; donorName: string; donorEmail: string; targetName: string; quantity: number; receivedQuantity: number; unit: string; note: string | null; status: string; createdAt: string; reviewedAt: string | null; completedAt: string | null };
 type ManagerView = { summary: { targetAmount: number; donatedAmount: number; remainingAmount: number; confirmedDonationCount: number; targets: Target[]; inKindTargets: InKindTarget[]; isClosed: boolean }; pendingCount: number; donations: Donation[] };
 type InKindView = { targets: InKindTarget[]; pledges: Pledge[] };
@@ -85,7 +85,7 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
     {activeTab === "money" && <div id="donation-panel-money" role="tabpanel" aria-labelledby="donation-tab-money" className={css.tabPanel}>
       <dl className={css.stats}>
         <div><dt>Mục tiêu gây quỹ</dt><dd>{money(summary.targetAmount)}</dd></div>
-        <div><dt>Đã xác nhận</dt><dd>{money(summary.donatedAmount)}</dd></div>
+        <div><dt>Đã xác nhận tiền</dt><dd>{money(summary.donatedAmount)}</dd></div>
         <div><dt>Còn thiếu</dt><dd>{money(summary.remainingAmount)}</dd></div>
         <div><dt>Lượt ủng hộ xác nhận</dt><dd>{summary.confirmedDonationCount}</dd></div>
         <div><dt>Giao dịch chờ xác nhận mô phỏng</dt><dd>{view.pendingCount}</dd></div>
@@ -94,9 +94,9 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
         <h4>Tiến độ từng khoản</h4>
         {!summary.targets.length && <p className={css.empty}>Chưa có khoản chi được mở gây quỹ.</p>}
         {summary.targets.map((target) => <div className={css.target} key={target.budgetItemId}>
-          <div className={css.targetHead}><strong>{target.name}</strong><span>{target.isComplete ? "Đã đủ mục tiêu" : `Còn thiếu ${money(target.remainingAmount)}`}</span></div>
-          <progress max={Math.max(target.targetAmount, 1)} value={Math.min(target.donatedAmount, target.targetAmount)} />
-          <small>{money(target.donatedAmount)} / {money(target.targetAmount)}</small>
+          <div className={css.targetHead}><strong>{target.name}</strong><span>{target.isComplete ? target.satisfiedByInKind ? "Đã đủ chỉ tiêu hiện vật" : "Đã đủ bằng tiền" : `Còn thiếu ${money(target.remainingAmount)}`}</span></div>
+          <progress max={Math.max(target.targetAmount, 1)} value={Math.min(target.satisfiedByInKind ? target.targetAmount : target.donatedAmount, target.targetAmount)} />
+          <small>{target.satisfiedByInKind ? "Đã đóng nhận tiền vì chỉ tiêu hiện vật đã đủ." : `${money(target.donatedAmount)} / ${money(target.targetAmount)}`}</small>
         </div>)}
       </section>
       <section aria-labelledby="donor-list-title">
@@ -119,9 +119,9 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
       {!!inKind?.targets.length && <section className={css.targets} aria-label="Tiến độ hiện vật">
         <h4>Tiến độ hiện vật</h4>
         {inKind.targets.map((target) => <div className={css.target} key={target.budgetItemId}>
-          <div className={css.targetHead}><strong>{target.name}</strong><span>{target.isComplete ? "Đã đủ, đã đóng nhận" : `Còn thiếu ${target.remainingQuantity} ${target.unit}`}</span></div>
-          <progress max={Math.max(target.targetQuantity, 1)} value={Math.min(target.receivedQuantity + target.reservedQuantity, target.targetQuantity)} />
-          <small>Đã nhận {target.receivedQuantity} / {target.targetQuantity} {target.unit} · Đã duyệt chờ giao {target.reservedQuantity} {target.unit}</small>
+          <div className={css.targetHead}><strong>{target.name}</strong><span>{target.satisfiedByMoney ? "Đã đủ bằng tiền" : target.receivedQuantity >= target.targetQuantity ? "Đã nhận đủ" : target.isComplete ? "Đủ chỗ đăng ký, chờ giao" : `Còn thiếu ${target.remainingQuantity} ${target.unit}`}</span></div>
+          <progress max={Math.max(target.targetQuantity, 1)} value={Math.min(target.satisfiedByMoney ? target.targetQuantity : target.receivedQuantity, target.targetQuantity)} />
+          <small>{target.satisfiedByMoney ? "Đã đóng nhận hiện vật vì chỉ tiêu tiền đã đủ." : `Đã nhận ${target.receivedQuantity} / ${target.targetQuantity} ${target.unit} · Đã duyệt chờ giao ${target.reservedQuantity} ${target.unit}`}</small>
         </div>)}
       </section>}
       <section aria-labelledby="in-kind-review-title">
@@ -137,8 +137,8 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
                   <button type="button" className={css.rejectButton} onClick={() => void reviewPledge(row.id, "REJECT")}><span aria-hidden="true">×</span> Từ chối</button>
                 </div>}
                 {row.status === "APPROVED" && <div className={css.rowActions}>
-                  <input aria-label={`Số lượng nhận ${row.targetName}`} type="number" min="0.01" max={row.quantity - row.receivedQuantity} step="0.01" value={receiveQuantities[row.id] ?? String(row.quantity - row.receivedQuantity)} onChange={(event) => setReceiveQuantities((current) => ({ ...current, [row.id]: event.target.value }))} />
-                  <button type="button" className={css.receiveButton} onClick={() => void receivePledge(row.id)}><span aria-hidden="true">↓</span> Ghi nhận nhận hàng</button>
+                  <input aria-label={`Số lượng thực nhận ${row.targetName}`} type="number" min="0" max={row.quantity - row.receivedQuantity} step="0.01" value={receiveQuantities[row.id] ?? "0"} onChange={(event) => setReceiveQuantities((current) => ({ ...current, [row.id]: event.target.value }))} />
+                  <button type="button" className={css.receiveButton} disabled={Number(receiveQuantities[row.id] ?? 0) <= 0 || Number(receiveQuantities[row.id]) > row.quantity - row.receivedQuantity} onClick={() => void receivePledge(row.id)}><span aria-hidden="true">↓</span> Ghi nhận nhận hàng</button>
                 </div>}
               </td>
             </tr>)}</tbody>
