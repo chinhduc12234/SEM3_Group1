@@ -7,11 +7,12 @@ import styles from "../CampaignManagement.module.css";
 import finance from "./BudgetDashboard.module.css";
 import CampaignBudgetSummary, { BudgetFigures, BudgetStatus, ExpenseVariance } from "./CampaignBudgetSummary";
 import BudgetReceivingFields from "./BudgetReceivingFields";
+import CampaignDonationsTab from "./CampaignDonationsTab";
 import { calculateBudget, emptyBudget, eventScopes, expenseAmount, formatBudgetAmount,
   type BudgetExpense, type BudgetFunding, type BudgetPlan, type BudgetView } from "./budget";
 
 const tabs = [["expenses", "Dự toán chi phí"], ["funding", "Nguồn vốn"], ["fundraising", "Kế hoạch gây quỹ"],
-  ["receiving", "Phương thức tiếp nhận"], ["overview", "Xem lại"], ["actuals", "Chi thực tế"]] as const;
+  ["receiving", "Phương thức tiếp nhận"], ["overview", "Xem lại"], ["actuals", "Chi thực tế"], ["donations", "Quyên góp"]] as const;
 
 function BudgetItemHeader({ title, children }: { title: string; children?: ReactNode }) {
   return <header className={finance.itemHeader}><h4>{title}</h4>{children && <strong>{children}</strong>}</header>;
@@ -68,6 +69,8 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
       if (controller.signal.aborted) return;
       setView(result);
       setPlan(result.plan ?? emptyBudget);
+      if (result.canRecordActuals && new URLSearchParams(window.location.search).get("tab") === "donations")
+        setTab("donations");
     }).catch((e: Error) => { if (!controller.signal.aborted) setError(e.message); });
     return () => controller.abort();
   }, [endpoint, retry]);
@@ -146,6 +149,7 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
   const totals = calculateBudget(plan);
   const funding = plan.fundraising;
   const coverage = totals.estimated > 0 ? Math.floor(totals.confirmedFunding / totals.estimated * 100) : 0;
+  const visibleTabs = tabs.filter(([key]) => view?.canEdit || key === "overview" || key === "actuals" || (key === "donations" && view?.canRecordActuals));
   const activeTabLabel = tabs.find(([key]) => key === tab)?.[1];
   return <section className={finance.editor} aria-labelledby="budget-title">
     <header className={finance.sectionHeader}>
@@ -165,7 +169,7 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
         <progress id="budget-coverage" max={totals.estimated} value={Math.min(totals.confirmedFunding, totals.estimated)} />
       </div>}
       <nav className={finance.tabs} aria-label="Các phần kế hoạch ngân sách">
-        {tabs.filter(([key]) => view.canEdit || key === "overview" || key === "actuals").map(([key, title]) =>
+        {visibleTabs.map(([key, title]) =>
           <button type="button" className="secondary" aria-controls="budget-section"
           aria-pressed={tab === key} key={key} onClick={() => setTab(key)}>{title}</button>)}
       </nav>
@@ -267,7 +271,7 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
             </fieldset>
           </div>}
         </section>}
-        {tab === "receiving" && <BudgetReceivingFields receiving={plan.receiving} campaignId={campaign.id}
+        {tab === "receiving" && <BudgetReceivingFields receiving={plan.receiving} expenses={plan.expenses} campaignId={campaign.id}
           revision={view.version} onChange={(receiving) => edit((current) => ({ ...current, receiving }))}
           onUpload={(file) => void uploadQr(file)} />}
         {tab === "overview" && <CampaignBudgetSummary campaignId={campaign.id} view={view} plan={plan} totals={totals} />}
@@ -278,6 +282,7 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
           {view.confirmedAt && plan.expenses.map((expense) => <ActualExpenseForm key={`${expense.id}:${expense.actualAmount}`}
             expense={expense} disabled={!view.canRecordActuals || plan !== view.plan} onSave={(amount) => void saveActual(expense.id, amount)} />)}
         </>}
+        {tab === "donations" && view.canRecordActuals && <CampaignDonationsTab campaignId={campaign.id} />}
         {view.canEdit && tab !== "actuals" && <div className={finance.saveBar}>
           <span role="status">{plan !== (view.plan ?? emptyBudget) ? "Có thay đổi chưa lưu" : "Mọi thay đổi đã được lưu"}</span>
           <button type="button" className="secondary" onClick={() => void save(false)}>Lưu bản nháp ngân sách</button>

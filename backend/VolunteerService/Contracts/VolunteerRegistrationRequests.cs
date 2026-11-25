@@ -5,7 +5,8 @@ namespace VolunteerService.Contracts;
 public sealed class SubmitVolunteerRegistrationRequest
 {
     [Required] public Guid CampaignId { get; set; }
-    [Required, MinLength(1), MaxLength(20)] public Guid[] GroupIds { get; set; } = [];
+    [Required, MaxLength(20)] public Guid[] GroupIds { get; set; } = [];
+    [MaxLength(366)] public DateOnly[]? AvailableDates { get; set; }
     [Required, StringLength(200, MinimumLength = 2)] public string FullName { get; set; } = "";
     [Required, EmailAddress, MaxLength(320)] public string Email { get; set; } = "";
     [Required, RegularExpression(@"^\+?[0-9 ()-]{8,30}$")] public string PhoneNumber { get; set; } = "";
@@ -46,10 +47,10 @@ public sealed record VolunteerRegistrationDetail(Guid Id, Guid CampaignId, strin
     bool CommitsToAllDays, bool AgreedToTerms, DateTimeOffset? TermsAgreedAt, string Status,
     Guid? ReviewedBy, DateTimeOffset? ReviewedAt, string? RejectionReason, DateTimeOffset SubmittedAt,
     VolunteerGroupPreferenceResult[] GroupPreferences,
-    VolunteerGroupAssignmentResult[] AssignedGroups);
+    VolunteerGroupAssignmentResult[] AssignedGroups, string? ReviewNote = null);
 
 public sealed record VolunteerGroupAssignmentResult(Guid GroupId, string Status, Guid AssignedBy,
-    DateTimeOffset AssignedAt);
+    DateTimeOffset AssignedAt, DateTimeOffset? ConfirmBy = null, DateTimeOffset? ConfirmedAt = null);
 
 public sealed record VolunteerReviewResult(Guid Id, Guid CampaignId, string Status, Guid ReviewedBy,
     DateTimeOffset ReviewedAt, string? ReviewNote, string? RejectionReason,
@@ -59,14 +60,23 @@ public sealed record VolunteerGroupsManagementView(Guid CampaignId, string Campa
     int ApprovedVolunteers, VolunteerGroupManagementItem[] Groups);
 
 public sealed record VolunteerGroupManagementItem(Guid Id, string Name, string Category, int Target,
-    int AssignedCount, int Remaining, DateOnly? Date, string? ActivityTitle, string? TeamName, string? TeamLeaderName);
+    int AssignedCount, int Remaining, DateOnly? Date, string? ActivityTitle, string? TeamName, string? TeamLeaderName,
+    int ConfirmedCount = 0);
 
 public sealed record VolunteerGroupMember(Guid RegistrationId, string FullName, string Email, string PhoneNumber,
-    DateTimeOffset AssignedAt, Guid AssignedBy);
+    DateTimeOffset AssignedAt, Guid AssignedBy, DateTimeOffset? ConfirmBy = null, DateTimeOffset? ConfirmedAt = null);
+
+public sealed record VolunteerAvailability(Guid CampaignId, int SubmittedCount, VolunteerGroupAvailability[] Groups);
+public sealed record VolunteerGroupAvailability(Guid GroupId, int Assigned, int Confirmed, int Target, bool CanRegister);
+public sealed record VolunteerRegistrationMine(Guid Id, Guid CampaignId, string Status, string? Note,
+    DateTimeOffset SubmittedAt, VolunteerOfferView[] Offers);
+public sealed record VolunteerOfferView(Guid Id, Guid GroupId, string Status, DateTimeOffset? ConfirmBy, DateTimeOffset? ConfirmedAt);
+public sealed record VolunteerRespondRequest(bool Accept);
 
 // Public, read-only opening data returned by CampaignService. CampaignService remains the source of truth.
 public sealed record CampaignVolunteerOpenings(Guid CampaignId, string CampaignTitle, DateOnly? StartDate,
-    DateOnly? EndDate, string Location, CampaignVolunteerOpeningDay[] Days, CampaignVolunteerOpeningGroup[] Groups);
+    DateOnly? EndDate, string Location, CampaignVolunteerOpeningDay[] Days, CampaignVolunteerOpeningGroup[] Groups,
+    string? Timezone = null);
 
 public sealed record CampaignVolunteerOpeningDay(Guid Id, DateOnly? Date, string Title, string Location,
     CampaignVolunteerOpeningActivity[] Activities);
@@ -76,4 +86,4 @@ public sealed record CampaignVolunteerOpeningActivity(Guid Id, string Title, Tim
 
 public sealed record CampaignVolunteerOpeningGroup(Guid Id, string Name, string CategoryId, string Category,
     int Target, Guid? DayId, DateOnly? Date, string? DayTitle, Guid? ActivityId, string? ActivityTitle,
-    Guid? TeamId, string? TeamName, string? TeamLeaderName, string Notes);
+    Guid? TeamId, string? TeamName, string? TeamLeaderName, string Notes, bool IsPriority = false, bool RequiresReview = false);

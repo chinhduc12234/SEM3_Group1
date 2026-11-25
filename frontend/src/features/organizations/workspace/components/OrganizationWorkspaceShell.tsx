@@ -50,14 +50,18 @@ function Shell({ children }: { children: ReactNode }) {
   }, [reload]);
   const links = [
     ...(data?.roles.includes("OWNER") ? [[root, t("Tổng quan")]] : []),
-    [root + "/members", t("Nhân sự")],
+    ...(data && !isMemberOnly ? [[root + "/work", t("Việc của tôi")]] : []),
+    ...(data?.roles.length ? [[root + "/field-work", t("Việc được giao")]] : []),
+    [root + "/members", t(data?.canManageMembers ? "Nhân sự" : "Danh bạ nội bộ")],
+    ...(data?.canEdit ? [[root + "/profile", t("Hồ sơ tổ chức")]] : []),
+    ...(data?.roles.includes("OWNER") ? [[root + "/legal", t("Pháp lý")], [root + "/activity", t("Nhật ký")]] : []),
     ...(data?.roles.includes("CAMPAIGN_MANAGER")
       ? [[root + "/campaigns", t("Chiến dịch và sự kiện")]]
       : data?.roles.includes("OWNER") ? [[root + "/campaigns", t("Duyệt và phân công")]] : []),
     ...(data?.roles.includes("VOLUNTEER_COORDINATOR")
       ? [[root + "/operations", t("Vận hành")]]
       : []),
-    ...(data?.roles.includes("FINANCE_MANAGER") ? [[root + "/budget", t("Ngân sách")]] : []),
+    ...(data?.roles.includes("FINANCE_MANAGER") ? [[root + "/budget", t("Ngân sách và quyên góp")]] : []),
   ];
 
   return (

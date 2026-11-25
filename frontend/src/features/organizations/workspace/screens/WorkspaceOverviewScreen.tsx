@@ -8,17 +8,7 @@ import { focusAreas, labelsForRoles } from "@/features/organizations/types/works
 import WorkspaceImage from "@/features/organizations/workspace/components/WorkspaceImage";
 import styles from "@/features/organizations/workspace/Workspace.module.css";
 import { useLocale } from "@/shared/i18n/LocaleProvider";
-
-function StatCard({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <article className={styles.ownerStat}>
-      <span className={styles.ownerStatMark} aria-hidden="true" />
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </article>
-  );
-}
+import { ProgressTrack, Stat, StatGrid } from "@/shared/ui/StatusVisuals";
 
 export default function WorkspaceOverviewScreen() {
   const { data } = useWorkspace();
@@ -28,8 +18,9 @@ export default function WorkspaceOverviewScreen() {
   const root = `/organizations/${id}/manage`;
   const isOwner = data.roles.includes("OWNER");
   useEffect(() => {
-    if (!isOwner) router.replace(`${root}/members`);
-  }, [isOwner, root, router]);
+    if (!isOwner) router.replace(`${root}/${data.roles.some((role) =>
+      ["CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER"].includes(role)) ? "work" : "members"}`);
+  }, [data.roles, isOwner, root, router]);
   if (!isOwner) return null;
   const stats = data.statistics;
   const money = stats.donatedAmount == null
@@ -49,9 +40,7 @@ export default function WorkspaceOverviewScreen() {
     <div className={styles.ownerDashboard}>
       <header className={styles.ownerWelcome}>
         <div className={styles.ownerWelcomeCopy}>
-          <p className="eyebrow">KHÔNG GIAN TỔ CHỨC</p>
-          <h1>Xin chào, {data.profile.displayName}</h1>
-          <p>Đây là nơi bạn theo dõi đội ngũ và điều phối các hoạt động của tổ chức.</p>
+          <h1>Tổng quan tổ chức</h1>
         </div>
         <div className={styles.ownerWelcomeBrand}>
           {data.profile.hasLogo ? (
@@ -68,23 +57,22 @@ export default function WorkspaceOverviewScreen() {
 
       <div className={styles.ownerSectionHeading}>
         <div>
-          <p className="eyebrow">TỔNG QUAN</p>
           <h2>Hoạt động tổ chức</h2>
         </div>
         <span className={styles.ownerLive}><i aria-hidden="true" /> Đang hoạt động</span>
       </div>
 
-      <section className={styles.ownerStats} aria-label="Thống kê tổ chức">
-        <StatCard label="Thành viên hoạt động" value={String(stats.activeMembers)} detail="Đang đồng hành cùng tổ chức" />
-        <StatCard label="Nhân sự" value={String(stats.staffCount)} detail="Thành viên ngoài chủ tổ chức" />
-        <StatCard label="Chiến dịch" value={stats.campaigns == null ? "—" : String(stats.campaigns)} detail={stats.campaigns == null ? "Chưa có dữ liệu" : "Chiến dịch của tổ chức"} />
-        <StatCard label="Tổng quyên góp" value={money} detail={stats.donatedAmount == null ? "Chưa có dữ liệu" : "Tổng số tiền đã ghi nhận"} />
-      </section>
+      <StatGrid label="Thống kê tổ chức">
+        <Stat label="Thành viên hoạt động" value={stats.activeMembers} detail={`${stats.staffCount} nhân sự`} tone="positive" />
+        <Stat label="Lời mời đang chờ" value={stats.pendingInvitations} tone={stats.pendingInvitations ? "warning" : "neutral"} />
+        <Stat label="Chiến dịch" value={stats.campaigns ?? "—"} detail={stats.campaigns == null ? "Chưa có dữ liệu" : undefined} tone="info" />
+        <Stat label="Tổng quyên góp" value={money} detail={stats.donatedAmount == null ? "Chưa có dữ liệu" : "Tổng đã ghi nhận"} />
+      </StatGrid>
 
       <div className={styles.ownerDashboardGrid}>
         <section className={styles.ownerPanel}>
           <div className={styles.ownerPanelHeading}>
-            <div><p className="eyebrow">LỐI TẮT</p><h2>Việc bạn có thể làm</h2></div>
+            <h2>Việc cần theo dõi</h2>
           </div>
           <div className={styles.ownerQuickLinks}>
             <Link href={`${root}/members`}>
@@ -97,7 +85,7 @@ export default function WorkspaceOverviewScreen() {
               <span><strong>Cập nhật thông tin</strong><small>Chỉnh sửa hồ sơ và nhận diện tổ chức</small></span>
               <span className={styles.ownerArrow} aria-hidden="true">→</span>
             </Link>
-            <Link href={`${root}/campaigns`}>
+            <Link href={`${root}/work`}>
               <span className={styles.ownerQuickIcon} aria-hidden="true">CD</span>
               <span><strong>Duyệt chiến dịch</strong><small>Xem xét nội dung và phân công phụ trách</small></span>
               <span className={styles.ownerArrow} aria-hidden="true">→</span>
@@ -114,7 +102,7 @@ export default function WorkspaceOverviewScreen() {
 
         <aside className={styles.ownerPanel}>
           <div className={styles.ownerPanelHeading}>
-            <div><p className="eyebrow">HỒ SƠ</p><h2>Hoàn thiện tổ chức</h2></div>
+            <h2>Hoàn thiện hồ sơ</h2>
             <Link className={styles.ownerTextLink} href={`${root}/profile`}>Chỉnh sửa</Link>
           </div>
           <div className={styles.ownerProfileCard}>
@@ -122,9 +110,8 @@ export default function WorkspaceOverviewScreen() {
               <span>{missingDetails.length ? "Đang hoàn thiện" : "Hồ sơ cơ bản đã đủ"}</span>
               <strong>{missingDetails.length ? `${3 - missingDetails.length}/3` : "3/3"}</strong>
             </div>
-            <div className={styles.ownerProgressTrack} role="progressbar" aria-valuemin={0} aria-valuemax={3} aria-valuenow={3 - missingDetails.length} aria-label="Mức độ hoàn thiện hồ sơ cơ bản">
-              <span style={{ width: `${((3 - missingDetails.length) / 3) * 100}%` }} />
-            </div>
+            <ProgressTrack limit={3} segments={[{ value: 3 - missingDetails.length, tone: "positive" }]}
+              label={`Hồ sơ cơ bản đã hoàn thiện ${3 - missingDetails.length} trên 3 mục`} />
             {missingDetails.length ? (
               <ul>{missingDetails.map((item) => <li key={item}>{item}</li>)}</ul>
             ) : (

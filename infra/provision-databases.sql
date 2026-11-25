@@ -54,3 +54,15 @@ IF DATABASE_PRINCIPAL_ID(N'giveaid_volunteer') IS NULL CREATE USER giveaid_volun
 ALTER ROLE db_datareader ADD MEMBER giveaid_volunteer;
 ALTER ROLE db_datawriter ADD MEMBER giveaid_volunteer;
 GO
+
+USE master;
+IF DB_ID(N'GiveAid_Donation') IS NULL CREATE DATABASE GiveAid_Donation;
+IF SUSER_ID(N'giveaid_donation') IS NULL CREATE LOGIN giveaid_donation WITH PASSWORD = '$(DONATION_DB_PASSWORD)', CHECK_POLICY = ON;
+ELSE IF (SELECT PWDCOMPARE('$(DONATION_DB_PASSWORD)', password_hash) FROM sys.sql_logins WHERE name=N'giveaid_donation') = 0
+    ALTER LOGIN giveaid_donation WITH PASSWORD = '$(DONATION_DB_PASSWORD)';
+GO
+USE GiveAid_Donation;
+IF DATABASE_PRINCIPAL_ID(N'giveaid_donation') IS NULL CREATE USER giveaid_donation FOR LOGIN giveaid_donation;
+ALTER ROLE db_datareader ADD MEMBER giveaid_donation;
+ALTER ROLE db_datawriter ADD MEMBER giveaid_donation;
+GO

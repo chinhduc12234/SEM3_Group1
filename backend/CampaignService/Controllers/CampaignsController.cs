@@ -22,8 +22,19 @@ public sealed class CampaignsController(ICampaignApplication service) : Controll
         => service.List(org, Actor, page, search, null, ct, pageSize, status, assigned, assignedRole, campaignType);
     [Authorize, HttpGet("organization/{org:guid}/parent-options")]
     public Task<object> ParentOptions(Guid org, CancellationToken ct) => service.ParentOptions(org, Actor, ct);
+    [Authorize, HttpGet("organization/{org:guid}/assigned-work")]
+    public Task<AssignedFieldWork> AssignedWork(Guid org, [Range(1, 10_000)] int page = 1, CancellationToken ct = default) =>
+        service.AssignedWork(org, Actor, page, ct);
     [HttpGet("{id:guid}")] public Task<CampaignView> Detail(Guid id, CancellationToken ct) => service.Detail(id, OptionalActor, false, ct);
     [Authorize, HttpGet("{id:guid}/manage")] public Task<CampaignView> Manage(Guid id, CancellationToken ct) => service.Detail(id, Actor, true, ct);
+    [Authorize, HttpGet("{id:guid}/schedule-change")]
+    public Task<ScheduleChangeView> ScheduleChange(Guid id, CancellationToken ct) => service.ScheduleChange(id, Actor, ct);
+    [Authorize, HttpPost("{id:guid}/schedule-change")]
+    public Task<ScheduleChangeView> ScheduleChange(Guid id, ScheduleChangeRequest request, CancellationToken ct) =>
+        service.RequestScheduleChange(id, request, Actor, ct);
+    [Authorize, HttpPost("{id:guid}/schedule-change/decision")]
+    public Task<ScheduleChangeView> DecideScheduleChange(Guid id, ScheduleChangeDecision request, CancellationToken ct) =>
+        service.DecideScheduleChange(id, request, Actor, ct);
     [Authorize, HttpGet("{id:guid}/related")] public Task<object> Related(Guid id, CancellationToken ct) => service.RelatedCampaigns(id, Actor, ct);
     [Authorize, HttpPost] public async Task<IActionResult> Create(CampaignRequest request, CancellationToken ct)
     { var result = await service.Create(request, Actor, ct); return Created($"/api/campaigns/{result.Id}/manage", result); }
@@ -61,6 +72,8 @@ public sealed class CampaignsController(ICampaignApplication service) : Controll
         service.ApproveOperationsDay(id, dayId, request, Actor, ct);
     [Authorize, HttpGet("{id:guid}/budget")]
     public Task<BudgetView> Budget(Guid id, CancellationToken ct) => service.Budget(id, Actor, ct);
+    [Authorize, HttpGet("{id:guid}/budget/receivers")]
+    public Task<BudgetReceiverCandidate[]> BudgetReceivers(Guid id, CancellationToken ct) => service.BudgetReceivers(id, Actor, ct);
     [Authorize, HttpPut("{id:guid}/budget")]
     public Task<BudgetView> SaveBudget(Guid id, SaveBudgetRequest request, CancellationToken ct) => service.SaveBudget(id, request, Actor, ct);
     [Authorize, HttpPut("{id:guid}/budget/expenses/{expenseId:guid}/actual")]

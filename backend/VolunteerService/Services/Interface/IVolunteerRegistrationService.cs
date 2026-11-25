@@ -12,4 +12,10 @@ public interface IVolunteerRegistrationService
         ReviewVolunteerRegistrationRequest request, CancellationToken ct);
     Task<VolunteerGroupsManagementView> GroupManagement(Guid reviewerId, Guid campaignId, CancellationToken ct);
     Task<VolunteerGroupMember[]> GroupMembers(Guid reviewerId, Guid campaignId, Guid groupId, CancellationToken ct);
+    Task<VolunteerAvailability> Availability(Guid campaignId, CancellationToken ct);
+    Task<VolunteerRegistrationMine[]> Mine(Guid userId, int page, CancellationToken ct);
+    Task<VolunteerRegistrationMine> Mine(Guid userId, Guid id, CancellationToken ct);
+    Task<VolunteerRegistrationMine> Respond(Guid userId, Guid registrationId, Guid offerId, bool accept, CancellationToken ct);
+    Task<VolunteerRegistrationMine> Withdraw(Guid userId, Guid registrationId, CancellationToken ct);
+    Task RefreshOffers(Guid campaignId, CancellationToken ct);
 }

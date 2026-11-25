@@ -6,7 +6,7 @@ using VolunteerService.Repositories;
 namespace VolunteerService.Services;
 
 public sealed class VolunteerTaskService(IVolunteerTaskRepository repository,
-    ICampaignTaskAccessClient campaignAccess) : IVolunteerTaskService
+    ICampaignTaskAccessClient campaignAccess, IVolunteerRegistrationRepository registrations, VolunteerDb db) : IVolunteerTaskService
 {
     public async Task<VolunteerTaskView[]> List(Guid userId, Guid campaignId, Guid activityId,
         Guid groupId, CancellationToken ct)
@@ -22,6 +22,13 @@ public sealed class VolunteerTaskService(IVolunteerTaskRepository repository,
         var task = await repository.Find(taskId, ct) ?? throw new ApiException(404, "Không tìm thấy task.");
         await RequireTeamLead(userId, task.CampaignId, task.ActivityId, task.GroupId, ct);
         return ToView(task);
+    }
+
+    public async Task<VolunteerTaskCandidate[]> Candidates(Guid userId, Guid campaignId, Guid activityId, Guid groupId, CancellationToken ct)
+    {
+        await RequireTeamLead(userId, campaignId, activityId, groupId, ct);
+        return (await repository.ActiveGroupRegistrations(campaignId, groupId, null, ct))
+            .Select(item => new VolunteerTaskCandidate(item.Id, item.FullName)).ToArray();
     }
 
     public async Task<VolunteerTaskView> Create(Guid userId, CreateVolunteerTaskRequest request, CancellationToken ct)
@@ -114,6 +121,9 @@ public sealed class VolunteerTaskService(IVolunteerTaskRepository repository,
         ValidateIds(userId, taskId);
         var task = await repository.Find(taskId, ct) ?? throw new ApiException(404, "Không tìm thấy task.");
         await RequireTeamLead(userId, task.CampaignId, task.ActivityId, task.GroupId, ct);
+        await using var gate = await registrations.LockCampaign(task.CampaignId, ct);
+        db.ChangeTracker.Clear();
+        task = await repository.Find(taskId, ct) ?? throw new ApiException(404, "Không tìm thấy task.");
         if (task.Status is "DRAFT" or "CANCELLED" or "COMPLETED")
             throw new ApiException(409, "Task hiện không nhận phân công volunteer.");
         var registrationIds = request.RegistrationIds ?? [];
@@ -123,7 +133,7 @@ public sealed class VolunteerTaskService(IVolunteerTaskRepository repository,
 
         var eligible = await repository.ActiveGroupRegistrations(task.CampaignId, task.GroupId, registrationIds, ct);
         if (eligible.Length != registrationIds.Length)
-            throw new ApiException(400, "Chỉ được giao task cho volunteer đã duyệt và đang hoạt động trong đúng nhóm.");
+            throw new ApiException(400, "Chỉ được giao việc cho tình nguyện viên đã xác nhận ca trong đúng nhóm.");
 
         var existing = await repository.AssignmentsForTask(taskId, ct);
         var byRegistration = existing.ToDictionary(item => item.RegistrationId);
@@ -188,6 +198,36 @@ public sealed class VolunteerTaskService(IVolunteerTaskRepository repository,
     {
         if (userId == Guid.Empty) throw new ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
         return (await repository.Mine(userId, ct)).Select(ToMyTaskView).ToArray();
+    }
+
+    public async Task<MyVolunteerTaskView> Respond(Guid userId, Guid assignmentId, TaskResponseRequest request, CancellationToken ct)
+    {
+        var assignment = await repository.FindMyAssignment(userId, assignmentId, ct)
+            ?? throw new ApiException(404, "Không tìm thấy nhiệm vụ của bạn.");
+        await using var gate = await registrations.LockCampaign(assignment.Task.CampaignId, ct);
+        db.ChangeTracker.Clear();
+        assignment = await repository.FindMyAssignment(userId, assignmentId, ct)
+            ?? throw new ApiException(404, "Không tìm thấy nhiệm vụ của bạn.");
+        if (assignment.Status is "CANCELLED" or "COMPLETED" || assignment.Task.Status is "CANCELLED" or "COMPLETED" ||
+            assignment.Registration.Status != "APPROVED" ||
+            !assignment.Registration.GroupAssignments.Any(group => group.GroupId == assignment.Task.GroupId &&
+                group.Status == "ACTIVE" && group.ConfirmedAt != null))
+            throw new ApiException(409, "Nhiệm vụ hoặc ca tình nguyện hiện không còn hoạt động.");
+        var note = request.Note?.Trim();
+        if (!request.Accept && string.IsNullOrWhiteSpace(note)) throw new ApiException(400, "Ghi ngắn gọn vướng mắc để trưởng đội xử lý.");
+        if (assignment.Status == "DECLINED")
+        {
+            if (!request.Accept && note == assignment.VolunteerNote) return ToMyTaskView(assignment);
+            throw new ApiException(409, "Bạn đã báo vướng mắc. Trưởng đội cần giao lại nhiệm vụ.");
+        }
+        if (request.Accept && assignment.Status is "ACCEPTED" or "IN_PROGRESS") return ToMyTaskView(assignment);
+        var now = DateTimeOffset.UtcNow;
+        assignment.Status = request.Accept ? "ACCEPTED" : "DECLINED";
+        assignment.VolunteerNote = note;
+        if (!request.Accept) assignment.StartedAt = null;
+        assignment.UpdatedAt = now;
+        await repository.Save(ct);
+        return ToMyTaskView(assignment);
     }
 
     public async Task<MyVolunteerTaskView> CompleteMyAssignment(Guid userId, Guid assignmentId, CancellationToken ct)

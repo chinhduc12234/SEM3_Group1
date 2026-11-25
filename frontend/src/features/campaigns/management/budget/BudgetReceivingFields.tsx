@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { apiBlob } from "@/shared/api/api";
-import type { BudgetReceiving } from "./budget";
+import { api, apiBlob } from "@/shared/api/api";
+import type { BudgetExpense, BudgetReceiving } from "./budget";
 import styles from "../CampaignManagement.module.css";
 import finance from "./BudgetDashboard.module.css";
 
 const emptyBank = { bankName: "", accountHolder: "", accountNumber: "", qrMediaId: null, transferNote: "" };
-const emptyGoods = { acceptedItems: "", address: "", receivingHours: "", contact: "" };
+const emptyGoods = { acceptedItems: "", address: "", receivingHours: "", contact: "", budgetItemIds: [] };
 const bankFields = [
   ["bankName", "Tên ngân hàng", 120], ["accountHolder", "Chủ tài khoản", 150],
   ["accountNumber", "Số tài khoản", 40], ["transferNote", "Hướng dẫn nội dung chuyển khoản", 300],
@@ -49,12 +49,24 @@ export function BudgetReceivingSummary({ campaignId, receiving }: { campaignId: 
   </section>;
 }
 
-export default function BudgetReceivingFields({ receiving, campaignId, revision, onChange, onUpload }: {
-  receiving?: BudgetReceiving | null; campaignId: string; revision: string;
+export default function BudgetReceivingFields({ receiving, expenses, campaignId, revision, onChange, onUpload }: {
+  receiving?: BudgetReceiving | null; expenses: BudgetExpense[]; campaignId: string; revision: string;
   onChange: (receiving: BudgetReceiving) => void; onUpload: (file: File) => void;
 }) {
   const bank = receiving?.bank ?? null;
   const goods = receiving?.goods ?? null;
+  const hasGoods = !!goods;
+  const [candidates, setCandidates] = useState<{ userId: string; fullName: string }[]>();
+  const [receiverError, setReceiverError] = useState("");
+  useEffect(() => {
+    if (!hasGoods) return;
+    const controller = new AbortController();
+    setReceiverError("");
+    api<{ userId: string; fullName: string }[]>(`/api/campaigns/${campaignId}/budget/receivers`, { signal: controller.signal })
+      .then((result) => { if (!controller.signal.aborted) setCandidates(result); })
+      .catch((reason: Error) => { if (!controller.signal.aborted) setReceiverError(reason.message); });
+    return () => controller.abort();
+  }, [campaignId, hasGoods]);
   return <div className={`${styles.detailOperationsGrid} ${finance.columns}`}>
     <section className={styles.reviewBlock}>
       <h3>Chuyển khoản ngân hàng</h3>
@@ -84,6 +96,35 @@ export default function BudgetReceivingFields({ receiving, campaignId, revision,
       {goods && goodsFields.map(([key, label, limit]) => <label key={key}>{label}
         <input value={goods[key]} maxLength={limit} onChange={(event) => onChange({ bank, goods: { ...goods, [key]: event.target.value } })} />
       </label>)}
+      {goods && <>
+        <fieldset><legend>Nhân viên tiếp nhận</legend>
+          {receiverError ? <p role="alert">{receiverError}</p> : !candidates && <p role="status">Đang tải thành viên…</p>}
+          {candidates?.map((candidate) => <label className={finance.check} key={candidate.userId}>
+            <input type="checkbox" checked={goods.receiverUserIds?.includes(candidate.userId) ?? false} onChange={(event) => {
+              const previous = goods.receiverUserIds ?? [];
+              onChange({ bank, goods: { ...goods, receiverUserIds: event.target.checked
+                ? [...previous, candidate.userId] : previous.filter((id) => id !== candidate.userId) } });
+            }} /> {candidate.fullName}
+          </label>)}
+        </fieldset>
+        <fieldset>
+          <legend>Hạng mục nhận hiện vật</legend>
+          {goods.budgetItemIds == null && <p>Hồ sơ đang dùng danh mục theo tên. Chọn hạng mục để lưu danh mục cụ thể.</p>}
+          {expenses.map((expense) => <label className={finance.check} key={expense.id}>
+            <input type="checkbox" checked={goods.budgetItemIds?.includes(expense.id) ?? false} onChange={(event) => {
+              const previous = goods.budgetItemIds ?? [];
+              onChange({ bank, goods: { ...goods, budgetItemIds: event.target.checked
+                ? [...previous, expense.id] : previous.filter((id) => id !== expense.id) } });
+            }} /> {expense.name || "Hạng mục chưa đặt tên"}
+          </label>)}
+        </fieldset>
+        {([['opensAt', 'Giờ bắt đầu nhận'], ['closesAt', 'Giờ kết thúc nhận']] as const).map(([key, label]) =>
+          <label key={key}>{label}<input type="time" value={goods[key]?.slice(0, 5) ?? ""} onChange={(event) =>
+            onChange({ bank, goods: { ...goods, [key]: event.target.value ? `${event.target.value}:00` : null } })} /></label>)}
+        <label>Số lịch tối đa mỗi giờ<input type="number" min="1" max="1000" value={goods.appointmentsPerHour ?? ""}
+          onChange={(event) => onChange({ bank, goods: { ...goods,
+            appointmentsPerHour: event.target.value ? Number(event.target.value) : null } })} /></label>
+      </>}
     </section>
   </div>;
 }

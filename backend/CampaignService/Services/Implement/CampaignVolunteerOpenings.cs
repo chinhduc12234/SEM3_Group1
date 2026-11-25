@@ -33,13 +33,13 @@ public sealed partial class CampaignApplication
                 return new CampaignVolunteerOpeningGroup(group.Id, group.Name, group.CategoryId,
                     categoryById.GetValueOrDefault(group.CategoryId) ?? group.CategoryId, group.VolunteerCount,
                     group.DayId, day?.Date, day?.Title, group.ActivityId, activity?.Title,
-                    group.TeamId, team?.Name, teamLeaderName, group.Notes);
+                    group.TeamId, team?.Name, teamLeaderName, group.Notes, group.IsPriority, group.RequiresReview);
             }).ToArray();
 
         if (groups.Length == 0)
             throw new ApiException(404, "Chiến dịch chưa có nhóm tình nguyện đang tuyển.");
 
         return new CampaignVolunteerOpenings(campaign.Id, campaign.Title, campaign.StartDate, campaign.EndDate,
-            campaign.Location, days, groups);
+            campaign.Location, days, groups, ReadConcept(campaign)?.Timezone);
     }
 }

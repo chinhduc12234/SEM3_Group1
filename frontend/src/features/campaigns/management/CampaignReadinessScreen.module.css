@@ -1,0 +1,70 @@
+.dashboard {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 76rem);
+  margin-inline: auto;
+  color: #213f35;
+}
+.back { justify-self: start; color: #23634b; font-weight: 700; text-decoration: none; }
+.hero, .panel, .started {
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 1.8rem);
+  border: 1px solid #dbe6de;
+  border-radius: 1rem;
+  background: #fff;
+}
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  background: linear-gradient(120deg, #e9f4ed, #fcfaf2);
+}
+.hero h1 { margin: .45rem 0 .2rem; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.1; }
+.hero p, .panel p, .started p { margin: 0; color: #526960; }
+.actions { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+.panel { display: grid; gap: 1rem; }
+.panel h2, .started h2 { margin: 0; font-size: 1.25rem; }
+.distribution { display: grid; gap: .35rem; }
+.checkList { display: grid; gap: .55rem; list-style: none; margin: 0; padding: 0; }
+.checkList > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: .35rem .7rem;
+  padding: .7rem .85rem;
+  border: 1px solid #e1e9e3;
+  border-inline-start: 3px solid #76a68d;
+  border-radius: .65rem;
+}
+.checkList > li[data-level="BLOCK"] { border-inline-start-color: #bf5447; background: #fff8f6; }
+.checkList > li[data-level="WARNING"] { border-inline-start-color: #d29942; background: #fffbf0; }
+.checkList p { font-size: .9rem; overflow-wrap: anywhere; }
+.checkList a { grid-column: 1 / -1; justify-self: start; color: #1d644a; font-size: .85rem; font-weight: 700; }
+.departments, .comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .75rem; }
+.departments article, .comparison > div {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: .6rem;
+  min-width: 0;
+  padding: .85rem;
+  border: 1px solid #e1e9e3;
+  border-radius: .75rem;
+  background: #f5f9f5;
+}
+.departments h3, .panel h3, .comparison dd { margin: 0; }
+.started { display: flex; align-items: center; gap: .85rem; background: #e2f3e9; }
+.started > span {
+  display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex: none;
+  border-radius: 50%; background: #247456; color: white; font-size: 1.3rem; font-weight: 750;
+}
+.panel form { display: grid; gap: .75rem; }
+.panel form label { display: grid; gap: .3rem; color: #213f35; font-weight: 650; }
+.panel :is(input, textarea, select) { width: 100%; min-width: 0; }
+.panel form > button { justify-self: start; }
+.comparison { margin: 0; }
+.comparison dt { color: #526960; font-size: .8rem; font-weight: 700; }
+.comparison dd { overflow-wrap: anywhere; }
+.comparison > div:last-child { background: #e6f1f8; border-color: #cbdfed; }

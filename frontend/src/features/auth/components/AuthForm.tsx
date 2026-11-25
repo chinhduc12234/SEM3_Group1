@@ -21,6 +21,15 @@ export default function AuthForm({ register = false }: { register?: boolean }) {
 
   useEffect(() => {
     if (register || loading || sessionUnavailable || !user) return;
+    const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+    if (returnTo && (
+      /^\/chien-dich\/[a-f0-9-]{36}\?tham-gia=(ung-ho(&donation=[a-f0-9-]{36})?|hien-vat)$/i.test(returnTo) ||
+      /^\/account\/(history(\?registration=[a-f0-9-]{36})?|payments(\?(payment|pledge)=[a-f0-9-]{36})?)$/i.test(returnTo) ||
+      /^\/organizations\/[a-f0-9-]{36}\/manage\/(campaigns\/[a-f0-9-]{36}\/readiness|field-work|work)$/i.test(returnTo)
+    )) {
+      router.replace(returnTo);
+      return;
+    }
     if (user.roles.includes("ADMIN")) {
       router.replace("/admin");
       return;
@@ -35,7 +44,7 @@ export default function AuthForm({ register = false }: { register?: boolean }) {
           const membership = memberships[0];
           const memberOnly = membership.roles?.some((role) => ["STAFF", "SURVEY_STAFF"].includes(role)) &&
             !membership.roles?.some((role) => ["OWNER", "ORGANIZATION_MANAGER", "CAMPAIGN_MANAGER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER"].includes(role));
-          destination = `/organizations/${membership.id}/manage${memberOnly ? "/members" : ""}`;
+          destination = `/organizations/${membership.id}/manage${memberOnly ? "/field-work" : ""}`;
         } else if (
           memberships.length > 1 ||
           (await api<unknown[]>("/api/organizations/invitations/mine")).length > 0

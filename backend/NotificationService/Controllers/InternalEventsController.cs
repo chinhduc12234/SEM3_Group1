@@ -8,7 +8,8 @@ namespace NotificationService.Controllers;
 
 [ApiController, Route("internal/notifications/organization-events")]
 public sealed class InternalEventsController(OrganizationEventReceiver receiver,
-    VolunteerRegistrationEventReceiver volunteerReceiver, IConfiguration configuration) : ControllerBase
+    VolunteerRegistrationEventReceiver volunteerReceiver, DonationEventReceiver donationReceiver,
+    IConfiguration configuration) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Receive(OrganizationNotificationEvent item, CancellationToken ct)
@@ -31,6 +32,30 @@ public sealed class InternalEventsController(OrganizationEventReceiver receiver,
     {
         if (!Authorized()) return Unauthorized();
         await volunteerReceiver.Receive(item, ct);
+        return NoContent();
+    }
+
+    [HttpPost("/internal/notifications/donation-confirmed")]
+    public async Task<IActionResult> ReceiveDonation(DonationConfirmedNotificationEvent item, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        await donationReceiver.Receive(item, ct);
+        return NoContent();
+    }
+
+    [HttpPost("/internal/notifications/fundraising-goal-reached")]
+    public async Task<IActionResult> ReceiveFundraisingGoalReached(FundraisingGoalReachedNotificationEvent item, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        await donationReceiver.ReceiveGoalReached(item, ct);
+        return NoContent();
+    }
+
+    [HttpPost("/internal/notifications/in-kind-pledge")]
+    public async Task<IActionResult> ReceiveInKindPledge(InKindPledgeNotificationEvent item, CancellationToken ct)
+    {
+        if (!Authorized()) return Unauthorized();
+        await donationReceiver.ReceiveInKindPledge(item, ct);
         return NoContent();
     }
 

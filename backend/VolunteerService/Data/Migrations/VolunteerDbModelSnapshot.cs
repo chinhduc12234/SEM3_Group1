@@ -179,6 +179,12 @@ namespace VolunteerService.Data.Migrations
                     b.Property<Guid>("CampaignId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("ConfirmBy")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<Guid>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
@@ -194,6 +200,8 @@ namespace VolunteerService.Data.Migrations
 
                     b.HasIndex("RegistrationId", "GroupId")
                         .IsUnique();
+
+                    b.HasIndex("Status", "ConfirmBy");
 
                     b.HasIndex("CampaignId", "GroupId", "Status");
 
@@ -234,8 +242,7 @@ namespace VolunteerService.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RegistrationId")
-                        .IsUnique();
+                    b.HasIndex("RegistrationId");
 
                     b.HasIndex("DeliveredAt", "NextAttemptAt");
 
@@ -250,6 +257,9 @@ namespace VolunteerService.Data.Migrations
 
                     b.Property<bool>("AgreedToTerms")
                         .HasColumnType("bit");
+
+                    b.Property<string>("AvailableDatesJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("CampaignId")
                         .HasColumnType("uniqueidentifier");
@@ -345,6 +355,23 @@ namespace VolunteerService.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_VolunteerRegistrations_Status", "[Status] IN ('SUBMITTED','UNDER_REVIEW','APPROVED','WAITLISTED','REJECTED','WITHDRAWN')");
                         });
+                });
+
+            modelBuilder.Entity("VolunteerService.Data.VolunteerRosterHold", b =>
+                {
+                    b.Property<Guid>("CampaignId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("Token")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("CampaignId");
+
+                    b.ToTable("LaunchRosterHolds");
                 });
 
             modelBuilder.Entity("VolunteerService.Data.VolunteerTask", b =>

@@ -16,6 +16,13 @@ builder.Services.AddScoped<IVolunteerTaskService, VolunteerTaskService>();
 builder.Services.AddScoped<ICampaignOpeningsClient, CampaignOpeningsClient>();
 builder.Services.AddScoped<ICampaignReviewAccessClient, CampaignReviewAccessClient>();
 builder.Services.AddScoped<ICampaignTaskAccessClient, CampaignTaskAccessClient>();
+builder.Services.AddScoped<VolunteerAccountClient>();
+builder.Services.AddHttpClient("identity-internal", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["InternalApi:IdentityUrl"] ?? "http://identity:8080/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient("campaign", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["InternalApi:CampaignUrl"] ?? "http://campaign:8080/");
@@ -34,6 +41,7 @@ builder.Services.AddHttpClient("notifications", client =>
     client.DefaultRequestHeaders.Add("X-Internal-Key", builder.Configuration["InternalApi:Key"] ?? "");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<VolunteerNotificationOutboxWorker>();
+builder.Services.AddHostedService<VolunteerOfferWorker>();
 
 // Domain behavior is added inside this service instead of being spread across sibling services.
 var app = builder.Build();

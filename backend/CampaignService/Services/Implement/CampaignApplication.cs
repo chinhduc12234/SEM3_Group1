@@ -8,7 +8,8 @@ using System.Text.RegularExpressions;
 
 namespace CampaignService.Services;
 
-public sealed partial class CampaignApplication(ICampaignRepository repository, IOrganizationAccess access, IConfiguration configuration, CampaignDb db) : ICampaignApplication
+public sealed partial class CampaignApplication(ICampaignRepository repository, IOrganizationAccess access, IConfiguration configuration,
+    CampaignDb db, IHttpClientFactory clients) : ICampaignApplication
 {
     private static readonly string[] Managers = ["CAMPAIGN_MANAGER"];
     private static readonly string[] Readers = ["CAMPAIGN_MANAGER", "OWNER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER"];
@@ -19,7 +20,8 @@ public sealed partial class CampaignApplication(ICampaignRepository repository, 
         c.Title, c.Description, c.CampaignType, c.Cause, c.BeneficiaryDescription, c.GoalAmount, c.VolunteerTarget,
         c.StartDate, c.EndDate, c.Location, c.ContactEmail, c.ContactPhone, c.Status, Convert.ToBase64String(c.Version),
         c.CreatedAt, c.SubmittedAt, c.PublishedAt,
-        c.Media.Where(m => m.Kind != ActivityReportKind && (history || m.Kind is "COVER" or "GALLERY")).Select(m => (object)new { m.Id, m.Kind, m.FileName, m.ContentType }).ToArray(),
+        c.Media.Where(m => m.Kind != ActivityReportKind && (history || m.Kind is "COVER" or "GALLERY" ||
+            c.Status == "PUBLISHED" && m.Kind == "FUNDRAISING_QR")).Select(m => (object)new { m.Id, m.Kind, m.FileName, m.ContentType }).ToArray(),
         history ? c.Reviews.OrderBy(x => x.CreatedAt).Select(r => (object)new { r.Id, r.Action, r.Note, r.ActorId, r.CreatedAt }).ToArray() : [],
         !history && c.ConceptDetails is not null ? "{}" : c.AdditionalDetails,
         history ? ReadConcept(c) : null, history ? c.ParentCampaign?.Title : null,
@@ -323,7 +325,7 @@ public sealed partial class CampaignApplication(ICampaignRepository repository, 
         var c = await Get(id, ct); var media = c.Media.SingleOrDefault(x => x.Id == mediaId) ?? throw new ApiException(404, "Không tìm thấy tệp.");
         if (media.Kind == ActivityReportKind)
             await RequireActivityReportAccess(c, actor, ct);
-        else if (c.Status != "PUBLISHED" || media.Kind is not ("COVER" or "GALLERY"))
+        else if (c.Status != "PUBLISHED" || media.Kind is not ("COVER" or "GALLERY" or "FUNDRAISING_QR"))
             await RequireRead(c, actor, ct);
         if (media.StoragePath is not null)
         {

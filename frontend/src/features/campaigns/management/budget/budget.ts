@@ -14,7 +14,9 @@ export type BudgetPlan = {
   receiving?: BudgetReceiving | null;
 };
 export type BudgetBank = { bankName: string; accountHolder: string; accountNumber: string; qrMediaId: string | null; transferNote: string };
-export type BudgetGoods = { acceptedItems: string; address: string; receivingHours: string; contact: string };
+export type BudgetGoods = { acceptedItems: string; address: string; receivingHours: string; contact: string;
+  budgetItemIds?: string[] | null; receiverUserIds?: string[] | null; opensAt?: string | null;
+  closesAt?: string | null; appointmentsPerHour?: number | null };
 export type BudgetReceiving = { bank: BudgetBank | null; goods: BudgetGoods | null };
 export type BudgetTotals = {
   estimated: number; confirmedFunding: number; expectedFunding: number; fundraisingGoal: number;

@@ -9,7 +9,7 @@ public interface IVolunteerTaskRepository
     Task<TaskAssignment?> FindAssignment(Guid taskId, Guid assignmentId, CancellationToken ct);
     Task<TaskAssignment?> FindMyAssignment(Guid userId, Guid assignmentId, CancellationToken ct);
     Task<VolunteerRegistration[]> ActiveGroupRegistrations(Guid campaignId, Guid groupId,
-        Guid[] registrationIds, CancellationToken ct);
+        Guid[]? registrationIds, CancellationToken ct);
     Task<TaskAssignment[]> AssignmentsForTask(Guid taskId, CancellationToken ct);
     Task<TaskAssignment[]> Mine(Guid userId, CancellationToken ct);
     void Add(VolunteerTask task);

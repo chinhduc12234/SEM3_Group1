@@ -7,10 +7,11 @@ using VolunteerService.Repositories;
 
 namespace VolunteerService.Services;
 
-public sealed class VolunteerRegistrationService(
+public sealed partial class VolunteerRegistrationService(
     IVolunteerRegistrationRepository repository,
     ICampaignOpeningsClient campaignOpenings,
-    ICampaignReviewAccessClient reviewAccess) : IVolunteerRegistrationService
+    ICampaignReviewAccessClient reviewAccess,
+    VolunteerAccountClient accounts, VolunteerDb db) : IVolunteerRegistrationService
 {
     private static readonly string[] ReviewStatuses = ["SUBMITTED", "UNDER_REVIEW", "APPROVED", "WAITLISTED", "REJECTED", "WITHDRAWN"];
 
@@ -20,8 +21,9 @@ public sealed class VolunteerRegistrationService(
         if (userId == Guid.Empty) throw new ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
         if (request.CampaignId == Guid.Empty) throw new ApiException(400, "Chiến dịch không hợp lệ.");
         if (!request.AgreedToTerms) throw new ApiException(400, "Bạn cần đồng ý với điều khoản ứng tuyển.");
-        if (!request.CommitsToAllDays) throw new ApiException(400, "Chiến dịch này yêu cầu tình nguyện viên cam kết tham gia toàn bộ ngày triển khai.");
-        if (request.GroupIds.Length == 0 || request.GroupIds.Any(id => id == Guid.Empty) ||
+        var automatic = request.AvailableDates is not null;
+        if (!automatic && !request.CommitsToAllDays) throw new ApiException(400, "Chọn ngày bạn có thể tham gia.");
+        if ((!automatic && request.GroupIds.Length == 0) || request.GroupIds.Any(id => id == Guid.Empty) ||
             request.GroupIds.Distinct().Count() != request.GroupIds.Length)
             throw new ApiException(400, "Hãy chọn ít nhất một nhóm tình nguyện hợp lệ; không chọn trùng nhóm.");
         if (request.DateOfBirth is DateOnly dateOfBirth && dateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
@@ -32,16 +34,24 @@ public sealed class VolunteerRegistrationService(
         var availableGroupIds = openings.Groups.Select(group => group.Id).ToHashSet();
         if (request.GroupIds.Any(groupId => !availableGroupIds.Contains(groupId)))
             throw new ApiException(400, "Có nhóm không thuộc chiến dịch hoặc không còn mở đăng ký.");
+        var availableDates = request.AvailableDates?.Distinct().Order().ToArray();
+        if (availableDates is not null && (availableDates.Length == 0 || availableDates.Any(date =>
+            !openings.Days.Any(day => day.Date == date)))) throw new ApiException(400, "Chọn ít nhất một ngày trong lịch triển khai.");
+        var account = await accounts.Get(userId, ct);
+        await using var gate = await repository.LockCampaign(request.CampaignId, ct);
         if (await repository.Exists(userId, request.CampaignId, ct))
             throw new ApiException(409, "Bạn đã gửi hồ sơ tình nguyện cho chiến dịch này.");
 
         var now = DateTimeOffset.UtcNow;
+        if (automatic && !openings.Groups.Any(group => group.Date is DateOnly date && availableDates!.Contains(date) &&
+            Deadline(group, openings, now) > now))
+            throw new ApiException(409, "Các ca trong ngày đã chọn đã đóng đăng ký.");
         var registration = new VolunteerRegistration
         {
             UserId = userId,
             CampaignId = request.CampaignId,
-            FullName = request.FullName.Trim(),
-            Email = request.Email.Trim().ToLowerInvariant(),
+            FullName = account.FullName.Trim(),
+            Email = account.Email.Trim().ToLowerInvariant(),
             PhoneNumber = request.PhoneNumber.Trim(),
             DateOfBirth = request.DateOfBirth,
             Occupation = Normalize(request.Occupation),
@@ -51,7 +61,8 @@ public sealed class VolunteerRegistrationService(
             Motivation = Normalize(request.Motivation),
             EmergencyContactName = Normalize(request.EmergencyContactName),
             EmergencyContactPhone = Normalize(request.EmergencyContactPhone),
-            CommitsToAllDays = true,
+            CommitsToAllDays = automatic ? openings.Days.All(day => day.Date is DateOnly date && availableDates!.Contains(date)) : true,
+            AvailableDatesJson = automatic ? JsonSerializer.Serialize(availableDates) : null,
             AgreedToTerms = true,
             TermsAgreedAt = now,
             Status = "SUBMITTED",
@@ -65,17 +76,13 @@ public sealed class VolunteerRegistrationService(
             }).ToList()
         };
 
-        var notificationEvent = new VolunteerRegistrationNotificationEvent(Guid.NewGuid(), registration.CampaignId,
-            registration.Id, registration.FullName, now);
         repository.Add(registration);
-        repository.AddNotificationOutbox(new VolunteerNotificationOutbox
+        if (automatic)
         {
-            Id = notificationEvent.EventId,
-            RegistrationId = registration.Id,
-            Payload = JsonSerializer.Serialize(notificationEvent),
-            CreatedAt = now,
-            NextAttemptAt = now
-        });
+            var counts = await repository.CountActiveAssignments(openings.CampaignId, availableGroupIds.ToArray(), ct);
+            PlaceAutomatic(registration, openings, counts, now);
+        }
+        else Notify(registration, now);
         try { await repository.Save(ct); }
         catch (DbUpdateException)
         {
@@ -130,7 +137,7 @@ public sealed class VolunteerRegistrationService(
             registration.GroupPreferences.OrderBy(x => x.PreferenceRank)
                 .Select(x => new VolunteerGroupPreferenceResult(x.GroupId, x.PreferenceRank)).ToArray(),
             registration.GroupAssignments.OrderBy(x => x.AssignedAt)
-                .Select(x => new VolunteerGroupAssignmentResult(x.GroupId, x.Status, x.AssignedBy, x.AssignedAt)).ToArray());
+                .Select(x => new VolunteerGroupAssignmentResult(x.GroupId, x.Status, x.AssignedBy, x.AssignedAt, x.ConfirmBy, x.ConfirmedAt)).ToArray(), registration.ReviewNote);
     }
 
     public async Task<VolunteerReviewResult> Review(Guid reviewerId, Guid registrationId,
@@ -142,12 +149,19 @@ public sealed class VolunteerRegistrationService(
         if (decision is not ("APPROVE" or "WAITLIST" or "REJECT"))
             throw new ApiException(400, "Quyết định xét duyệt không hợp lệ.");
 
+        var located = await repository.FindForReview(registrationId, ct)
+            ?? throw new ApiException(404, "Không tìm thấy hồ sơ tình nguyện.");
+        if (!await reviewAccess.CanReview(located.CampaignId, reviewerId, ct))
+            throw new ApiException(403, "Bạn không được phân công xét duyệt tình nguyện viên cho chiến dịch này.");
+        var openings = decision == "APPROVE" ? await campaignOpenings.Get(located.CampaignId, ct) : null;
+        await using var gate = await repository.LockCampaign(located.CampaignId, ct);
         var registration = await repository.FindForUpdate(registrationId, ct)
             ?? throw new ApiException(404, "Không tìm thấy hồ sơ tình nguyện.");
-        if (!await reviewAccess.CanReview(registration.CampaignId, reviewerId, ct))
-            throw new ApiException(403, "Bạn không được phân công xét duyệt tình nguyện viên cho chiến dịch này.");
-        if (registration.Status is not ("SUBMITTED" or "UNDER_REVIEW" or "WAITLISTED"))
+        var replacing = registration.Status == "APPROVED" && decision == "APPROVE";
+        if (!replacing && registration.Status is not ("SUBMITTED" or "UNDER_REVIEW" or "WAITLISTED"))
             throw new ApiException(409, "Hồ sơ này đã có quyết định cuối cùng và không thể xét duyệt lại.");
+        if (replacing && string.IsNullOrWhiteSpace(request.Note))
+            throw new ApiException(400, "Hãy ghi lý do khi thay đổi nhóm đã phân công.");
 
         var groupIds = request.AssignedGroupIds ?? [];
         if (groupIds.Any(id => id == Guid.Empty) || groupIds.Distinct().Count() != groupIds.Length)
@@ -162,29 +176,34 @@ public sealed class VolunteerRegistrationService(
         var now = DateTimeOffset.UtcNow;
         if (decision == "APPROVE")
         {
-            var openings = await campaignOpenings.Get(registration.CampaignId, ct)
-                ?? throw new ApiException(409, "Chiến dịch đã đóng đăng ký; không thể phân nhóm tình nguyện viên.");
+            if (openings is null) throw new ApiException(409, "Chiến dịch đã đóng đăng ký; không thể phân nhóm tình nguyện viên.");
             var availableGroups = openings.Groups.ToDictionary(group => group.Id);
+            var chosen = new List<CampaignVolunteerOpeningGroup>();
+            var allowedDates = Dates(registration);
             foreach (var groupId in groupIds)
             {
                 if (!availableGroups.TryGetValue(groupId, out var group))
                     throw new ApiException(400, "Có nhóm không thuộc chiến dịch hoặc không còn mở đăng ký.");
                 var assigned = await repository.CountActiveAssignments(groupId, ct);
-                if (assigned >= group.Target)
+                var alreadyHeld = registration.GroupAssignments.Any(assignment => assignment.GroupId == groupId &&
+                    assignment.Status == "ACTIVE" && (assignment.ConfirmedAt.HasValue || assignment.ConfirmBy == null || assignment.ConfirmBy > now));
+                if (assigned >= group.Target && !alreadyHeld)
                     throw new ApiException(409, $"Nhóm {group.Name} đã đủ chỉ tiêu tình nguyện viên.");
+                if (group.Date is not DateOnly day || allowedDates is not null && !allowedDates.Contains(day) ||
+                    IsOverlapping(group, chosen, openings) || Deadline(group, openings, now) <= now)
+                    throw new ApiException(409, "Ca không phù hợp với lịch của người đăng ký hoặc bị trùng giờ.");
+                chosen.Add(group);
             }
 
             registration.Status = "APPROVED";
-            var assignments = groupIds.Select(groupId => new VolunteerGroupAssignment
+            foreach (var previous in registration.GroupAssignments.Where(assignment => assignment.Status == "ACTIVE" && !groupIds.Contains(assignment.GroupId)))
+                previous.Status = "REMOVED";
+            foreach (var group in chosen)
             {
-                RegistrationId = registration.Id,
-                CampaignId = registration.CampaignId,
-                GroupId = groupId,
-                AssignedBy = reviewerId,
-                AssignedAt = now,
-                Status = "ACTIVE"
-            }).ToArray();
-            repository.AddAssignments(assignments);
+                if (registration.GroupAssignments.Any(assignment => assignment.GroupId == group.Id && assignment.Status == "ACTIVE" &&
+                    (assignment.ConfirmedAt.HasValue || assignment.ConfirmBy == null || assignment.ConfirmBy > now))) continue;
+                Offer(registration, group, openings, now, reviewerId);
+            }
         }
         else
         {
@@ -196,14 +215,15 @@ public sealed class VolunteerRegistrationService(
         registration.ReviewNote = Normalize(request.Note);
         registration.RejectionReason = decision == "REJECT" ? Normalize(request.Note) : null;
         registration.UpdatedAt = now;
-        await repository.Save(ct);
+        Notify(registration, now, decision == "APPROVE" ? "OFFERED" : registration.Status);
+        await SaveAndPromote(replacing ? openings : null, now, ct);
 
         return new VolunteerReviewResult(registration.Id, registration.CampaignId, registration.Status,
             reviewerId, now, registration.ReviewNote, registration.RejectionReason,
             registration.GroupAssignments.Where(group => group.Status == "ACTIVE")
                 .OrderBy(group => group.AssignedAt)
                 .Select(group => new VolunteerGroupAssignmentResult(group.GroupId, group.Status,
-                    group.AssignedBy, group.AssignedAt)).ToArray());
+                    group.AssignedBy, group.AssignedAt, group.ConfirmBy, group.ConfirmedAt)).ToArray());
     }
 
     public async Task<VolunteerGroupsManagementView> GroupManagement(Guid reviewerId, Guid campaignId, CancellationToken ct)
@@ -217,12 +237,13 @@ public sealed class VolunteerRegistrationService(
             ?? throw new ApiException(404, "Chiến dịch chưa mở đăng ký tình nguyện viên.");
         var groupIds = openings.Groups.Select(group => group.Id).ToArray();
         var counts = await repository.CountActiveAssignments(campaignId, groupIds, ct);
+        var confirmed = await repository.CountConfirmedAssignments(campaignId, ct);
         var groups = openings.Groups.Select(group =>
         {
             var assigned = counts.GetValueOrDefault(group.Id);
             return new VolunteerGroupManagementItem(group.Id, group.Name, group.Category, group.Target,
                 assigned, Math.Max(0, group.Target - assigned), group.Date, group.ActivityTitle, group.TeamName,
-                group.TeamLeaderName);
+                group.TeamLeaderName, confirmed.GetValueOrDefault(group.Id));
         }).ToArray();
         var pending = await repository.CountPending(campaignId, ct);
         return new VolunteerGroupsManagementView(campaignId, openings.CampaignTitle, pending,
@@ -243,7 +264,7 @@ public sealed class VolunteerRegistrationService(
         return (await repository.GroupMembers(campaignId, groupId, ct)).Select(assignment =>
             new VolunteerGroupMember(assignment.RegistrationId, assignment.Registration.FullName,
                 assignment.Registration.Email, assignment.Registration.PhoneNumber,
-                assignment.AssignedAt, assignment.AssignedBy)).ToArray();
+                assignment.AssignedAt, assignment.AssignedBy, assignment.ConfirmBy, assignment.ConfirmedAt)).ToArray();
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

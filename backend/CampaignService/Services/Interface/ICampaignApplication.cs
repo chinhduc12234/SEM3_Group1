@@ -1,10 +1,19 @@
 using CampaignService.Contracts;
 using CampaignService.Data;
+using Shared;
 
 namespace CampaignService.Services;
 
 public interface ICampaignApplication
 {
+    Task<LaunchContext> LaunchContext(Guid id, Guid actor, CancellationToken ct);
+    Task ConfirmLaunch(Guid id, LaunchConfirmCommand request, CancellationToken ct);
+    Task<CampaignStarted> StartLaunch(Guid id, LaunchStartCommand request, CancellationToken ct);
+    Task<AssignedFieldWork> AssignedWork(Guid org, Guid actor, int page, CancellationToken ct);
+    Task<BudgetReceiverCandidate[]> BudgetReceivers(Guid id, Guid actor, CancellationToken ct);
+    Task<ScheduleChangeView> ScheduleChange(Guid id, Guid actor, CancellationToken ct);
+    Task<ScheduleChangeView> RequestScheduleChange(Guid id, ScheduleChangeRequest request, Guid actor, CancellationToken ct);
+    Task<ScheduleChangeView> DecideScheduleChange(Guid id, ScheduleChangeDecision request, Guid actor, CancellationToken ct);
     Task<CampaignView> Create(CampaignRequest r, Guid actor, CancellationToken ct);
     Task<CampaignView> Update(Guid id, CampaignRequest r, Guid actor, CancellationToken ct);
     Task Delete(Guid id, string version, Guid actor, CancellationToken ct);
@@ -17,6 +26,7 @@ public interface ICampaignApplication
     Task<CampaignView> Assign(Guid id, CampaignAssignmentRequest request, Guid actor, CancellationToken ct);
     Task<OperationsView> Operations(Guid id, Guid actor, CancellationToken ct);
     Task<CampaignVolunteerOpenings> VolunteerOpenings(Guid id, CancellationToken ct);
+    Task<CampaignDonationContext> DonationContext(Guid id, bool includeRecipients, CancellationToken ct);
     Task<ActivityPhotoReport[]> ActivityPhotoReports(Guid id, Guid actor, CancellationToken ct);
     Task<ActivityPhotoReport> SendActivityPhoto(Guid id, Guid activityId, Guid reportId, string? note, IFormFile file, Guid actor, CancellationToken ct);
     Task<OperationsView> SaveOperations(Guid id, CampaignOperationsRequest request, Guid actor, CancellationToken ct);

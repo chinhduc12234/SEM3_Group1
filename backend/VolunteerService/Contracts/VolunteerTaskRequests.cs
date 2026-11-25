@@ -27,6 +27,9 @@ public sealed class AssignVolunteersToTaskRequest
     [Required, MinLength(1), MaxLength(100)] public Guid[] RegistrationIds { get; set; } = [];
 }
 
+public sealed record VolunteerTaskCandidate(Guid RegistrationId, string FullName);
+public sealed record TaskResponseRequest(bool Accept, [MaxLength(1000)] string? Note);
+
 public sealed record VolunteerTaskAssignmentView(Guid Id, Guid RegistrationId, string VolunteerName,
     string Status, Guid AssignedBy, DateTimeOffset AssignedAt, DateTimeOffset? StartedAt,
     DateTimeOffset? CompletedAt, string? VolunteerNote, string? ManagerNote);

@@ -10,8 +10,8 @@ import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
 const accountLinks = [
   ["/account", "Hồ sơ cá nhân", "◉", "Tài khoản"],
   ["/account/security", "Bảo mật", "◇", "An toàn tài khoản"],
-  ["/account/payments", "Thanh toán", "₫", "Ví & ngân hàng"],
-  ["/account/history", "Lịch sử tham gia", "◷", "Đóng góp & hoạt động"],
+  ["/account/payments", "Ủng hộ của tôi", "₫", "Tiền & hiện vật"],
+  ["/account/history", "Lịch sử tham gia", "◷", "Tình nguyện & nhiệm vụ"],
 ] as const;
 
 const supportLinks = [["/account/policies", "Chính sách", "§", "Quyền lợi & quy định"]] as const;

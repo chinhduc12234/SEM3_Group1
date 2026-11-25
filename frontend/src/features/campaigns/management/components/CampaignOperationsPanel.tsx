@@ -36,6 +36,7 @@ type Team = {
 type VolunteerGroup = {
   id: string; name: string; categoryId: string; volunteerCount: number;
   dayId: string | null; activityId: string | null; teamId: string | null; notes: string;
+  isPriority?: boolean; requiresReview?: boolean; minimumConfirmed?: number | null;
 };
 type Plan = { days: Day[]; teams: Team[]; resources: unknown[]; volunteerGroups: VolunteerGroup[] };
 export type OperationsView = {
@@ -124,6 +125,9 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
   const summaryRef = useRef<HTMLDivElement>(null);
   const focusSummary = useRef(false);
   const endpoint = `/api/campaigns/${campaignId}/operations`;
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "volunteers") setWorkspaceTab("volunteers");
+  }, [campaignId]);
   const photoReports = useActivityPhotoReports(campaignId);
   useEffect(() => {
     const controller = new AbortController();
@@ -461,6 +465,13 @@ export default function CampaignOperationsPanel({ campaign }: { campaign: Campai
                   </select>
                 </label>
                 {quantity("Số tình nguyện viên dự kiến", group.volunteerCount, (volunteerCount) => update({ volunteerCount }))}
+                <label><input type="checkbox" checked={group.isPriority ?? false} onChange={(event) => update({ isPriority: event.target.checked })} /> Ưu tiên lấp suất</label>
+                <label>Mức xác nhận tối thiểu để bắt đầu
+                  <input type="number" min={0} max={group.volunteerCount} value={group.minimumConfirmed ?? ""}
+                    placeholder={group.isPriority ? String(group.volunteerCount) : "0"}
+                    onChange={(event) => update({ minimumConfirmed: event.target.value === "" ? null : event.target.valueAsNumber })} />
+                </label>
+                <label><input type="checkbox" checked={group.requiresReview ?? false} onChange={(event) => update({ requiresReview: event.target.checked })} /> Cần điều phối viên xác minh trước khi xếp</label>
                 <label>Ngày tham gia
                   <select value={group.dayId ?? ""} onChange={(e) => update({ dayId: e.target.value || null, activityId: null })}>
                     <option value="">Chọn ngày</option>

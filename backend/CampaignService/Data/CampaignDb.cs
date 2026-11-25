@@ -29,6 +29,10 @@ public sealed class Campaign
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? SubmittedAt { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public Guid? StartedBy { get; set; }
+    public Guid? StartedSubmissionId { get; set; }
+    public string? LaunchConfirmations { get; set; }
     public byte[] Version { get; set; } = [];
     public List<CampaignReview> Reviews { get; set; } = [];
     public List<CampaignMedia> Media { get; set; } = [];

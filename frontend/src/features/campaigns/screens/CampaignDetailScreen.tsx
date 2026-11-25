@@ -17,7 +17,7 @@ import {
 import { formatCampaignDate as date } from "../formatCampaignDate";
 import CampaignSupport from "../components/CampaignSupport";
 import CampaignItinerary from "../components/CampaignItinerary";
-import VolunteerRegistrationWizard from "../components/VolunteerRegistrationWizard";
+import CampaignParticipationOptions from "../components/CampaignParticipationOptions";
 export default function CampaignDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -107,6 +107,8 @@ export default function CampaignDetailScreen() {
               )}
               <div className={campaignStyles.storyLayout}>
                 <article className={campaignStyles.story} data-cp-story="">
+                  {campaign.status === "PUBLISHED" &&
+                    <CampaignParticipationOptions key={campaign.id} campaign={campaign} />}
                   <section className={campaignStyles.detailSection}>
                     <h2>Thông tin chương trình</h2>
                     <div className={campaignStyles.storyBody}>
@@ -163,8 +165,6 @@ export default function CampaignDetailScreen() {
                     details={details}
                     onDownloadError={setError}
                   />}
-                  {campaign.status === "PUBLISHED" &&
-                    <VolunteerRegistrationWizard campaign={campaign} details={details} />}
                   <CampaignItinerary
                     schedules={schedules}
                     stops={stops}

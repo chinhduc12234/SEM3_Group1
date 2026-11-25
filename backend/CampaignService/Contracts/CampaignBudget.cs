@@ -14,9 +14,12 @@ public sealed record BudgetReceiving(BudgetBank? Bank, BudgetGoods? Goods);
 public sealed record BudgetBank([MaxLength(120)] string BankName, [MaxLength(150)] string AccountHolder,
     [MaxLength(40)] string AccountNumber, Guid? QrMediaId, [MaxLength(300)] string TransferNote);
 public sealed record BudgetGoods([MaxLength(1000)] string AcceptedItems, [MaxLength(400)] string Address,
-    [MaxLength(200)] string ReceivingHours, [MaxLength(160)] string Contact);
+    [MaxLength(200)] string ReceivingHours, [MaxLength(160)] string Contact,
+    [MaxLength(200)] Guid[]? BudgetItemIds = null, [MaxLength(50)] Guid[]? ReceiverUserIds = null,
+    TimeOnly? OpensAt = null, TimeOnly? ClosesAt = null, [Range(1, 1000)] int? AppointmentsPerHour = null);
 public sealed record SaveBudgetRequest([Required] string Version, [Required] BudgetPlan Plan, bool Confirm);
 public sealed record BudgetCategory(string Id, string Name);
+public sealed record BudgetReceiverCandidate(Guid UserId, string FullName);
 public sealed record BudgetActivity(Guid Id, string Title, DateOnly? Date, int StaffNeeded, int VolunteersNeeded);
 public sealed record BudgetTotals(decimal Estimated, decimal ConfirmedFunding, decimal ExpectedFunding, decimal FundraisingGoal);
 public sealed record BudgetView(string Version, BudgetPlan? Plan, BudgetTotals? Totals, DateTimeOffset? ConfirmedAt,

@@ -33,6 +33,17 @@ public sealed partial class CampaignApplication
             assigned && IsModernPublication(campaign));
     }
 
+    public async Task<BudgetReceiverCandidate[]> BudgetReceivers(Guid id, Guid actor, CancellationToken ct)
+    {
+        var campaign = await Get(id, ct);
+        var permission = await RequireRead(campaign, actor, ct);
+        if (!HasAssignment(campaign, actor, permission, FinanceRole))
+            throw new ApiException(403, "Bạn chưa được phân công cấu hình điểm nhận.");
+        EnsurePlanning(campaign);
+        return (await access.Members(campaign.OrganizationId, ct)).OrderBy(member => member.FullName)
+            .Select(member => new BudgetReceiverCandidate(member.UserId, member.FullName)).ToArray();
+    }
+
     public async Task<BudgetView> SaveBudget(Guid id, SaveBudgetRequest request, Guid actor, CancellationToken ct)
     {
         var campaign = await Get(id, ct);
@@ -44,6 +55,11 @@ public sealed partial class CampaignApplication
         var plan = request.Plan with { Receiving = NormalizeReceiving(request.Plan.Receiving) };
         var activities = BudgetActivities(ReadOperationsPlan(campaign));
         ValidateBudget(plan, activities, campaign, request.Confirm);
+        if (request.Confirm && plan.Receiving?.Goods?.ReceiverUserIds is { Length: > 0 } receiverIds)
+        {
+            var members = (await access.Members(campaign.OrganizationId, ct)).Select(member => member.UserId).ToHashSet();
+            if (receiverIds.Any(id => !members.Contains(id))) throw new ApiException(400, "Người tiếp nhận phải là thành viên đang hoạt động.");
+        }
         var actuals = ReadBudgetPlan(campaign)?.Expenses.Where(expense => expense.ActualAmount.HasValue)
             .ToDictionary(expense => expense.Id, expense => expense.ActualAmount) ?? [];
         if (actuals.Keys.Except(plan.Expenses.Select(expense => expense.Id)).Any())
@@ -171,6 +187,11 @@ public sealed partial class CampaignApplication
         if (plan.Receiving?.Bank?.QrMediaId is Guid qrId &&
             !campaign.Media.Any(media => media.Id == qrId && media.Kind == ReceivingQrKind))
             throw new ApiException(400, "Chọn mã QR đã tải cho ngân sách của hồ sơ này.");
+        if (plan.Receiving?.Goods is { } point &&
+            (point.OpensAt.HasValue != point.ClosesAt.HasValue || point.OpensAt >= point.ClosesAt ||
+             point.ReceiverUserIds?.Any(id => id == Guid.Empty) == true ||
+             point.BudgetItemIds?.Any(id => !plan.Expenses.Any(expense => expense.Id == id)) == true))
+            throw new ApiException(400, "Chọn hạng mục, người tiếp nhận và khung giờ nhận hiện vật hợp lệ.");
         if (!confirm) return;
         if ((plan.Receiving?.Bank is { } bank && (string.IsNullOrWhiteSpace(bank.BankName) ||
             string.IsNullOrWhiteSpace(bank.AccountHolder) || string.IsNullOrWhiteSpace(bank.AccountNumber))) ||
