@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import managementStyles from "@/features/campaigns/management/CampaignManagement.module.css";
 import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
+import { ProcessSteps, StatusPill } from "@/shared/ui/StatusVisuals";
 import { useCampaignManagement } from "./hooks/useCampaignManagement";
 import CampaignList from "./components/CampaignList";
 import OwnerReviewPanel from "./components/OwnerReviewPanel";
@@ -26,6 +27,11 @@ const detailTabs = [
   ["operations", "Vận hành"],
   ["budget", "Ngân sách"],
 ] as const;
+const lifecycle = ["Đề xuất", "Duyệt ý tưởng", "Lập kế hoạch", "Duyệt kế hoạch", "Công bố"];
+const lifecycleStage: Record<string, number | undefined> = {
+  DRAFT: 0, NEEDS_REVISION: 0, PENDING_REVIEW: 1, PENDING_CONCEPT_APPROVAL: 1, CONCEPT_APPROVED: 2,
+  PLANNING: 2, PENDING_FINAL_REVIEW: 3, FINAL_APPROVED: 4, PUBLISHED: 4,
+};
 
 export default function CampaignManagementScreen({ createPage = false, campaignId, workflowPage = false }: {
   createPage?: boolean; campaignId?: string; workflowPage?: boolean;
@@ -85,6 +91,7 @@ export default function CampaignManagementScreen({ createPage = false, campaignI
     submittedStops,
   } = model;
   const detailPage = !!campaignId && !workflowPage;
+  const lifecyclePosition = selected ? lifecycleStage[selected.status] : undefined;
   const showInformation = !detailPage || activeTab === "information";
   const canOpenPage = createPage ? manager : workflowPage ? owner || manager : campaignId || linkedCampaign ? canViewDetails : canList;
   const canSubmitFinal = manager && !!actorId && !!selected?.assignments.some((assignment) =>
@@ -114,9 +121,15 @@ export default function CampaignManagementScreen({ createPage = false, campaignI
           {selected && <header className={managementStyles.detailHeader}>
             <div className={managementStyles.detailMeta}>
               <span>{campaignTypes[selected.campaignType]}</span>
-              <span className={`badge ${selected.status}`}>{campaignStatuses[selected.status]}</span>
+              <StatusPill tone={selected.status === "PUBLISHED" ? "positive" : selected.status.includes("REJECTED") ? "danger" : "info"}>
+                {campaignStatuses[selected.status] ?? selected.status}
+              </StatusPill>
             </div>
             <h1>{selected.title || "Đề xuất chưa có tên"}</h1>
+            {detailPage && selected.status === "PUBLISHED" && selected.finalSubmissionId &&
+              <Link className="secondary" href={`${campaignsPath}/${selected.id}/readiness`}>Sẵn sàng và bắt đầu</Link>}
+            {lifecyclePosition !== undefined && (selected.status !== "PUBLISHED" || !!selected.finalSubmissionId) &&
+              <ProcessSteps labels={lifecycle} current={lifecyclePosition} finished={selected.status === "PUBLISHED"} />}
           </header>}
         </>}
         {!createPage && !campaignId && (

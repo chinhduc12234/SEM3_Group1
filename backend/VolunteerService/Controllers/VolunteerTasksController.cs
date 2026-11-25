@@ -17,6 +17,10 @@ public sealed class VolunteerTasksController(IVolunteerTaskService service) : Co
     public Task<VolunteerTaskView[]> List(Guid campaignId, Guid activityId, Guid groupId, CancellationToken ct) =>
         service.List(Actor, campaignId, activityId, groupId, ct);
 
+    [HttpGet("campaigns/{campaignId:guid}/activities/{activityId:guid}/groups/{groupId:guid}/task-candidates")]
+    public Task<VolunteerTaskCandidate[]> Candidates(Guid campaignId, Guid activityId, Guid groupId, CancellationToken ct) =>
+        service.Candidates(Actor, campaignId, activityId, groupId, ct);
+
     [HttpPost("tasks")]
     public async Task<IActionResult> Create(CreateVolunteerTaskRequest request, CancellationToken ct)
     {
@@ -51,6 +55,10 @@ public sealed class VolunteerTasksController(IVolunteerTaskService service) : Co
 
     [HttpGet("me/tasks")]
     public Task<MyVolunteerTaskView[]> Mine(CancellationToken ct) => service.Mine(Actor, ct);
+
+    [HttpPost("me/tasks/{assignmentId:guid}/response")]
+    public Task<MyVolunteerTaskView> Respond(Guid assignmentId, TaskResponseRequest request, CancellationToken ct) =>
+        service.Respond(Actor, assignmentId, request, ct);
 
     [HttpPost("me/tasks/{assignmentId:guid}/complete")]
     public Task<MyVolunteerTaskView> CompleteMyAssignment(Guid assignmentId, CancellationToken ct) =>

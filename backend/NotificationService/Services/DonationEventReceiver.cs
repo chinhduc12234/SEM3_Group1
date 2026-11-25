@@ -21,7 +21,7 @@ public sealed class DonationEventReceiver(NotificationDb db)
             item.ReceivedQuantity < 0 || item.ReceivedQuantity > item.Quantity || item.ReceivedNow < 0 ||
             item.ReceivedNow > item.Quantity || item.OccurredAt == default ||
             item.ManagerUserIds is null || item.ManagerUserIds.Length > 100 ||
-            item.EventType is not ("SUBMITTED" or "APPROVED" or "REJECTED" or "RECEIVED"))
+            item.EventType is not ("SUBMITTED" or "APPROVED" or "REJECTED" or "RECEIVED" or "SCHEDULED" or "RESCHEDULED" or "CANCELLED" or "ADJUSTED"))
             throw new ApiException(400, "Sự kiện đề nghị tặng hiện vật không hợp lệ.");
         if (item.EventType == "SUBMITTED" && item.ManagerUserIds.Length == 0)
             throw new ApiException(503, "Chiến dịch chưa phân công quản lý để nhận đề nghị hiện vật.");
@@ -43,6 +43,10 @@ public sealed class DonationEventReceiver(NotificationDb db)
             "SUBMITTED" => $"{item.DonorName} đề nghị tặng {item.Quantity:N2} {item.Unit} cho khoản {item.TargetName} của chiến dịch {item.CampaignTitle}.",
             "APPROVED" => $"Đề nghị tặng {item.Quantity:N2} {item.Unit} cho khoản {item.TargetName} trong chiến dịch {item.CampaignTitle} đã được duyệt.",
             "REJECTED" => $"Đề nghị tặng {item.Quantity:N2} {item.Unit} cho khoản {item.TargetName} trong chiến dịch {item.CampaignTitle} đã bị từ chối.",
+            "SCHEDULED" => $"Lịch giao {item.TargetName} cho {item.CampaignTitle} đã được xác nhận.",
+            "RESCHEDULED" => $"Lịch giao {item.TargetName} cho {item.CampaignTitle} đã được đổi.",
+            "CANCELLED" => $"Lịch giao {item.TargetName} cho {item.CampaignTitle} đã được hủy.",
+            "ADJUSTED" => $"Phiếu nhận {item.TargetName} đã được điều chỉnh. Đã nhận {item.ReceivedQuantity:N2}/{item.Quantity:N2} {item.Unit}.",
             _ => $"Chiến dịch {item.CampaignTitle} đã ghi nhận thêm {item.ReceivedNow:N2} {item.Unit} cho khoản {item.TargetName}; tổng đã nhận {item.ReceivedQuantity:N2}/{item.Quantity:N2} {item.Unit}."
         };
         if (message.Length > 500) message = message[..497] + "...";
@@ -56,19 +60,23 @@ public sealed class DonationEventReceiver(NotificationDb db)
                 "SUBMITTED" => "IN_KIND_PLEDGE_SUBMITTED",
                 "APPROVED" => "IN_KIND_PLEDGE_APPROVED",
                 "REJECTED" => "IN_KIND_PLEDGE_REJECTED",
-                _ => "IN_KIND_PLEDGE_RECEIVED"
+                _ => "IN_KIND_PLEDGE_" + item.EventType
             },
             Title = item.EventType switch
             {
                 "SUBMITTED" => "Có đề nghị tặng hiện vật mới",
                 "APPROVED" => "Đề nghị tặng hiện vật đã được duyệt",
                 "REJECTED" => "Đề nghị tặng hiện vật chưa được duyệt",
+                "SCHEDULED" => "Đã đặt lịch giao hiện vật",
+                "RESCHEDULED" => "Đã đổi lịch giao hiện vật",
+                "CANCELLED" => "Đã hủy lịch giao hiện vật",
+                "ADJUSTED" => "Đã điều chỉnh số hiện vật nhận",
                 _ => "Đã ghi nhận nhận hiện vật"
             },
             Message = message,
             Url = isSubmission
                 ? $"/organizations/{item.OrganizationId}/manage/budget/{item.CampaignId}"
-                : "/account/history",
+                : $"/account/payments?pledge={item.PledgeId}",
             CreatedAt = item.OccurredAt
         };
 
@@ -159,7 +167,7 @@ public sealed class DonationEventReceiver(NotificationDb db)
                 Kind = "DONATION_CONFIRMED",
                 Title = isDonor ? "Khoản ủng hộ đã được ghi nhận" : "Có khoản ủng hộ mới",
                 Message = isDonor ? donorMessage : managerMessage,
-                Url = isDonor ? "/notifications" : $"/organizations/{item.OrganizationId}/manage/budget/{item.CampaignId}",
+                Url = isDonor ? $"/account/payments?payment={item.DonationId}" : $"/organizations/{item.OrganizationId}/manage/budget/{item.CampaignId}",
                 CreatedAt = item.ConfirmedAt
             };
         }).ToArray();

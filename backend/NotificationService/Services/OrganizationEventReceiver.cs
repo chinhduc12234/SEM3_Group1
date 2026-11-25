@@ -23,7 +23,8 @@ public sealed class OrganizationEventReceiver(NotificationDb db, IHttpClientFact
     {
         if (item.EventId == Guid.Empty || item.OrganizationId == Guid.Empty || item.CampaignId == Guid.Empty ||
             item.UserId == Guid.Empty || string.IsNullOrWhiteSpace(item.CampaignTitle) || item.CampaignTitle.Length > 200 ||
-            item.Roles is null || item.Roles.Length is < 1 or > 3 ||
+            item.Roles is null || item.Roles.Length > 3 || (item.ScheduleChanged ? item.Roles.Length != 0 : item.Roles.Length == 0) ||
+            (item.ScheduleChanged && (item.CampaignStarted || item.ActivityReportId.HasValue)) ||
             item.Roles.Any(role => role is not ("CAMPAIGN_MANAGER" or "VOLUNTEER_COORDINATOR" or "FINANCE_MANAGER")))
             throw new ApiException(400, "Sự kiện phân công không hợp lệ.");
         var roles = item.Roles.Select(role => role switch
@@ -35,10 +36,13 @@ public sealed class OrganizationEventReceiver(NotificationDb db, IHttpClientFact
         var notification = new Notification
         {
             EventId = item.EventId, OrganizationId = item.OrganizationId, UserId = item.UserId,
-            Kind = item.ActivityReportId.HasValue ? "ACTIVITY_PHOTO_REPORT" : "CAMPAIGN_ASSIGNED",
-            Title = item.ActivityReportId.HasValue ? "Có báo cáo ảnh hoạt động mới" : "Bạn được phân công một hồ sơ",
-            Message = item.ActivityReportId.HasValue ? item.CampaignTitle : $"Vai trò: {string.Join(", ", roles)}. Hồ sơ: {item.CampaignTitle}.",
-            Url = item.ActivityReportId.HasValue
+            Kind = item.ScheduleChanged ? "CAMPAIGN_SCHEDULE_CHANGED" : item.CampaignStarted ? "CAMPAIGN_STARTED" : item.ActivityReportId.HasValue ? "ACTIVITY_PHOTO_REPORT" : "CAMPAIGN_ASSIGNED",
+            Title = item.ScheduleChanged ? "Địa điểm hoạt động đã thay đổi" : item.CampaignStarted ? "Chương trình đã bắt đầu" :
+                item.ActivityReportId.HasValue ? "Có báo cáo ảnh hoạt động mới" : "Bạn được phân công một hồ sơ",
+            Message = item.ScheduleChanged || item.CampaignStarted || item.ActivityReportId.HasValue ? item.CampaignTitle : $"Vai trò: {string.Join(", ", roles)}. Hồ sơ: {item.CampaignTitle}.",
+            Url = item.ScheduleChanged ? $"/chien-dich/{item.CampaignId}" : item.CampaignStarted
+                ? $"/organizations/{item.OrganizationId}/manage/campaigns/{item.CampaignId}/readiness"
+                : item.ActivityReportId.HasValue
                 ? $"/organizations/{item.OrganizationId}/manage/campaigns/{item.CampaignId}?tab=operations#activity-reports"
                 : $"/organizations/{item.OrganizationId}/manage/campaigns?campaign={item.CampaignId}"
         };

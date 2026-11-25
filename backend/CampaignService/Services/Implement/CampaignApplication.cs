@@ -8,7 +8,8 @@ using System.Text.RegularExpressions;
 
 namespace CampaignService.Services;
 
-public sealed partial class CampaignApplication(ICampaignRepository repository, IOrganizationAccess access, IConfiguration configuration, CampaignDb db) : ICampaignApplication
+public sealed partial class CampaignApplication(ICampaignRepository repository, IOrganizationAccess access, IConfiguration configuration,
+    CampaignDb db, IHttpClientFactory clients) : ICampaignApplication
 {
     private static readonly string[] Managers = ["CAMPAIGN_MANAGER"];
     private static readonly string[] Readers = ["CAMPAIGN_MANAGER", "OWNER", "VOLUNTEER_COORDINATOR", "FINANCE_MANAGER"];

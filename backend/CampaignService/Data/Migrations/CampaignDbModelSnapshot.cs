@@ -87,6 +87,9 @@ namespace CampaignService.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("LaunchConfirmations")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(400)
@@ -112,6 +115,15 @@ namespace CampaignService.Data.Migrations
 
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("StartedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("StartedSubmissionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
                         .IsRequired()

@@ -294,7 +294,7 @@ public sealed partial class CampaignApplication
             activities.Any(ActivityIncomplete) ||
             plan.Teams.Any(x => x.LeadUserId is null || string.IsNullOrWhiteSpace(x.Name) || string.IsNullOrWhiteSpace(x.Duties)) ||
             plan.VolunteerGroups!.Any(x => string.IsNullOrWhiteSpace(x.Name) || string.IsNullOrWhiteSpace(x.CategoryId) ||
-                x.VolunteerCount <= 0 || x.DayId is null || x.TeamId is null))
+                x.VolunteerCount <= 0 || x.MinimumConfirmed > x.VolunteerCount || x.DayId is null || x.TeamId is null))
             throw new ApiException(400, "Hãy hoàn thành lịch, đội và các nhóm tình nguyện đã thêm trước khi xác nhận.");
     }
 

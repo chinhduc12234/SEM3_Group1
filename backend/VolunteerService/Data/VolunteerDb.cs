@@ -20,6 +20,7 @@ public sealed class VolunteerRegistration
     public string? EmergencyContactName { get; set; }
     public string? EmergencyContactPhone { get; set; }
     public bool CommitsToAllDays { get; set; }
+    public string? AvailableDatesJson { get; set; }
     public bool AgreedToTerms { get; set; }
     public DateTimeOffset? TermsAgreedAt { get; set; }
     public string Status { get; set; } = "SUBMITTED";
@@ -47,6 +48,13 @@ public sealed class RegistrationGroupPreference
 }
 
 // GroupId and CampaignId are logical references owned by CampaignService.
+public sealed class VolunteerRosterHold
+{
+    public Guid CampaignId { get; set; }
+    public Guid Token { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+}
+
 public sealed class VolunteerGroupAssignment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -55,6 +63,8 @@ public sealed class VolunteerGroupAssignment
     public Guid GroupId { get; set; }
     public Guid AssignedBy { get; set; }
     public DateTimeOffset AssignedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? ConfirmBy { get; set; }
+    public DateTimeOffset? ConfirmedAt { get; set; }
     public string Status { get; set; } = "ACTIVE";
     public VolunteerRegistration Registration { get; set; } = null!;
 }
@@ -133,6 +143,7 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
     public DbSet<VolunteerRegistration> Registrations => Set<VolunteerRegistration>();
     public DbSet<RegistrationGroupPreference> RegistrationGroupPreferences => Set<RegistrationGroupPreference>();
     public DbSet<VolunteerGroupAssignment> GroupAssignments => Set<VolunteerGroupAssignment>();
+    public DbSet<VolunteerRosterHold> LaunchRosterHolds => Set<VolunteerRosterHold>();
     public DbSet<VolunteerTask> Tasks => Set<VolunteerTask>();
     public DbSet<TaskAssignment> TaskAssignments => Set<TaskAssignment>();
     public DbSet<VolunteerAttendance> Attendances => Set<VolunteerAttendance>();
@@ -140,6 +151,7 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<VolunteerRosterHold>().HasKey(item => item.CampaignId);
         var registration = b.Entity<VolunteerRegistration>();
         registration.ToTable("VolunteerRegistrations", t => t.HasCheckConstraint(
             "CK_VolunteerRegistrations_Status", "[Status] IN ('SUBMITTED','UNDER_REVIEW','APPROVED','WAITLISTED','REJECTED','WITHDRAWN')"));
@@ -175,6 +187,7 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
             .HasForeignKey(x => x.RegistrationId).OnDelete(DeleteBehavior.Restrict);
         groupAssignment.HasIndex(x => new { x.RegistrationId, x.GroupId }).IsUnique();
         groupAssignment.HasIndex(x => new { x.CampaignId, x.GroupId, x.Status });
+        groupAssignment.HasIndex(x => new { x.Status, x.ConfirmBy });
 
         var task = b.Entity<VolunteerTask>();
         task.ToTable("Tasks", t =>
@@ -223,7 +236,7 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
         notification.Property(x => x.LastErrorCode).HasMaxLength(80);
         notification.HasKey(x => x.Id);
         notification.HasIndex(x => new { x.DeliveredAt, x.NextAttemptAt });
-        notification.HasIndex(x => x.RegistrationId).IsUnique();
+        notification.HasIndex(x => x.RegistrationId);
     }
 }
 

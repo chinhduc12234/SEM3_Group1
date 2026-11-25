@@ -17,7 +17,10 @@ export default function Protected({
   const { user, loading, sessionUnavailable, retrySession } = useAuth();
   const router = useRouter();
   useEffect(() => {
-    if (!loading && !sessionUnavailable && !user) router.replace("/login");
+    if (!loading && !sessionUnavailable && !user) {
+      const returnTo = window.location.pathname + window.location.search;
+      router.replace("/login?" + new URLSearchParams({ returnTo }));
+    }
   }, [loading, sessionUnavailable, user, router]);
   if (sessionUnavailable)
     return (

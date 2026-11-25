@@ -1,10 +1,13 @@
-using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using DonationService.Contracts;
 using DonationService.Data;
 using DonationService.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 
@@ -13,7 +16,7 @@ namespace DonationService.Controllers;
 [ApiController, Route("api/donations")]
 public sealed class DonationsController(DonationDb db, CampaignDonationClient campaigns,
     DonationAccountDirectory accounts, DonationSandboxPaymentService sandboxPayments,
-    FundraisingProgressService progress) : ControllerBase
+    FundraisingProgressService progress, InKindIntakeService intake) : ControllerBase
 {
     private static readonly JsonSerializerOptions NotificationJson = new(JsonSerializerDefaults.Web);
     private DonationActor Actor => DonationActor.From(User);
@@ -21,69 +24,111 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
     [AllowAnonymous, HttpGet("campaigns/{campaignId:guid}/summary")]
     public async Task<DonationSummary> Summary(Guid campaignId, CancellationToken ct)
     {
-        var context = await campaigns.Get(campaignId, ct);
-        return await progress.Summary(context, ct);
+        var context = await campaigns.Get(campaignId, ct, includeRecipients: false);
+        var summary = await progress.Summary(context, ct);
+        return summary with { MoneyAvailability = sandboxPayments.Availability(context, summary, DateTimeOffset.UtcNow) };
     }
 
-    [Authorize, HttpPost]
+    [Authorize, HttpPost, EnableRateLimiting("sandbox-create")]
     public async Task<IActionResult> Create(CreateDonationRequest request, CancellationToken ct)
     {
-        if (request.CampaignId == Guid.Empty || request.BudgetItemId == Guid.Empty || request.Amount <= 0 ||
-            request.Amount != decimal.Truncate(request.Amount) || request.Amount > 1_000_000_000_000_000m)
-            throw new ApiException(400, "Chọn khoản dự toán và nhập số tiền VND nguyên lớn hơn 0.");
-        var context = await campaigns.Get(request.CampaignId, ct);
-        var target = context.Targets.SingleOrDefault(x => x.Id == request.BudgetItemId)
-            ?? throw new ApiException(400, "Khoản dự toán không thuộc mục tiêu gây quỹ công khai của chiến dịch.");
-        var donor = await accounts.Get(Actor.UserId, ct);
-        await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), $"GiveAid.Fundraising.{context.CampaignId:N}");
-        if (!await gate.Acquire(ct)) throw new ApiException(409, "Đang ghi nhận hỗ trợ khác cho chiến dịch này; vui lòng thử lại.");
-        var summary = await progress.Summary(context, ct);
-        var targetProgress = summary.Targets.SingleOrDefault(x => x.BudgetItemId == target.Id);
-        if (summary.IsClosed || targetProgress is null || targetProgress.IsComplete)
-            throw new ApiException(409, "Mục tiêu này đã đủ; chiến dịch không nhận thêm khoản ủng hộ này.");
-        var activePending = await db.Donations.Where(x => x.CampaignId == context.CampaignId && x.BudgetItemId == target.Id &&
-            (x.Status == "PENDING" || x.Status == "OTP_PENDING") && x.CreatedAt > DateTimeOffset.UtcNow.AddMinutes(-15))
-            .SumAsync(x => (decimal?)x.Amount, ct) ?? 0m;
-        if (request.Amount > Math.Max(0m, targetProgress.RemainingAmount - activePending))
-            throw new ApiException(409, "Số tiền vượt quá phần mục tiêu còn thiếu; hãy nhập số tiền nhỏ hơn.");
-        var donation = new DonationRecord
-        {
-            CampaignId = context.CampaignId, BudgetItemId = target.Id, DonorUserId = Actor.UserId,
-            DonorName = donor.FullName, DonorEmail = donor.Email, CampaignTitle = context.CampaignTitle,
-            TargetName = target.Name, Amount = request.Amount, Status = "PENDING",
-            PaymentMethod = "SIMULATED_QR", Reference = "GA-DON-" + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant()
-        };
-        db.Donations.Add(donation);
-        await db.SaveChangesAsync(ct);
-        return Created($"/api/donations/{donation.Id}", CreatedView(donation));
+        var donation = await sandboxPayments.Create(Actor.UserId, request, ct);
+        return Created($"/api/donations/{donation.Id}", donation);
     }
 
-    [Authorize, HttpPost("{id:guid}/sandbox/otp")]
+    [Authorize, HttpGet("{id:guid}")]
+    public Task<DonationCreated> Resume(Guid id, CancellationToken ct) => sandboxPayments.Resume(id, Actor.UserId, ct);
+
+    [Authorize, HttpPost("{id:guid}/sandbox/otp"), EnableRateLimiting("sandbox-otp")]
     public Task<SandboxOtpIssued> IssueSandboxOtp(Guid id, SandboxOtpRequest request, CancellationToken ct) =>
         sandboxPayments.IssueOtp(id, Actor.UserId, request.PayerAccountNumber, ct);
 
-    [Authorize, HttpPost("{id:guid}/sandbox/confirm")]
+    [Authorize, HttpPost("{id:guid}/sandbox/confirm"), EnableRateLimiting("sandbox-confirm")]
     public Task<DonationCreated> ConfirmSandboxPayment(Guid id, ConfirmSandboxOtpRequest request, CancellationToken ct) =>
         sandboxPayments.Confirm(id, Actor.UserId, request.Otp, ct);
 
     [Authorize, HttpGet("me")]
-    public async Task<DonationMine[]> Mine(CancellationToken ct) => await db.Donations.AsNoTracking()
-        .Where(x => x.DonorUserId == Actor.UserId).OrderByDescending(x => x.CreatedAt).Take(100)
-        .Select(x => new DonationMine(x.Id, x.CampaignId, x.CampaignTitle, x.TargetName, x.Amount,
-            x.Status, x.Reference, x.CreatedAt, x.ConfirmedAt)).ToArrayAsync(ct);
+    public Task<DonationMine[]> Mine([Range(1, 10_000)] int page = 1, CancellationToken ct = default)
+    {
+        const int holdMinutes = DonationSandboxPaymentService.HoldMinutes;
+        var cutoff = DateTimeOffset.UtcNow.AddMinutes(-holdMinutes);
+        return db.Donations.AsNoTracking().Where(x => x.DonorUserId == Actor.UserId)
+            .OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).Skip((page - 1) * 20).Take(20)
+            .Select(x => new DonationMine(x.Id, x.CampaignId, x.CampaignTitle, x.TargetName, x.Amount,
+                (x.Status == "PENDING" || x.Status == "OTP_PENDING") && x.CreatedAt <= cutoff ? "EXPIRED" : x.Status,
+                x.Reference, x.CreatedAt, x.ConfirmedAt, x.CreatedAt.AddMinutes(holdMinutes), x.PaymentMethod)).ToArrayAsync(ct);
+    }
+
+    [AllowAnonymous, HttpGet("campaigns/{campaignId:guid}/disclosure")]
+    public async Task<PublicDonationRow[]> Disclosure(Guid campaignId, [Range(1, 10_000)] int page = 1, CancellationToken ct = default)
+    {
+        await campaigns.Get(campaignId, ct, includeRecipients: false);
+        return await db.Donations.AsNoTracking().Where(row => row.CampaignId == campaignId && row.Status == "CONFIRMED")
+            .OrderByDescending(row => row.ConfirmedAt).ThenByDescending(row => row.Id).Skip((page - 1) * 20).Take(20)
+            .Select(row => new PublicDonationRow(row.PublishDonorName ? row.DonorName : null, row.TargetName,
+                row.Amount, row.ConfirmedAt, row.PaymentMethod)).ToArrayAsync(ct);
+    }
 
     [Authorize, HttpGet("manager/campaigns/{campaignId:guid}")]
-    public async Task<DonationManagerView> Manager(Guid campaignId, CancellationToken ct)
+    public async Task<DonationManagerView> Manager(Guid campaignId,
+        [Range(1, 100_000)] int page = 1, [Range(1, 100)] int pageSize = 50,
+        [RegularExpression("^(CONFIRMED|PENDING|OTP_PENDING|EXPIRED)$")] string? status = null, Guid? budgetItemId = null,
+        [MaxLength(40)] string? reference = null, DateTimeOffset? from = null, DateTimeOffset? to = null,
+        CancellationToken ct = default)
     {
         var context = await campaigns.Get(campaignId, ct);
         if (!context.ManagerUserIds.Contains(Actor.UserId)) throw new ApiException(403, "Chỉ quản lý chiến dịch hoặc quản lý ngân sách được xem các khoản ủng hộ.");
         var summary = await progress.Summary(context, ct);
-        var rows = await db.Donations.AsNoTracking().Where(x => x.CampaignId == campaignId)
-            .OrderByDescending(x => x.CreatedAt).Take(500)
+        var cutoff = DateTimeOffset.UtcNow.AddMinutes(-DonationSandboxPaymentService.HoldMinutes);
+        var records = db.Donations.AsNoTracking().Where(x => x.CampaignId == campaignId);
+        var pending = await records.CountAsync(x => (x.Status == "PENDING" || x.Status == "OTP_PENDING") && x.CreatedAt > cutoff, ct);
+        if (status == "EXPIRED") records = records.Where(x => (x.Status == "PENDING" || x.Status == "OTP_PENDING") && x.CreatedAt <= cutoff);
+        else if (status is "PENDING" or "OTP_PENDING") records = records.Where(x => x.Status == status && x.CreatedAt > cutoff);
+        else if (status is not null) records = records.Where(x => x.Status == status);
+        if (budgetItemId is Guid itemId) records = records.Where(x => x.BudgetItemId == itemId);
+        if (!string.IsNullOrWhiteSpace(reference)) records = records.Where(x => x.Reference == reference.Trim());
+        if (from is { } start) records = records.Where(x => x.CreatedAt >= start);
+        if (to is { } end) records = records.Where(x => x.CreatedAt < end);
+        var total = await records.CountAsync(ct);
+        page = Math.Min(page, Math.Max(1, (int)Math.Ceiling((double)total / pageSize)));
+        var rows = await records.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).Skip((page - 1) * pageSize).Take(pageSize)
             .Select(x => new DonationManagerRow(x.Id, x.DonorName, x.DonorEmail, x.TargetName, x.PayerAccountLast4, x.Amount,
-                x.Status, x.Reference, x.CreatedAt, x.ConfirmedAt)).ToArrayAsync(ct);
-        var pending = await db.Donations.CountAsync(x => x.CampaignId == campaignId && x.Status != "CONFIRMED", ct);
-        return new(summary, pending, rows);
+                (x.Status == "PENDING" || x.Status == "OTP_PENDING") && x.CreatedAt <= cutoff ? "EXPIRED" : x.Status,
+                x.Reference, x.CreatedAt, x.ConfirmedAt)).ToArrayAsync(ct);
+        return new(summary, pending, rows, page, pageSize, total);
+    }
+
+    [Authorize, HttpGet("manager/campaigns/{campaignId:guid}/disclosure.csv")]
+    public async Task Export(Guid campaignId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct)
+    {
+        var context = await campaigns.Get(campaignId, ct);
+        if (!context.ManagerUserIds.Contains(Actor.UserId)) throw new ApiException(403, "Bạn không có quyền xuất kê khai.");
+        if (from.HasValue && to.HasValue && from >= to) throw new ApiException(400, "Khoảng thời gian kê khai không hợp lệ.");
+        var rows = db.Donations.AsNoTracking().Where(row => row.CampaignId == campaignId && row.Status == "CONFIRMED");
+        if (from is { } start) rows = rows.Where(row => row.ConfirmedAt >= start);
+        if (to is { } end) rows = rows.Where(row => row.ConfirmedAt < end);
+        Response.ContentType = "text/csv; charset=utf-8";
+        Response.Headers.ContentDisposition = $"attachment; filename=\"donations-{campaignId:N}.csv\"";
+        Response.Headers.CacheControl = "no-store";
+        await using var csv = new StreamWriter(Response.Body, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true) { NewLine = "\r\n" };
+        await csv.WriteLineAsync("reference,donor_name,donor_email,target,amount_vnd,payment_method,confirmed_at".AsMemory(), ct);
+        await foreach (var row in rows.OrderByDescending(row => row.ConfirmedAt).ThenBy(row => row.Id)
+            .Select(row => new { row.Reference, row.DonorName, row.DonorEmail, row.TargetName, row.Amount, row.PaymentMethod, row.ConfirmedAt })
+            .AsAsyncEnumerable().WithCancellation(ct))
+        {
+            var record = string.Join(",", CsvCell(row.Reference), CsvCell(row.DonorName), CsvCell(row.DonorEmail),
+                CsvCell(row.TargetName), row.Amount.ToString(CultureInfo.InvariantCulture), CsvCell(row.PaymentMethod),
+                row.ConfirmedAt?.ToString("O", CultureInfo.InvariantCulture));
+            await csv.WriteLineAsync(record.AsMemory(), ct);
+        }
+        await csv.FlushAsync(ct);
+    }
+
+    private static string CsvCell(string value)
+    {
+        var text = value.TrimStart();
+        if (text.Length > 0 && text[0] is '=' or '+' or '-' or '@') value = "'" + value;
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
 
     [Authorize, HttpPost("in-kind")]
@@ -102,7 +147,7 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
         var targetProgress = summary.InKindTargets.Single(x => x.BudgetItemId == target.Id);
         if (summary.IsClosed || targetProgress.IsComplete)
             throw new ApiException(409, "Mục tiêu hiện vật này đã đủ; không nhận thêm đăng ký.");
-        if (request.Quantity > targetProgress.RemainingQuantity)
+        if (request.Quantity > targetProgress.AvailableToSchedule)
             throw new ApiException(409, "Số lượng vượt quá chỉ tiêu hiện còn trống.");
         var pledge = new InKindPledge
         {
@@ -124,65 +169,49 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
         if (!context.ManagerUserIds.Contains(Actor.UserId)) throw new ApiException(403, "Chỉ quản lý chiến dịch hoặc quản lý ngân sách được xem hiện vật.");
         var summary = await progress.Summary(context, ct);
         var pledges = await db.InKindPledges.AsNoTracking().Where(x => x.CampaignId == campaignId)
-            .OrderByDescending(x => x.CreatedAt).Take(500).Select(x => new InKindPledgeView(x.Id, x.BudgetItemId,
-                x.DonorName, x.DonorEmail, x.TargetName, x.Quantity, x.ReceivedQuantity, x.Unit, x.Note,
-                x.Status, x.CreatedAt, x.ReviewedAt, x.CompletedAt)).ToArrayAsync(ct);
-        return new(summary.InKindTargets, pledges);
+            .OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).Take(500).ToArrayAsync(ct);
+        var now = DateTimeOffset.UtcNow;
+        return new(summary.InKindTargets, pledges.Select(row => InKindIntakeService.View(row, now)).ToArray());
     }
 
     [Authorize, HttpPost("in-kind/{id:guid}/review")]
     public async Task<InKindPledgeView> ReviewInKind(Guid id, ReviewInKindPledgeRequest request, CancellationToken ct)
     {
-        var pledge = await db.InKindPledges.SingleOrDefaultAsync(x => x.Id == id, ct)
+        var located = await db.InKindPledges.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new ApiException(404, "Không tìm thấy đơn hiện vật.");
-        var context = await campaigns.Get(pledge.CampaignId, ct);
+        var context = await campaigns.Get(located.CampaignId, ct);
         if (!context.ManagerUserIds.Contains(Actor.UserId)) throw new ApiException(403, "Chỉ quản lý chiến dịch hoặc quản lý ngân sách được duyệt hiện vật.");
         await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), $"GiveAid.Fundraising.{context.CampaignId:N}");
         if (!await gate.Acquire(ct)) throw new ApiException(409, "Đang cập nhật mục tiêu hỗ trợ; vui lòng thử lại.");
+        var pledge = await db.InKindPledges.SingleAsync(x => x.Id == id, ct);
         if (pledge.Status != "PENDING") throw new ApiException(409, "Đơn này đã được xử lý.");
         if (request.Decision == "APPROVE")
         {
             var target = context.InKindTargets.SingleOrDefault(x => x.Id == pledge.BudgetItemId && x.AcceptsInKind)
                 ?? throw new ApiException(409, "Mục tiêu hiện vật không còn được mở.");
-            var committed = await db.InKindPledges.Where(x => x.CampaignId == pledge.CampaignId && x.BudgetItemId == pledge.BudgetItemId &&
-                (x.Status == "APPROVED" || x.Status == "RECEIVED")).SumAsync(x => (decimal?)x.Quantity, ct) ?? 0m;
-            if (committed + pledge.Quantity > target.Quantity) throw new ApiException(409, "Không thể duyệt: nhóm hiện vật đã đủ chỉ tiêu hoặc không còn đủ chỗ.");
             var currentSummary = await progress.Summary(context, ct);
             var targetProgress = currentSummary.InKindTargets.SingleOrDefault(x => x.BudgetItemId == pledge.BudgetItemId);
-            if (currentSummary.IsClosed || targetProgress is null || targetProgress.IsComplete)
+            if (targetProgress is null || targetProgress.IsComplete || pledge.Quantity > targetProgress.AvailableToSchedule)
                 throw new ApiException(409, "Khoản này đã đủ mục tiêu bằng tiền hoặc hiện vật; không thể duyệt thêm.");
             pledge.Status = "APPROVED";
+            pledge.ExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
         }
         else pledge.Status = "REJECTED";
         pledge.ReviewedBy = Actor.UserId;
         pledge.ReviewedAt = DateTimeOffset.UtcNow;
         AddInKindNotification(pledge, context, pledge.Status);
         await db.SaveChangesAsync(ct);
-        await progress.CloseIfComplete(context, ct);
         return InKindView(pledge);
     }
 
     [Authorize, HttpPost("in-kind/{id:guid}/receive")]
     public async Task<InKindPledgeView> ReceiveInKind(Guid id, ReceiveInKindPledgeRequest request, CancellationToken ct)
     {
-        var pledge = await db.InKindPledges.SingleOrDefaultAsync(x => x.Id == id, ct)
+        var pledge = await db.InKindPledges.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new ApiException(404, "Không tìm thấy đơn hiện vật.");
-        var context = await campaigns.Get(pledge.CampaignId, ct);
-        if (!context.ManagerUserIds.Contains(Actor.UserId)) throw new ApiException(403, "Chỉ quản lý chiến dịch hoặc quản lý ngân sách được xác nhận nhận hàng.");
-        await using var gate = new SqlSessionLock(db.Database.GetDbConnection(), $"GiveAid.Fundraising.{context.CampaignId:N}");
-        if (!await gate.Acquire(ct)) throw new ApiException(409, "Đang cập nhật hỗ trợ của chiến dịch; vui lòng thử lại.");
-        pledge = await db.InKindPledges.SingleAsync(x => x.Id == id, ct);
-        if (pledge.Status != "APPROVED" || request.Quantity <= 0 || pledge.ReceivedQuantity + request.Quantity > pledge.Quantity)
-            throw new ApiException(409, "Số lượng nhận phải nằm trong phần hiện vật đã duyệt và chưa nhận.");
-        pledge.ReceivedQuantity += request.Quantity;
-        if (pledge.ReceivedQuantity == pledge.Quantity)
-        {
-            pledge.Status = "RECEIVED";
-            pledge.CompletedAt = DateTimeOffset.UtcNow;
-        }
-        AddInKindNotification(pledge, context, "RECEIVED", request.Quantity);
-        await db.SaveChangesAsync(ct);
-        return InKindView(pledge);
+        await intake.Receive(pledge.CampaignId, Actor.UserId, new(request.RequestId ?? Guid.NewGuid(),
+            pledge.PointId ?? pledge.CampaignId, [new(pledge.BudgetItemId, pledge.Id, request.Quantity, null)]), ct);
+        return InKindIntakeService.View(await db.InKindPledges.AsNoTracking().SingleAsync(x => x.Id == id, ct), DateTimeOffset.UtcNow);
     }
 
     private void AddInKindNotification(InKindPledge pledge, CampaignDonationContext context,
@@ -206,7 +235,4 @@ public sealed class DonationsController(DonationDb db, CampaignDonationClient ca
         pledge.DonorName, pledge.DonorEmail, pledge.TargetName, pledge.Quantity, pledge.ReceivedQuantity,
         pledge.Unit, pledge.Note, pledge.Status, pledge.CreatedAt, pledge.ReviewedAt, pledge.CompletedAt);
 
-    private static DonationCreated CreatedView(DonationRecord donation) => new(donation.Id, donation.CampaignId,
-        donation.BudgetItemId, donation.CampaignTitle, donation.TargetName, donation.Amount,
-        donation.Status, donation.PaymentMethod, donation.Reference, donation.CreatedAt);
 }

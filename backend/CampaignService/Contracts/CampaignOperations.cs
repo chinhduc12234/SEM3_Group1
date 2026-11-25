@@ -31,7 +31,8 @@ public sealed record OperationsResource(Guid Id, [MaxLength(100)] string Categor
     [Range(typeof(decimal), "0", "1000000")] decimal Quantity, [MaxLength(80)] string Unit,
     Guid? DayId, Guid? ActivityId, [MaxLength(1000)] string Notes, Guid? TeamId = null);
 public sealed record VolunteerGroup(Guid Id, [MaxLength(200)] string Name, [MaxLength(40)] string CategoryId,
-    [Range(0, 100000)] int VolunteerCount, Guid? DayId, Guid? ActivityId, Guid? TeamId, [MaxLength(1000)] string Notes);
+    [Range(0, 100000)] int VolunteerCount, Guid? DayId, Guid? ActivityId, Guid? TeamId, [MaxLength(1000)] string Notes,
+    bool IsPriority = false, bool RequiresReview = false, [Range(0, 100000)] int? MinimumConfirmed = null);
 public sealed record VolunteerGroupCategory(string Id, string Name);
 public sealed record OperationsMember(Guid UserId, string FullName, bool CanLeadTeam);
 public sealed record OperationsView(string Version, OperationsPlan Plan, DateTimeOffset? ConfirmedAt, bool CanEdit,

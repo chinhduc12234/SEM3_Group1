@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/shared/api/api";
+import { Legend, Stat, StatGrid, StatusPill } from "@/shared/ui/StatusVisuals";
+import { VolunteerCapacity } from "../../components/VolunteerCapacity";
 import ops from "./OperationsDashboard.module.css";
 import styles from "./VolunteerManagementPanel.module.css";
 
 type Group = {
-  id: string; name: string; category: string; target: number; assignedCount: number; remaining: number;
+  id: string; name: string; category: string; target: number; assignedCount: number; remaining: number; confirmedCount: number;
   date: string | null; activityTitle: string | null; teamName: string | null; teamLeaderName: string | null;
 };
 type GroupsView = {
@@ -21,7 +23,7 @@ type RegistrationPage = { campaignId: string; status: string; page: number; page
 type RegistrationDetail = RegistrationSummary & {
   dateOfBirth: string | null; occupation: string | null; healthNote: string | null; skills: string | null;
   experience: string | null; motivation: string | null; emergencyContactName: string | null; emergencyContactPhone: string | null;
-  commitsToAllDays: boolean; rejectionReason: string | null; assignedGroups: { groupId: string; status: string }[];
+  commitsToAllDays: boolean; rejectionReason: string | null; reviewNote?: string | null; assignedGroups: { groupId: string; status: string }[];
 };
 type Pane = "groups" | "applications";
 
@@ -92,7 +94,7 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
         if (controller.signal.aborted) return;
         setDetail(result);
         // Preferences guide the reviewer; require an explicit final assignment.
-        setAssignedGroupIds(result.assignedGroups.map((item) => item.groupId));
+        setAssignedGroupIds(result.assignedGroups.filter((item) => item.status === "ACTIVE").map((item) => item.groupId));
         setReviewNote("");
       })
       .catch((failure: Error) => { if (!controller.signal.aborted) setError(failure.message); });
@@ -133,21 +135,20 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
 
   return <section className={styles.panel} aria-labelledby="volunteer-management-title">
     <header className={styles.heading}>
-      <div><p className={styles.kicker}>ĐIỀU PHỐI TÌNH NGUYỆN</p>
-        <h2 id="volunteer-management-title">{view?.campaignTitle ?? "Quản lý nhóm tình nguyện"}</h2>
-        <p>Theo dõi chỉ tiêu từng nhóm, danh sách thành viên và hồ sơ đăng ký.</p></div>
+      <div><h2 id="volunteer-management-title">Điều phối tình nguyện</h2>
+        {view && <p>{view.campaignTitle}</p>}</div>
       <button type="button" className="secondary" disabled={busy} onClick={() => setReload((value) => value + 1)}>Làm mới</button>
     </header>
     {error && <p className="notice error" role="alert">{error}</p>}
     {notice && <p className="notice success" role="status">{notice}</p>}
     {!view && !error && <p role="status" className={ops.empty}>Đang tải nhóm và chỉ tiêu…</p>}
     {view && <>
-      <dl className={ops.metrics}>
-        <div><dt>Nhóm tình nguyện</dt><dd>{view.groups.length}</dd></div>
-        <div><dt>Nhóm đủ chỉ tiêu</dt><dd>{fullGroups}</dd></div>
-        <div><dt>Còn thiếu chỗ</dt><dd>{shortfall}</dd></div>
-        <div><dt>Đơn chờ duyệt</dt><dd>{view.pendingRegistrations}</dd></div>
-      </dl>
+      <StatGrid label="Tổng quan tuyển tình nguyện">
+        <Stat label="Đã xác nhận ca" value={view.groups.reduce((sum, group) => sum + group.confirmedCount, 0)} tone="positive" />
+        <Stat label="Nhóm đã xếp đủ" value={`${fullGroups}/${view.groups.length}`} tone="info" />
+        <Stat label="Suất chưa xếp" value={shortfall} />
+        <Stat label="Hồ sơ chờ duyệt" value={view.pendingRegistrations} tone={view.pendingRegistrations ? "warning" : "neutral"} />
+      </StatGrid>
       <div className={ops.tabs} role="tablist" aria-label="Quản lý tình nguyện viên">
         <button type="button" role="tab" aria-selected={pane === "groups"} aria-pressed={pane === "groups"}
           className={pane === "groups" ? "primary" : "secondary"} onClick={() => setPane("groups")}>Nhóm và thành viên</button>
@@ -156,7 +157,10 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
           <span>{view.pendingRegistrations}</span></button>
       </div>
 
-      {pane === "groups" && <div className={styles.groupLayout}>
+      {pane === "groups" && <>
+        <Legend items={[{ label: "Đã xác nhận", tone: "positive" }, { label: "Đã xếp, chờ xác nhận", tone: "info" },
+          { label: "Còn trống", tone: "neutral" }]} />
+        <div className={styles.groupLayout}>
         <div className={styles.groupList} aria-label="Các nhóm trong chiến dịch">
           {view.groups.map((group) => <button type="button" key={group.id}
             aria-pressed={selectedGroup === group.id} className={selectedGroup === group.id ? styles.groupCardActive : styles.groupCard}
@@ -164,10 +168,11 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
             <span className={styles.cardMeta}>{group.category} · {dateLabel(group.date)}</span>
             <strong>{group.name}</strong>
             <span className={styles.capacity}><b>{group.assignedCount}/{group.target}</b>
-              {group.remaining ? <em>Thiếu {group.remaining} người</em> : <em className={styles.complete}>Đủ người</em>}</span>
+              {group.remaining ? <StatusPill tone="warning">Còn {group.remaining} suất</StatusPill> : <StatusPill tone="positive">Đã xếp đủ</StatusPill>}</span>
+            <VolunteerCapacity target={group.target} assigned={group.assignedCount} confirmed={group.confirmedCount} />
+            <span className={styles.cardMeta}>{group.confirmedCount} đã xác nhận</span>
             {(group.activityTitle || group.teamName) && <span className={styles.cardMeta}>
               {[group.activityTitle, group.teamName && `Đội ${group.teamName}`].filter(Boolean).join(" · ")}</span>}
-            {group.remaining > 0 && <span className={styles.meter}><i style={{ width: `${Math.min(100, group.target ? group.assignedCount / group.target * 100 : 0)}%` }} /></span>}
           </button>)}
           {view.groups.length === 0 && <p className={ops.empty}>Chiến dịch chưa có nhóm nào đang tuyển.</p>}
         </div>
@@ -175,7 +180,7 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
           {selected ? <>
             <header><div><p className={styles.kicker}>DANH SÁCH THÀNH VIÊN</p>
               <h3 id="group-roster-title">{selected.name}</h3>
-              <p>{selected.assignedCount} / {selected.target} người · {selected.remaining ? `còn thiếu ${selected.remaining}` : "đã đủ chỉ tiêu"}</p>
+              <p>{selected.assignedCount} / {selected.target} đã xếp · {selected.confirmedCount} đã xác nhận</p>
               {(selected.activityTitle || selected.teamName) && <small>{[selected.activityTitle, selected.teamName && `Đội ${selected.teamName}`].filter(Boolean).join(" · ")}</small>}</div>
               <button type="button" className="secondary" onClick={() => setPane("applications")}>Duyệt đơn</button></header>
             <section className={styles.teamLeader} aria-label="Trưởng nhóm, không tính vào chỉ tiêu tình nguyện viên">
@@ -193,12 +198,14 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
             {members?.length === 0 && <p className={ops.empty}>Chưa có tình nguyện viên nào được duyệt vào nhóm này.</p>}
           </> : <p className={ops.empty}>Chọn một nhóm để xem thành viên.</p>}
         </section>
-      </div>}
+        </div>
+      </>}
 
       {pane === "applications" && <div className={styles.reviewLayout}>
         <section className={styles.applicationList} aria-label="Hồ sơ tình nguyện">
           <header><h3>Hồ sơ đăng ký</h3><label>Trạng thái<select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="SUBMITTED">Mới gửi</option><option value="WAITLISTED">Danh sách chờ</option>
+            <option value="SUBMITTED">Mới gửi</option><option value="UNDER_REVIEW">Cần xem xét</option>
+            <option value="WAITLISTED">Danh sách chờ</option><option value="APPROVED">Đã xếp nhóm</option>
           </select></label></header>
           {applications?.items.map((item) => <button type="button" key={item.id}
             aria-pressed={selectedRegistration === item.id} className={selectedRegistration === item.id ? styles.applicantActive : styles.applicant}
@@ -212,6 +219,7 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
         <section className={styles.reviewDetail} aria-label="Chi tiết xét duyệt">
           {detail ? <>
             <p className={styles.kicker}>HỒ SƠ TÌNH NGUYỆN</p><h3>{detail.fullName}</h3>
+            {detail.reviewNote && <p className={styles.reviewNote}>{detail.reviewNote}</p>}
             <dl><div><dt>Email</dt><dd>{detail.email}</dd></div><div><dt>Điện thoại</dt><dd>{detail.phoneNumber}</dd></div>
               <div><dt>Ngày sinh</dt><dd>{detail.dateOfBirth || "—"}</dd></div><div><dt>Nghề nghiệp</dt><dd>{detail.occupation || "—"}</dd></div>
               <div><dt>Kỹ năng</dt><dd>{detail.skills || "—"}</dd></div><div><dt>Sức khỏe</dt><dd>{detail.healthNote || "—"}</dd></div>
@@ -234,9 +242,11 @@ export default function VolunteerManagementPanel({ campaignId }: { campaignId: s
             <label className={styles.noteLabel}>Ghi chú / lý do từ chối<textarea rows={2} maxLength={2000}
               value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></label>
             <div className={styles.reviewActions}>
-              <button type="button" className="secondary" disabled={busy} onClick={() => void review("WAITLIST")}>Đưa vào danh sách chờ</button>
-              <button type="button" className={styles.rejectButton} disabled={busy} onClick={() => void review("REJECT")}>Từ chối</button>
-              <button type="button" disabled={busy} onClick={() => void review("APPROVE")}>{busy ? "Đang lưu…" : "Duyệt và phân nhóm"}</button>
+              {detail.status !== "APPROVED" && <>
+                <button type="button" className="secondary" disabled={busy} onClick={() => void review("WAITLIST")}>Đưa vào danh sách chờ</button>
+                <button type="button" className={styles.rejectButton} disabled={busy} onClick={() => void review("REJECT")}>Từ chối</button>
+              </>}
+              <button type="button" disabled={busy} onClick={() => void review("APPROVE")}>{busy ? "Đang lưu…" : detail.status === "APPROVED" ? "Cập nhật nhóm" : "Duyệt và phân nhóm"}</button>
             </div>
           </> : <p className={ops.empty}>Chọn hồ sơ để xem chi tiết và xét duyệt.</p>}
         </section>

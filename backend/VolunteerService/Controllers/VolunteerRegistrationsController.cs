@@ -10,6 +10,23 @@ namespace VolunteerService.Controllers;
 [ApiController, Authorize, Route("api/volunteers")]
 public sealed class VolunteerRegistrationsController(IVolunteerRegistrationService service) : ControllerBase
 {
+    private Guid Actor => Guid.TryParse(User.FindFirstValue("sub"), out var id) ? id : throw new Shared.ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
+
+    [AllowAnonymous, HttpGet("campaigns/{campaignId:guid}/availability")]
+    public Task<VolunteerAvailability> Availability(Guid campaignId, CancellationToken ct) => service.Availability(campaignId, ct);
+
+    [HttpGet("me/registrations")]
+    public Task<VolunteerRegistrationMine[]> Mine([Range(1, 10000)] int page = 1, CancellationToken ct = default) => service.Mine(Actor, page, ct);
+
+    [HttpGet("me/registrations/{id:guid}")]
+    public Task<VolunteerRegistrationMine> Mine(Guid id, CancellationToken ct) => service.Mine(Actor, id, ct);
+
+    [HttpPost("me/registrations/{id:guid}/offers/{offerId:guid}")]
+    public Task<VolunteerRegistrationMine> Respond(Guid id, Guid offerId, VolunteerRespondRequest request, CancellationToken ct) =>
+        service.Respond(Actor, id, offerId, request.Accept, ct);
+
+    [HttpPost("me/registrations/{id:guid}/withdraw")]
+    public Task<VolunteerRegistrationMine> Withdraw(Guid id, CancellationToken ct) => service.Withdraw(Actor, id, ct);
     [HttpPost("registrations")]
     public async Task<IActionResult> Submit(SubmitVolunteerRegistrationRequest request, CancellationToken ct)
     {

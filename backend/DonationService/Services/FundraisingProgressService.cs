@@ -24,18 +24,26 @@ public sealed class FundraisingProgressService(DonationDb db)
             return new DonationTargetProgress(target.Id, target.Name, target.Amount, donated,
                 Math.Max(0m, target.Amount - donated), donated >= target.Amount, false);
         }).ToArray();
+        var now = DateTimeOffset.UtcNow;
         var pledges = await db.InKindPledges.AsNoTracking()
-            .Where(x => x.CampaignId == context.CampaignId && (x.Status == "APPROVED" || x.Status == "RECEIVED"))
+            .Where(x => x.CampaignId == context.CampaignId)
             .GroupBy(x => x.BudgetItemId)
-            .Select(group => new { Id = group.Key, Quantity = group.Sum(x => x.Quantity), Received = group.Sum(x => x.ReceivedQuantity) })
+            .Select(group => new { Id = group.Key, Received = group.Sum(x => x.ReceivedQuantity),
+                Reserved = group.Sum(x => x.Status == "APPROVED" && (x.ExpiresAt == null || x.ExpiresAt > now)
+                    ? x.Quantity - x.ReceivedQuantity : 0) })
             .ToDictionaryAsync(x => x.Id, ct);
+        var walkIns = await db.InKindReceiptLines.AsNoTracking()
+            .Where(line => line.Receipt.CampaignId == context.CampaignId && line.PledgeId == null)
+            .GroupBy(line => line.BudgetItemId).Select(group => new { Id = group.Key,
+                Quantity = group.Sum(line => line.Receipt.ReversesReceiptId == null ? line.Quantity : -line.Quantity) })
+            .ToDictionaryAsync(row => row.Id, row => row.Quantity, ct);
         var rawInKindTargets = context.InKindTargets.Where(x => x.AcceptsInKind).Select(target =>
         {
             var total = pledges.GetValueOrDefault(target.Id);
-            var received = total?.Received ?? 0m;
-            var reserved = Math.Max(0m, (total?.Quantity ?? 0m) - received);
+            var received = (total?.Received ?? 0m) + walkIns.GetValueOrDefault(target.Id);
+            var reserved = total?.Reserved ?? 0m;
             return new InKindTargetProgress(target.Id, target.Name, target.Quantity, target.Unit,
-                received, reserved, Math.Max(0m, target.Quantity - received - reserved), received + reserved >= target.Quantity, false);
+                received, reserved, Math.Max(0m, target.Quantity - received), received >= target.Quantity, false);
         }).ToArray();
         var rawMoneyById = rawFinancialTargets.ToDictionary(x => x.BudgetItemId);
         var rawGoodsById = rawInKindTargets.ToDictionary(x => x.BudgetItemId);
@@ -63,11 +71,10 @@ public sealed class FundraisingProgressService(DonationDb db)
         var complete = targetIds.Length > 0 && targetIds.All(id =>
             (rawMoneyById.TryGetValue(id, out var money) && money.IsComplete) ||
             (rawGoodsById.TryGetValue(id, out var goods) && goods.IsComplete));
-        var closed = complete || await db.FundraisingClosures.AsNoTracking().AnyAsync(x => x.CampaignId == context.CampaignId, ct);
         var targetAmount = financialTargets.Sum(x => x.TargetAmount);
         var donatedAmount = financialTargets.Sum(x => x.DonatedAmount);
         return new(context.CampaignId, targetAmount, donatedAmount, financialTargets.Sum(x => x.RemainingAmount),
-            confirmed.Values.Sum(x => x.Count), financialTargets, inKindTargets, closed);
+            confirmed.Values.Sum(x => x.Count), financialTargets, inKindTargets, complete);
     }
 
     public async Task CloseIfComplete(CampaignDonationContext context, CancellationToken ct)

@@ -24,11 +24,15 @@ public sealed class VolunteerTaskRepository(VolunteerDb db) : IVolunteerTaskRepo
             .SingleOrDefaultAsync(x => x.Id == assignmentId && x.Registration.UserId == userId, ct);
 
     public Task<VolunteerRegistration[]> ActiveGroupRegistrations(Guid campaignId, Guid groupId,
-        Guid[] registrationIds, CancellationToken ct) =>
-        db.Registrations.AsNoTracking().Where(registration => registrationIds.Contains(registration.Id) &&
+        Guid[]? registrationIds, CancellationToken ct)
+    {
+        var query = db.Registrations.AsNoTracking().Where(registration =>
                 registration.CampaignId == campaignId && registration.Status == "APPROVED" &&
-                registration.GroupAssignments.Any(assignment => assignment.GroupId == groupId && assignment.Status == "ACTIVE"))
-            .ToArrayAsync(ct);
+                registration.GroupAssignments.Any(assignment => assignment.GroupId == groupId && assignment.Status == "ACTIVE" &&
+                    assignment.ConfirmedAt != null));
+        if (registrationIds is not null) query = query.Where(row => registrationIds.Contains(row.Id));
+        return query.OrderBy(row => row.FullName).ThenBy(row => row.Id).ToArrayAsync(ct);
+    }
 
     public Task<TaskAssignment[]> AssignmentsForTask(Guid taskId, CancellationToken ct) =>
         db.TaskAssignments.Where(x => x.TaskId == taskId).ToArrayAsync(ct);
@@ -37,7 +41,7 @@ public sealed class VolunteerTaskRepository(VolunteerDb db) : IVolunteerTaskRepo
         db.TaskAssignments.AsNoTracking()
             .Where(assignment => assignment.Registration.UserId == userId &&
                 assignment.Registration.Status == "APPROVED" && assignment.Status != "CANCELLED" &&
-                assignment.Status != "DECLINED" && assignment.Task.Status != "CANCELLED" &&
+                assignment.Task.Status != "CANCELLED" &&
                 assignment.Registration.GroupAssignments.Any(group => group.GroupId == assignment.Task.GroupId &&
                     group.CampaignId == assignment.Task.CampaignId && group.Status == "ACTIVE"))
             .Include(assignment => assignment.Task)

@@ -79,6 +79,7 @@ export default function CampaignDepartmentScreen({ workspace = "operations" }: {
         description={campaign ? "Điều phối lịch, nhân sự và cập nhật hoạt động cho Owner." : "Theo dõi các chiến dịch và sự kiện bạn được phân công phụ trách."}>
         {campaign && <Link className={ops.heroLink} href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt ↗</Link>}
       </OperationsHero>
+      {campaign?.status === "PUBLISHED" && <Link href={`${root}/campaigns/${campaign.id}/readiness`}>Xác nhận sẵn sàng</Link>}
       {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet"
         onClick={() => setRetry((value) => value + 1)}>Tải lại</button></p>}
       {campaignId ? campaign ? <CampaignOperationsPanel key={campaign.id} campaign={campaign} /> :
@@ -118,6 +119,7 @@ export default function CampaignDepartmentScreen({ workspace = "operations" }: {
         backHref={campaignId ? workspacePath : undefined}>
         {campaign && <Link className={finance.heroLink} href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt <span aria-hidden="true">↗</span></Link>}
       </BudgetHero>
+      {campaign?.status === "PUBLISHED" && <Link href={`${root}/campaigns/${campaign.id}/readiness`}>Xác nhận sẵn sàng</Link>}
       {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet" onClick={() => setRetry(retry + 1)}>Tải lại</button></p>}
       {campaignId ? campaign ? <CampaignBudgetPanel key={campaign.id} campaign={campaign} /> :
         !error && <p className={finance.empty} role="status">Đang tải hồ sơ…</p> :

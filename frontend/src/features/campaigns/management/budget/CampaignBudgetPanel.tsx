@@ -69,6 +69,8 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
       if (controller.signal.aborted) return;
       setView(result);
       setPlan(result.plan ?? emptyBudget);
+      if (result.canRecordActuals && new URLSearchParams(window.location.search).get("tab") === "donations")
+        setTab("donations");
     }).catch((e: Error) => { if (!controller.signal.aborted) setError(e.message); });
     return () => controller.abort();
   }, [endpoint, retry]);
@@ -269,7 +271,7 @@ export default function CampaignBudgetPanel({ campaign }: { campaign: Campaign }
             </fieldset>
           </div>}
         </section>}
-        {tab === "receiving" && <BudgetReceivingFields receiving={plan.receiving} campaignId={campaign.id}
+        {tab === "receiving" && <BudgetReceivingFields receiving={plan.receiving} expenses={plan.expenses} campaignId={campaign.id}
           revision={view.version} onChange={(receiving) => edit((current) => ({ ...current, receiving }))}
           onUpload={(file) => void uploadQr(file)} />}
         {tab === "overview" && <CampaignBudgetSummary campaignId={campaign.id} view={view} plan={plan} totals={totals} />}

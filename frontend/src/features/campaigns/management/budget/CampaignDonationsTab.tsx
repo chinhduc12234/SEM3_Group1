@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { api } from "@/shared/api/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, downloadDocument } from "@/shared/api/api";
+import { ProgressTrack, StatusPill } from "@/shared/ui/StatusVisuals";
+import { GoodsProgress, MoneyProgress, type MoneyTarget as Target, type GoodsTarget as InKindTarget } from "../../components/FundraisingProgress";
+import InKindReceiptForm from "./InKindReceiptForm";
 import css from "./CampaignDonationsTab.module.css";
 
-type Target = { budgetItemId: string; name: string; targetAmount: number; donatedAmount: number; remainingAmount: number; isComplete: boolean; satisfiedByInKind: boolean };
 type Donation = { id: string; donorName: string; donorEmail: string; targetName: string; payerAccountLast4: string | null; amount: number; status: string; reference: string; createdAt: string; confirmedAt: string | null };
-type InKindTarget = { budgetItemId: string; name: string; targetQuantity: number; unit: string; receivedQuantity: number; reservedQuantity: number; remainingQuantity: number; isComplete: boolean; satisfiedByMoney: boolean };
-type Pledge = { id: string; budgetItemId: string; donorName: string; donorEmail: string; targetName: string; quantity: number; receivedQuantity: number; unit: string; note: string | null; status: string; createdAt: string; reviewedAt: string | null; completedAt: string | null };
-type ManagerView = { summary: { targetAmount: number; donatedAmount: number; remainingAmount: number; confirmedDonationCount: number; targets: Target[]; inKindTargets: InKindTarget[]; isClosed: boolean }; pendingCount: number; donations: Donation[] };
+type Pledge = { id: string; budgetItemId: string; donorName: string; donorEmail: string; targetName: string; quantity: number; receivedQuantity: number; unit: string; note: string | null; status: string; createdAt: string; reviewedAt: string | null; completedAt: string | null; scheduledAt?: string | null };
+type ManagerView = { summary: { targetAmount: number; donatedAmount: number; remainingAmount: number; confirmedDonationCount: number; targets: Target[]; inKindTargets: InKindTarget[]; isClosed: boolean }; pendingCount: number; donations: Donation[]; page: number; totalCount: number };
+const donationStatuses: Record<string, string> = { CONFIRMED: "Đã xác nhận OTP", OTP_PENDING: "Chờ OTP", PENDING: "Chờ thanh toán", EXPIRED: "Hết hạn" };
+const pledgeStatuses: Record<string, string> = { PENDING: "Chờ duyệt", APPROVED: "Chờ giao", RECEIVED: "Đã nhận đủ", REJECTED: "Từ chối", CANCELLED: "Đã hủy", EXPIRED: "Hết hạn" };
 type InKindView = { targets: InKindTarget[]; pledges: Pledge[] };
 const money = (value: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
 const time = (value: string) => new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
@@ -34,16 +37,23 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
   const [receiveQuantities, setReceiveQuantities] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [actionError, setActionError] = useState("");
+  const [acting, setActing] = useState("");
+  const receiptAttempts = useRef(new Map<string, { quantity: number; requestId: string }>());
   const [activeTab, setActiveTab] = useState<"money" | "in-kind">("money");
+  const [exporting, setExporting] = useState(false);
   const [donationPage, setDonationPage] = useState(1);
   const [inKindPage, setInKindPage] = useState(1);
+  const [moneyFilters, setMoneyFilters] = useState({ status: "", reference: "", budgetItemId: "" });
   const load = useCallback(async (signal?: AbortSignal) => {
+    const query = new URLSearchParams({ page: String(donationPage), pageSize: String(PAGE_SIZE) });
+    for (const [key, value] of Object.entries(moneyFilters)) if (value) query.set(key, value);
     const [moneyView, goodsView] = await Promise.all([
-      api<ManagerView>(`/api/donations/manager/campaigns/${campaignId}`, { signal }),
+      api<ManagerView>(`/api/donations/manager/campaigns/${campaignId}?${query}`, { signal }),
       api<InKindView>(`/api/donations/manager/campaigns/${campaignId}/in-kind`, { signal }),
     ]);
     return { moneyView, goodsView };
-  }, [campaignId]);
+  }, [campaignId, donationPage, moneyFilters]);
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).then((result) => { if (!controller.signal.aborted) { setView(result.moneyView); setInKind(result.goodsView); setError(""); } })
@@ -55,27 +65,46 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
   if (!view) return <p role="status" className={css.empty}>Đang tải khoản ủng hộ…</p>;
   const { summary } = view;
   const pledges = inKind?.pledges ?? [];
-  const donationPages = Math.max(1, Math.ceil(view.donations.length / PAGE_SIZE));
+  const donationPages = Math.max(1, Math.ceil(view.totalCount / PAGE_SIZE));
   const pledgePages = Math.max(1, Math.ceil(pledges.length / PAGE_SIZE));
-  const activeDonationPage = Math.min(donationPage, donationPages);
   const activeInKindPage = Math.min(inKindPage, pledgePages);
-  const visibleDonations = view.donations.slice((activeDonationPage - 1) * PAGE_SIZE, activeDonationPage * PAGE_SIZE);
   const visiblePledges = pledges.slice((activeInKindPage - 1) * PAGE_SIZE, activeInKindPage * PAGE_SIZE);
   async function reviewPledge(id: string, decision: "APPROVE" | "REJECT") {
-    await api(`/api/donations/in-kind/${id}/review`, { method: "POST", body: JSON.stringify({ decision }) });
-    setRetry((n) => n + 1);
+    setActing(id); setActionError("");
+    try {
+      await api(`/api/donations/in-kind/${id}/review`, { method: "POST", body: JSON.stringify({ decision }) });
+      setRetry((n) => n + 1);
+    } catch (failure) { setActionError((failure as Error).message); }
+    finally { setActing(""); }
+  }
+
+  async function exportConfirmed() {
+    setExporting(true);
+    setActionError("");
+    try { await downloadDocument(`/api/donations/manager/campaigns/${campaignId}/disclosure.csv`, "ke-khai-ung-ho-sandbox.csv"); }
+    catch (failure) { setActionError((failure as Error).message); }
+    finally { setExporting(false); }
   }
   async function receivePledge(id: string) {
-    await api(`/api/donations/in-kind/${id}/receive`, { method: "POST", body: JSON.stringify({ quantity: Number(receiveQuantities[id]) }) });
-    setRetry((n) => n + 1);
+    const quantity = Number(receiveQuantities[id]);
+    const previous = receiptAttempts.current.get(id);
+    const attempt = previous?.quantity === quantity ? previous : { quantity, requestId: crypto.randomUUID() };
+    receiptAttempts.current.set(id, attempt);
+    setActing(id); setActionError("");
+    try {
+      await api(`/api/donations/in-kind/${id}/receive`, { method: "POST", body: JSON.stringify(attempt) });
+      receiptAttempts.current.delete(id);
+      setReceiveQuantities((current) => ({ ...current, [id]: "" }));
+      setRetry((n) => n + 1);
+    } catch (failure) { setActionError((failure as Error).message); }
+    finally { setActing(""); }
   }
   return <section className={css.wrap} aria-labelledby="donations-manager-title">
-    <header><h3 id="donations-manager-title">Quản lý ủng hộ chiến dịch</h3>
-      <p>Theo dõi riêng tiền ủng hộ và hiện vật; danh sách chia thành từng trang, mỗi trang 5 bản ghi.</p></header>
+    <header><h3 id="donations-manager-title">Quản lý ủng hộ chiến dịch</h3></header>
     <div className={css.tabs} role="tablist" aria-label="Loại ủng hộ cần quản lý">
       <button id="donation-tab-money" type="button" role="tab" aria-selected={activeTab === "money"} aria-controls="donation-panel-money"
         className={activeTab === "money" ? css.activeTab : ""} onClick={() => setActiveTab("money")}>
-        Tiền ủng hộ <span>{view.donations.length}</span>
+        Tiền ủng hộ
       </button>
       <button id="donation-tab-in-kind" type="button" role="tab" aria-selected={activeTab === "in-kind"} aria-controls="donation-panel-in-kind"
         className={activeTab === "in-kind" ? css.activeTab : ""} onClick={() => setActiveTab("in-kind")}>
@@ -83,62 +112,67 @@ export default function CampaignDonationsTab({ campaignId }: { campaignId: strin
       </button>
     </div>
     {activeTab === "money" && <div id="donation-panel-money" role="tabpanel" aria-labelledby="donation-tab-money" className={css.tabPanel}>
-      <dl className={css.stats}>
-        <div><dt>Mục tiêu gây quỹ</dt><dd>{money(summary.targetAmount)}</dd></div>
-        <div><dt>Đã xác nhận tiền</dt><dd>{money(summary.donatedAmount)}</dd></div>
-        <div><dt>Còn thiếu</dt><dd>{money(summary.remainingAmount)}</dd></div>
-        <div><dt>Lượt ủng hộ xác nhận</dt><dd>{summary.confirmedDonationCount}</dd></div>
-        <div><dt>Giao dịch chờ xác nhận mô phỏng</dt><dd>{view.pendingCount}</dd></div>
-      </dl>
-      <section className={css.targets} aria-label="Tiến độ từng khoản dự toán">
-        <h4>Tiến độ từng khoản</h4>
-        {!summary.targets.length && <p className={css.empty}>Chưa có khoản chi được mở gây quỹ.</p>}
-        {summary.targets.map((target) => <div className={css.target} key={target.budgetItemId}>
-          <div className={css.targetHead}><strong>{target.name}</strong><span>{target.isComplete ? target.satisfiedByInKind ? "Đã đủ chỉ tiêu hiện vật" : "Đã đủ bằng tiền" : `Còn thiếu ${money(target.remainingAmount)}`}</span></div>
-          <progress max={Math.max(target.targetAmount, 1)} value={Math.min(target.satisfiedByInKind ? target.targetAmount : target.donatedAmount, target.targetAmount)} />
-          <small>{target.satisfiedByInKind ? "Đã đóng nhận tiền vì chỉ tiêu hiện vật đã đủ." : `${money(target.donatedAmount)} / ${money(target.targetAmount)}`}</small>
-        </div>)}
-      </section>
+      <MoneyProgress summary={summary} pendingCount={view.pendingCount} />
       <section aria-labelledby="donor-list-title">
-        <h4 id="donor-list-title">Danh sách người ủng hộ gần đây</h4>
-        {!view.donations.length ? <p className={css.empty}>Chưa có giao dịch ủng hộ.</p> : <div className={css.tableWrap}>
+        <h4 id="donor-list-title">Danh sách giao dịch mô phỏng</h4>
+        <form className={css.filters} onSubmit={(event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          setDonationPage(1);
+          setMoneyFilters({ status: String(values.get("status") ?? ""), reference: String(values.get("reference") ?? "").trim(),
+            budgetItemId: String(values.get("budgetItemId") ?? "") });
+        }}>
+          <label>Trạng thái<select name="status" defaultValue={moneyFilters.status}><option value="">Tất cả</option>
+            {Object.entries(donationStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select></label>
+          <label>Hạng mục<select name="budgetItemId" defaultValue={moneyFilters.budgetItemId}><option value="">Tất cả</option>
+            {summary.targets.map((target) => <option key={target.budgetItemId} value={target.budgetItemId}>{target.name}</option>)}
+          </select></label>
+          <label>Mã tham chiếu<input name="reference" maxLength={40} defaultValue={moneyFilters.reference} /></label>
+          <button type="submit">Lọc giao dịch</button>
+        </form>
+        {!view.donations.length ? <p className={css.empty}>Chưa có giao dịch phù hợp.</p> : <div className={css.tableWrap}>
           <table className={css.table}><thead><tr><th>Người ủng hộ</th><th>Ủng hộ cho</th><th>Số tiền</th><th>Tài khoản thử nghiệm</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
-            <tbody>{visibleDonations.map((row) => <tr key={row.id}>
+            <tbody>{view.donations.map((row) => <tr key={row.id}>
               <td>{row.donorName}<small>{row.donorEmail}</small><small>{row.reference}</small></td>
               <td>{row.targetName}</td><td>{money(row.amount)}</td><td>{row.payerAccountLast4 ? `•••• ${row.payerAccountLast4}` : "Chưa nhập"}</td>
-              <td><span className={css.status} data-confirmed={row.status === "CONFIRMED"}>{row.status === "CONFIRMED" ? "Đã xác nhận OTP" : row.status === "OTP_PENDING" ? "Chờ OTP" : "Chờ thanh toán"}</span></td>
+              <td><StatusPill tone={row.status === "CONFIRMED" ? "positive" : row.status === "EXPIRED" ? "neutral" : "warning"}>{donationStatuses[row.status] ?? row.status}</StatusPill></td>
               <td>{time(row.confirmedAt ?? row.createdAt)}</td>
             </tr>)}</tbody>
           </table>
         </div>}
-        <Pagination page={activeDonationPage} pages={donationPages} total={view.donations.length} onChange={setDonationPage} />
+        <Pagination page={view.page} pages={donationPages} total={view.totalCount} onChange={setDonationPage} />
       </section>
+      {actionError && <p role="alert">{actionError}</p>}
+      <button type="button" disabled={exporting} onClick={() => void exportConfirmed()}>
+        {exporting ? "Đang xuất kê khai…" : "Tải CSV giao dịch đã xác nhận"}
+      </button>
       <p className="muted">Đây là số liệu môi trường thử nghiệm; không đại diện cho tiền thật đã vào tài khoản.</p>
     </div>}
     {activeTab === "in-kind" && <div id="donation-panel-in-kind" role="tabpanel" aria-labelledby="donation-tab-in-kind" className={css.tabPanel}>
-      {!!inKind?.targets.length && <section className={css.targets} aria-label="Tiến độ hiện vật">
-        <h4>Tiến độ hiện vật</h4>
-        {inKind.targets.map((target) => <div className={css.target} key={target.budgetItemId}>
-          <div className={css.targetHead}><strong>{target.name}</strong><span>{target.satisfiedByMoney ? "Đã đủ bằng tiền" : target.receivedQuantity >= target.targetQuantity ? "Đã nhận đủ" : target.isComplete ? "Đủ chỗ đăng ký, chờ giao" : `Còn thiếu ${target.remainingQuantity} ${target.unit}`}</span></div>
-          <progress max={Math.max(target.targetQuantity, 1)} value={Math.min(target.satisfiedByMoney ? target.targetQuantity : target.receivedQuantity, target.targetQuantity)} />
-          <small>{target.satisfiedByMoney ? "Đã đóng nhận hiện vật vì chỉ tiêu tiền đã đủ." : `Đã nhận ${target.receivedQuantity} / ${target.targetQuantity} ${target.unit} · Đã duyệt chờ giao ${target.reservedQuantity} ${target.unit}`}</small>
-        </div>)}
-      </section>}
+      {actionError && <p role="alert">{actionError}</p>}
+      {inKind && <GoodsProgress targets={inKind.targets} />}
+      {!!inKind?.targets.length && <InKindReceiptForm campaignId={campaignId} targets={inKind.targets} onReceived={() => setRetry(value => value + 1)} />}
       <section aria-labelledby="in-kind-review-title">
         <h4 id="in-kind-review-title">Đề nghị tặng hiện vật</h4>
         {!pledges.length ? <p className={css.empty}>Chưa có đề nghị tặng hiện vật.</p> : <div className={css.tableWrap}>
           <table className={css.table}><thead><tr><th>Người tặng</th><th>Hiện vật</th><th>Ghi chú</th><th>Đã nhận</th><th>Trạng thái / thao tác</th></tr></thead>
             <tbody>{visiblePledges.map((row) => <tr key={row.id}>
               <td>{row.donorName}<small>{row.donorEmail}</small></td><td>{row.quantity} {row.unit} · {row.targetName}</td>
-              <td>{row.note || "—"}</td><td>{row.receivedQuantity} / {row.quantity} {row.unit}</td>
-              <td><span className={css.status} data-confirmed={row.status === "RECEIVED"}>{row.status === "PENDING" ? "Chờ duyệt" : row.status === "APPROVED" ? "Đã duyệt · chờ giao" : row.status === "RECEIVED" ? "Đã nhận đủ" : "Từ chối"}</span>
+              <td>{row.note || "—"}</td><td>{row.receivedQuantity} / {row.quantity} {row.unit}
+                <ProgressTrack limit={row.quantity} segments={[{ value: row.receivedQuantity, tone: "positive" }]}
+                  label={`Đã thực nhận ${row.receivedQuantity} trên ${row.quantity} ${row.unit}`} /></td>
+              <td><StatusPill tone={row.status === "RECEIVED" ? "positive" : row.status === "APPROVED" ? "info" : row.status === "PENDING" ? "warning" : "neutral"}>
+                {pledgeStatuses[row.status] ?? row.status}
+              </StatusPill>
+                {row.scheduledAt && <small>{time(row.scheduledAt)} · {row.id}</small>}
                 {row.status === "PENDING" && <div className={css.rowActions}>
-                  <button type="button" className={css.approveButton} onClick={() => void reviewPledge(row.id, "APPROVE")}><span aria-hidden="true">✓</span> Duyệt</button>
-                  <button type="button" className={css.rejectButton} onClick={() => void reviewPledge(row.id, "REJECT")}><span aria-hidden="true">×</span> Từ chối</button>
+                  <button type="button" className={css.approveButton} disabled={!!acting} onClick={() => void reviewPledge(row.id, "APPROVE")}><span aria-hidden="true">✓</span> Duyệt</button>
+                  <button type="button" className={css.rejectButton} disabled={!!acting} onClick={() => void reviewPledge(row.id, "REJECT")}><span aria-hidden="true">×</span> Từ chối</button>
                 </div>}
                 {row.status === "APPROVED" && <div className={css.rowActions}>
                   <input aria-label={`Số lượng thực nhận ${row.targetName}`} type="number" min="0" max={row.quantity - row.receivedQuantity} step="0.01" value={receiveQuantities[row.id] ?? "0"} onChange={(event) => setReceiveQuantities((current) => ({ ...current, [row.id]: event.target.value }))} />
-                  <button type="button" className={css.receiveButton} disabled={Number(receiveQuantities[row.id] ?? 0) <= 0 || Number(receiveQuantities[row.id]) > row.quantity - row.receivedQuantity} onClick={() => void receivePledge(row.id)}><span aria-hidden="true">↓</span> Ghi nhận nhận hàng</button>
+                  <button type="button" className={css.receiveButton} disabled={!!acting || Number(receiveQuantities[row.id] ?? 0) <= 0 || Number(receiveQuantities[row.id]) > row.quantity - row.receivedQuantity} onClick={() => void receivePledge(row.id)}><span aria-hidden="true">↓</span> Ghi nhận nhận hàng</button>
                 </div>}
               </td>
             </tr>)}</tbody>

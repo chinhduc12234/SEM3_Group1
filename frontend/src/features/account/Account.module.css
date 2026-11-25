@@ -1392,3 +1392,51 @@
   .userProfileFormFooter { align-items: stretch; flex-direction: column; }
   .userProfileFormFooter button { width: 100%; }
 }
+
+.accountActivityList {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid #e1e9e1;
+  border-radius: 13px;
+  background: #fff;
+  color: #203e32;
+}
+.accountActivityList h2 { margin: 0; font-size: 19px; }
+.accountActivityList p { margin: 0; }
+.accountActivityList > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #e1e9e1;
+}
+.accountActivityList > div > strong { flex-basis: 100%; }
+.accountActivityList button {
+  padding: 5px 10px;
+  border: 1px solid #9fb4a7;
+  border-radius: 6px;
+  color: inherit;
+  background: #f4f8f3;
+}
+.accountActivityList button:disabled { opacity: .55; }
+.accountActivityList a { color: #226346; text-decoration: underline; }
+.accountActivityList nav, .accountActivityList form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.activityHero {
+  padding: clamp(1rem, 3vw, 1.6rem);
+  border: 1px solid #dbe6de;
+  border-radius: 1rem;
+  background: linear-gradient(125deg, #e9f4ed, #fcfaf2);
+}
+.activityHero h1 { margin-top: 0; }
+.activityHero > p:last-child { color: #526960; }
+.activityMetrics { margin-bottom: 1rem; }
+.accountActivityList[id] { border-color: #a9cdb8; background: #f7fbf7; scroll-margin-top: 5rem; }
+.accountActivityList > div[data-active="true"] {
+  padding: .7rem; border: 1px solid #c9dfd0; border-radius: .6rem; background: #eef7ef;
+}
+.accountActivityList > div > span { overflow-wrap: anywhere; }
+.accountActivityList > div > button:is(:hover, [aria-expanded="true"]) { border-color: #44765d; background: #e0f0e7; }

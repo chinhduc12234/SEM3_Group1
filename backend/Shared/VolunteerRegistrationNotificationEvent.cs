@@ -1,8 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Shared;
 
 // Internal integration event. VolunteerService persists it to its outbox before returning 201.
 public sealed record VolunteerRegistrationNotificationEvent(Guid EventId, Guid CampaignId, Guid RegistrationId,
-    string VolunteerName, DateTimeOffset SubmittedAt);
+    string VolunteerName, DateTimeOffset SubmittedAt,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? RecipientUserId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Outcome = null);
 
 public sealed record VolunteerReviewRecipients(Guid CampaignId, Guid OrganizationId, string CampaignTitle,
     Guid[] UserIds);

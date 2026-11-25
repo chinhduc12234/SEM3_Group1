@@ -9,6 +9,8 @@ public sealed class DonationRecord
     public Guid CampaignId { get; set; }
     public Guid BudgetItemId { get; set; }
     public Guid DonorUserId { get; set; }
+    public Guid? RequestId { get; set; }
+    public bool PublishDonorName { get; set; }
     public string DonorName { get; set; } = "";
     public string DonorEmail { get; set; } = "";
     public string CampaignTitle { get; set; } = "";
@@ -63,6 +65,41 @@ public sealed class InKindPledge
     public DateTimeOffset? ReviewedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CompletedAt { get; set; }
+    public Guid? PointId { get; set; }
+    public DateTimeOffset? ScheduledAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+}
+
+public sealed class InKindReceipt
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid RequestId { get; set; }
+    public string RequestHash { get; set; } = "";
+    public Guid CampaignId { get; set; }
+    public Guid PointId { get; set; }
+    public Guid ReceiverUserId { get; set; }
+    public Guid? ReversesReceiptId { get; set; }
+    public string? ReversalReason { get; set; }
+    public DateTimeOffset ReceivedAt { get; set; }
+    public List<InKindReceiptLine> Lines { get; set; } = [];
+}
+
+public sealed class InKindReceiptLine
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ReceiptId { get; set; }
+    public Guid BudgetItemId { get; set; }
+    public Guid? PledgeId { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Note { get; set; }
+    public InKindReceipt Receipt { get; set; } = null!;
+}
+
+public sealed class DonationLaunchGoodsHold
+{
+    public Guid CampaignId { get; set; }
+    public Guid Token { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
 }
 
 public sealed class FundraisingClosure
@@ -73,18 +110,24 @@ public sealed class FundraisingClosure
 
 public sealed class DonationDb(DbContextOptions<DonationDb> options) : DbContext(options)
 {
+    public DbSet<DonationLaunchGoodsHold> LaunchGoodsHolds => Set<DonationLaunchGoodsHold>();
     public DbSet<DonationRecord> Donations => Set<DonationRecord>();
     public DbSet<SandboxOtpChallenge> SandboxOtpChallenges => Set<SandboxOtpChallenge>();
     public DbSet<DonationNotificationOutbox> NotificationOutbox => Set<DonationNotificationOutbox>();
     public DbSet<InKindPledge> InKindPledges => Set<InKindPledge>();
+    public DbSet<InKindReceipt> InKindReceipts => Set<InKindReceipt>();
+    public DbSet<InKindReceiptLine> InKindReceiptLines => Set<InKindReceiptLine>();
     public DbSet<FundraisingClosure> FundraisingClosures => Set<FundraisingClosure>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<DonationLaunchGoodsHold>().HasKey(item => item.CampaignId);
         var donation = b.Entity<DonationRecord>();
         donation.ToTable("Donations", t => t.HasCheckConstraint("CK_Donations_Amount", "[Amount] > 0"));
         donation.HasIndex(x => new { x.CampaignId, x.Status, x.BudgetItemId });
         donation.HasIndex(x => new { x.DonorUserId, x.CreatedAt });
+        donation.HasIndex(x => new { x.DonorUserId, x.CampaignId, x.RequestId }).IsUnique()
+            .HasFilter("[RequestId] IS NOT NULL");
         donation.HasIndex(x => x.Reference).IsUnique();
         donation.Property(x => x.DonorName).HasMaxLength(200);
         donation.Property(x => x.DonorEmail).HasMaxLength(320);
@@ -107,6 +150,7 @@ public sealed class DonationDb(DbContextOptions<DonationDb> options) : DbContext
         pledge.ToTable("InKindPledges", t => t.HasCheckConstraint("CK_InKindPledges_Quantity", "[Quantity] > 0 AND [ReceivedQuantity] >= 0 AND [ReceivedQuantity] <= [Quantity]"));
         pledge.HasIndex(x => new { x.CampaignId, x.BudgetItemId, x.Status });
         pledge.HasIndex(x => new { x.DonorUserId, x.CreatedAt });
+        pledge.HasIndex(x => new { x.CampaignId, x.PointId, x.Status, x.ScheduledAt });
         pledge.Property(x => x.Quantity).HasPrecision(18, 2);
         pledge.Property(x => x.ReceivedQuantity).HasPrecision(18, 2);
         pledge.Property(x => x.DonorName).HasMaxLength(200);
@@ -116,6 +160,18 @@ public sealed class DonationDb(DbContextOptions<DonationDb> options) : DbContext
         pledge.Property(x => x.Unit).HasMaxLength(40);
         pledge.Property(x => x.Note).HasMaxLength(1000);
         pledge.Property(x => x.Status).HasMaxLength(20);
+        var receipt = b.Entity<InKindReceipt>();
+        receipt.Property(x => x.ReversalReason).HasMaxLength(1000);
+        receipt.HasIndex(x => x.ReversesReceiptId).IsUnique().HasFilter("[ReversesReceiptId] IS NOT NULL");
+        receipt.Property(x => x.RequestHash).HasMaxLength(64);
+        receipt.HasIndex(x => new { x.CampaignId, x.RequestId }).IsUnique();
+        receipt.HasIndex(x => new { x.CampaignId, x.PointId, x.ReceivedAt });
+        var receiptLine = b.Entity<InKindReceiptLine>();
+        receiptLine.ToTable("InKindReceiptLines", table => table.HasCheckConstraint("CK_InKindReceiptLines_Quantity", "[Quantity] > 0"));
+        receiptLine.Property(x => x.Quantity).HasPrecision(18, 2);
+        receiptLine.Property(x => x.Note).HasMaxLength(500);
+        receiptLine.HasOne(x => x.Receipt).WithMany(x => x.Lines).HasForeignKey(x => x.ReceiptId);
+        receiptLine.HasOne<InKindPledge>().WithMany().HasForeignKey(x => x.PledgeId).OnDelete(DeleteBehavior.Restrict);
         var closure = b.Entity<FundraisingClosure>();
         closure.ToTable("FundraisingClosures");
         closure.HasKey(x => x.CampaignId);

@@ -22,6 +22,23 @@ namespace DonationService.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("DonationService.Data.DonationLaunchGoodsHold", b =>
+                {
+                    b.Property<Guid>("CampaignId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("Token")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("CampaignId");
+
+                    b.ToTable("LaunchGoodsHolds");
+                });
+
             modelBuilder.Entity("DonationService.Data.DonationNotificationOutbox", b =>
                 {
                     b.Property<Guid>("Id")
@@ -106,10 +123,16 @@ namespace DonationService.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<bool>("PublishDonorName")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Reference")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -129,6 +152,10 @@ namespace DonationService.Data.Migrations
                     b.HasIndex("DonorUserId", "CreatedAt");
 
                     b.HasIndex("CampaignId", "Status", "BudgetItemId");
+
+                    b.HasIndex("DonorUserId", "CampaignId", "RequestId")
+                        .IsUnique()
+                        .HasFilter("[RequestId] IS NOT NULL");
 
                     b.ToTable("Donations", null, t =>
                         {
@@ -186,14 +213,22 @@ namespace DonationService.Data.Migrations
                     b.Property<Guid>("DonorUserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<Guid?>("PointId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("ReceivedQuantity")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTimeOffset?>("ReviewedAt")
@@ -201,6 +236,9 @@ namespace DonationService.Data.Migrations
 
                     b.Property<Guid?>("ReviewedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ScheduledAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -223,9 +261,93 @@ namespace DonationService.Data.Migrations
 
                     b.HasIndex("CampaignId", "BudgetItemId", "Status");
 
+                    b.HasIndex("CampaignId", "PointId", "Status", "ScheduledAt");
+
                     b.ToTable("InKindPledges", null, t =>
                         {
                             t.HasCheckConstraint("CK_InKindPledges_Quantity", "[Quantity] > 0 AND [ReceivedQuantity] >= 0 AND [ReceivedQuantity] <= [Quantity]");
+                        });
+                });
+
+            modelBuilder.Entity("DonationService.Data.InKindReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ReceiverUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReversalReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("ReversesReceiptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReversesReceiptId")
+                        .IsUnique()
+                        .HasFilter("[ReversesReceiptId] IS NOT NULL");
+
+                    b.HasIndex("CampaignId", "RequestId")
+                        .IsUnique();
+
+                    b.HasIndex("CampaignId", "PointId", "ReceivedAt");
+
+                    b.ToTable("InKindReceipts");
+                });
+
+            modelBuilder.Entity("DonationService.Data.InKindReceiptLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BudgetItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("PledgeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PledgeId");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.ToTable("InKindReceiptLines", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InKindReceiptLines_Quantity", "[Quantity] > 0");
                         });
                 });
 
@@ -261,6 +383,27 @@ namespace DonationService.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("SandboxOtpChallenges");
+                });
+
+            modelBuilder.Entity("DonationService.Data.InKindReceiptLine", b =>
+                {
+                    b.HasOne("DonationService.Data.InKindPledge", null)
+                        .WithMany()
+                        .HasForeignKey("PledgeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DonationService.Data.InKindReceipt", "Receipt")
+                        .WithMany("Lines")
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("DonationService.Data.InKindReceipt", b =>
+                {
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }

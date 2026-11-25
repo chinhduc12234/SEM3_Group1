@@ -10,13 +10,13 @@ namespace CampaignService.Controllers;
 public sealed class InternalDonationController(ICampaignApplication service, IConfiguration configuration) : ControllerBase
 {
     [HttpGet("{id:guid}/donation-context")]
-    public async Task<IActionResult> Context(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Context(Guid id, CancellationToken ct, bool includeRecipients = true)
     {
         var expected = configuration["InternalApi:Key"];
         var supplied = Request.Headers["X-Internal-Key"].ToString();
         if (string.IsNullOrWhiteSpace(expected) || string.IsNullOrWhiteSpace(supplied) ||
             !CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(expected)),
                 SHA256.HashData(Encoding.UTF8.GetBytes(supplied)))) return Unauthorized();
-        return Ok(await service.DonationContext(id, ct));
+        return Ok(await service.DonationContext(id, includeRecipients, ct));
     }
 }

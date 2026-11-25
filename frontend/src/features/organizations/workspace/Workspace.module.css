@@ -1423,3 +1423,31 @@
 @media (prefers-reduced-motion: reduce) {
   .ownerStat { transition: none; }
 }
+
+.workFilters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .9rem; }
+.workFilters button {
+  border: 1px solid #c9ddcf; border-radius: 99rem; padding: .5rem .8rem; background: #f4f8f4;
+  color: #285640; font-weight: 650;
+}
+.workFilters button[aria-pressed="true"] { border-color: #24674d; background: #24674d; color: white; }
+.workFilters button:disabled { opacity: .6; }
+.workListHeading, .workCardMeta { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; justify-content: space-between; }
+.workListHeading { margin-bottom: .75rem; }
+.workListHeading h2, .workCard :is(h3, p), .taskPeople p { margin: 0; }
+.workCards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .75rem; }
+.workCards:not(:empty) { margin-bottom: .85rem; }
+.workCard {
+  display: grid; align-content: start; min-width: 0; gap: .45rem; padding: .9rem;
+  color: #213f35; border: 1px solid #dce8de; border-radius: .8rem; background: #f8fbf7;
+}
+.workCard h3 { font-size: 1.05rem; overflow-wrap: anywhere; }
+.workCard p, .workCard time, .workCard small { color: #526960; font-size: .83rem; }
+.workCard a { color: #23634b; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.workCard > :is(a, button) { justify-self: start; }
+.workCard button[aria-pressed="true"] { border-color: #24674d; background: #e2f3e9; color: #17634b; }
+.workEmpty { padding: .85rem; border-radius: .7rem; background: #f3f7f2; color: #526960; }
+.fieldTasks { scroll-margin-top: 5rem; }
+.fieldTasks .workCard + .workCard { margin-top: .65rem; }
+.taskPeople { display: grid; gap: .45rem; padding: 0; margin: .4rem 0; list-style: none; }
+.taskPeople > li { display: flex; gap: .3rem .55rem; flex-wrap: wrap; align-items: center; border-top: 1px solid #e0e8e1; padding-top: .45rem; }
+.taskPeople p { flex-basis: 100%; }

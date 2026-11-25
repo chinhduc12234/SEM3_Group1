@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/components/AuthProvider";
 import { api } from "@/shared/api/api";
+import { ProcessSteps, StatusPill } from "@/shared/ui/StatusVisuals";
 import type { Campaign } from "../types/campaigns";
 import css from "./DonationPanel.module.css";
-
-type TargetProgress = { budgetItemId: string; name: string; targetAmount: number; donatedAmount: number; remainingAmount: number; isComplete: boolean; satisfiedByInKind: boolean };
-type InKindTarget = { budgetItemId: string; name: string; targetQuantity: number; unit: string; receivedQuantity: number; reservedQuantity: number; remainingQuantity: number; isComplete: boolean; satisfiedByMoney: boolean };
-type Summary = { campaignId: string; targetAmount: number; donatedAmount: number; remainingAmount: number; confirmedDonationCount: number; targets: TargetProgress[]; inKindTargets: InKindTarget[]; isClosed: boolean };
-type Donation = { id: string; campaignId: string; budgetItemId: string; campaignTitle: string; targetName: string; amount: number; status: string; paymentMethod: string; reference: string; createdAt: string };
-type InKindPledge = { id: string; budgetItemId: string; targetName: string; quantity: number; unit: string; status: string };
+import CampaignDonationDisclosure from "./CampaignDonationDisclosure";
+import { GoodsProgress, MoneyProgress, type GoodsTarget as InKindTarget, type MoneyTarget as TargetProgress } from "./FundraisingProgress";
+type Summary = { campaignId: string; targetAmount: number; donatedAmount: number; remainingAmount: number; confirmedDonationCount: number; targets: TargetProgress[]; inKindTargets: InKindTarget[]; isClosed: boolean; moneyAvailability?: "OPEN" | "SCHEDULED" | "CLOSED" | "UNAVAILABLE" };
+type Donation = { id: string; campaignId: string; budgetItemId: string; campaignTitle: string; targetName: string; amount: number; status: string; paymentMethod: string; reference: string; createdAt: string; expiresAt: string };
+type InKindPledge = { id: string; budgetItemId: string; targetName: string; quantity: number; unit: string; status: string; scheduledAt: string };
 type OtpChallenge = { donationId: string; reference: string; payerAccountLast4: string; expiresAt: string; testOtp: string | null };
 
 const amountFormat = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
 const money = (value: number) => amountFormat.format(value);
+const paymentSteps = ["Chọn khoản ủng hộ", "Nhập tài khoản thử", "Xác nhận OTP"];
 
 function SimulatedQr({ reference }: { reference: string }) {
   const cells = useMemo(() => Array.from({ length: 441 }, (_, index) => {
@@ -34,24 +35,57 @@ function SimulatedQr({ reference }: { reference: string }) {
   </div>;
 }
 
-export default function DonationPanel({ campaign, onClose }: { campaign: Campaign; onClose?: () => void }) {
+export default function DonationPanel({ campaign, initialMode, resumeId, onClose, onVolunteer }: {
+  campaign: Campaign; initialMode: "money" | "in-kind"; resumeId?: string; onClose: () => void; onVolunteer: () => void;
+}) {
   const { user, loading } = useAuth();
   const targets = campaign.publicPlan?.fundingTargets ?? [];
   const [summary, setSummary] = useState<Summary>();
   const [targetId, setTargetId] = useState("");
   const [amount, setAmount] = useState("500000");
+  const [publishDonorName, setPublishDonorName] = useState(false);
   const [donation, setDonation] = useState<Donation>();
+  const createRequest = useRef<{ body: string; id: string }>(undefined);
   const [payerAccountNumber, setPayerAccountNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [otpChallenge, setOtpChallenge] = useState<OtpChallenge>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [supportMode, setSupportMode] = useState<"money" | "in-kind">("money");
+  const [supportMode, setSupportMode] = useState(initialMode);
   const [inKindTargetId, setInKindTargetId] = useState("");
   const [inKindQuantity, setInKindQuantity] = useState("1");
   const [inKindNote, setInKindNote] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [pledge, setPledge] = useState<InKindPledge>();
+  const accountId = user?.id;
+
+  useEffect(() => {
+    setDonation(undefined);
+    setOtpChallenge(undefined);
+    setOtp("");
+    setPayerAccountNumber("");
+    setPledge(undefined);
+    createRequest.current = undefined;
+    if (!accountId || !resumeId) return;
+    const controller = new AbortController();
+    api<Donation>(`/api/donations/${resumeId}`, { signal: controller.signal }).then((value) => {
+      if (!controller.signal.aborted && value.campaignId === campaign.id) setDonation(value);
+    }).catch((failure: Error) => { if (!controller.signal.aborted) setError(failure.message); });
+    return () => controller.abort();
+  }, [accountId, campaign.id, resumeId]);
+
+  useEffect(() => {
+    if (!donation || !["PENDING", "OTP_PENDING"].includes(donation.status)) return;
+    const timeout = window.setTimeout(() => {
+      setDonation((current) => current?.id === donation.id && current.status !== "CONFIRMED"
+        ? { ...current, status: "EXPIRED" } : current);
+      setOtpChallenge(undefined);
+      setOtp("");
+      setPayerAccountNumber("");
+    }, Math.max(0, new Date(donation.expiresAt).getTime() - Date.now()));
+    return () => window.clearTimeout(timeout);
+  }, [donation]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -66,8 +100,8 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
     else if (!summary && !targetId && targets.length) setTargetId(targets[0].id);
   }, [targetId, targets, summary]);
   useEffect(() => {
-    if (summary && !summary.inKindTargets.some((item) => item.budgetItemId === inKindTargetId && !item.isComplete))
-      setInKindTargetId(summary.inKindTargets.find((item) => !item.isComplete)?.budgetItemId ?? "");
+    if (summary && !summary.inKindTargets.some((item) => item.budgetItemId === inKindTargetId && !item.isComplete && schedulable(item) >= 1))
+      setInKindTargetId(summary.inKindTargets.find((item) => !item.isComplete && schedulable(item) >= 1)?.budgetItemId ?? "");
   }, [inKindTargetId, summary]);
 
   async function create(event: React.FormEvent<HTMLFormElement>) {
@@ -75,9 +109,12 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
     if (!user || busy) return;
     setBusy(true); setError(""); setSuccess("");
     try {
-      const created = await api<Donation>("/api/donations", { method: "POST", body: JSON.stringify({
-        campaignId: campaign.id, budgetItemId: targetId, amount: Number(amount),
-      }) });
+      const input = { campaignId: campaign.id, budgetItemId: targetId, amount: Number(amount), publishDonorName };
+      const body = JSON.stringify(input);
+      if (createRequest.current?.body !== body) createRequest.current = { body, id: crypto.randomUUID() };
+      const created = await api<Donation>("/api/donations", { method: "POST",
+        body: JSON.stringify({ ...input, requestId: createRequest.current.id }) });
+      createRequest.current = undefined;
       setDonation(created);
     } catch (failure) { setError((failure as Error).message); }
     finally { setBusy(false); }
@@ -106,6 +143,9 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
         method: "POST", body: JSON.stringify({ otp }),
       });
       setDonation(confirmed);
+      setOtpChallenge(undefined);
+      setOtp("");
+      setPayerAccountNumber("");
       setSuccess(`Đã ghi nhận mô phỏng ${money(confirmed.amount)} cho khoản “${confirmed.targetName}”. Quản lý ngân sách đã được thông báo.`);
       const updated = await api<Summary>(`/api/donations/campaigns/${campaign.id}/summary`);
       setSummary(updated);
@@ -119,64 +159,75 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
     if (!user || busy || !inKindTargetId) return;
     setBusy(true); setError(""); setSuccess("");
     try {
-      const created = await api<InKindPledge>("/api/donations/in-kind", { method: "POST", body: JSON.stringify({
-        campaignId: campaign.id, budgetItemId: inKindTargetId, quantity: Number(inKindQuantity), note: inKindNote,
+      const point = await api<{ id: string }>(`/api/donations/campaigns/${campaign.id}/in-kind/point`);
+      const created = await api<InKindPledge>("/api/donations/in-kind/appointments", { method: "POST", body: JSON.stringify({
+        campaignId: campaign.id, budgetItemId: inKindTargetId, pointId: point.id,
+        scheduledAt: new Date(scheduledAt).toISOString(), quantity: Number(inKindQuantity), note: inKindNote,
       }) });
       setPledge(created);
-      setSuccess(`Đã gửi đề nghị tặng ${created.quantity} ${created.unit} cho “${created.targetName}”. Quản lý chiến dịch sẽ xét duyệt.`);
+      setSummary(await api<Summary>(`/api/donations/campaigns/${campaign.id}/summary`));
       window.dispatchEvent(new Event("giveaid-notifications-changed"));
     } catch (failure) { setError((failure as Error).message); }
     finally { setBusy(false); }
   }
 
+  async function cancelAppointment() {
+    if (!pledge || busy) return;
+    setBusy(true); setError("");
+    try {
+      const cancelled = await api<InKindPledge>(`/api/donations/in-kind/appointments/${pledge.id}`, { method: "DELETE" });
+      setPledge(cancelled);
+      setSummary(await api<Summary>(`/api/donations/campaigns/${campaign.id}/summary`));
+    } catch (failure) { setError((failure as Error).message); }
+    finally { setBusy(false); }
+  }
+
   const bank = campaign.publicPlan?.receiving?.bank;
+  const resumeQuery = supportMode === "money" && resumeId ? `&donation=${resumeId}` : "";
+  const loginPath = `/login?${new URLSearchParams({ returnTo: `/chien-dich/${campaign.id}?tham-gia=${supportMode === "money" ? "ung-ho" : "hien-vat"}${resumeQuery}` })}`;
   const goods = campaign.publicPlan?.receiving?.goods;
   const openMoneyTargets = targets.filter((target) => !summary?.targets.find((progress) => progress.budgetItemId === target.id)?.isComplete);
-  const openInKindTargets = summary?.inKindTargets.filter((target) => !target.isComplete) ?? [];
+  const openInKindTargets = summary?.inKindTargets.filter((target) => !target.isComplete && schedulable(target) >= 1) ?? [];
+  const canDonateMoney = summary && !summary.isClosed && (summary.moneyAvailability ?? "OPEN") === "OPEN";
   return <section className={css.panel} aria-labelledby="donation-title">
     <header className={css.intro}>
-      <div><p className={css.eyebrow}>ỦNG HỘ TÀI CHÍNH</p><h2 id="donation-title">Góp sức cho khoản cần thiết</h2>
-        <p>Chọn một khoản dự toán và số tiền bạn muốn ủng hộ.</p></div>
+      <div><h2 id="donation-title">{supportMode === "money" ? "Ủng hộ tài chính" : "Ủng hộ hiện vật"}</h2></div>
       <div className={css.headerActions}>
-        <span className={css.mockBadge}>Thanh toán mô phỏng</span>
-        {onClose && <button type="button" className={css.backButton} onClick={onClose}>← Chọn cách tham gia</button>}
+        {supportMode === "money" && <StatusPill tone="info">Thanh toán mô phỏng</StatusPill>}
+        <button type="button" className={css.backButton} onClick={onClose}>← Chọn cách tham gia</button>
       </div>
     </header>
-    {summary && <dl className={css.stats}>
-      <div><dt>Mục tiêu cần huy động</dt><dd>{money(summary.targetAmount)}</dd></div>
-      <div><dt>Đã xác nhận tiền ủng hộ</dt><dd>{money(summary.donatedAmount)}</dd></div>
-      <div><dt>Còn cần huy động</dt><dd>{money(summary.remainingAmount)}</dd></div>
-    </dl>}
-    {!!summary?.targets.length && <div className={css.progressList} aria-label="Tiến độ theo khoản dự toán">
-      {summary.targets.map((target) => <div className={css.target} key={target.budgetItemId}>
-        <div className={css.targetHead}><span>{target.name}</span><span>{target.isComplete ? target.satisfiedByInKind ? "Đã đủ chỉ tiêu hiện vật" : "Đã đạt mục tiêu" : `Còn thiếu ${money(target.remainingAmount)}`}</span></div>
-        <progress max={Math.max(target.targetAmount, 1)} value={Math.min(target.satisfiedByInKind ? target.targetAmount : target.donatedAmount, target.targetAmount)} />
-        <small>{target.satisfiedByInKind ? "Đã đủ hiện vật, đã đóng nhận tiền cho khoản này." : `Đã ủng hộ ${money(target.donatedAmount)} / ${money(target.targetAmount)}`}</small>
-      </div>)}
-    </div>}
-    {!!summary?.inKindTargets.length && <div className={css.progressList} aria-label="Tiến độ nhận hiện vật">
-      <h3 className={css.subheading}>Tiến độ nhận hiện vật</h3>
-      {summary.inKindTargets.map((target) => <div className={css.target} key={target.budgetItemId}>
-        <div className={css.targetHead}><span>{target.name}</span><span>{target.satisfiedByMoney ? "Đã đủ bằng tiền" : target.receivedQuantity >= target.targetQuantity ? "Đã nhận đủ" : target.isComplete ? "Đủ chỗ đăng ký, chờ giao" : `Còn thiếu ${target.remainingQuantity} ${target.unit}`}</span></div>
-        <progress max={Math.max(target.targetQuantity, 1)} value={Math.min(target.satisfiedByMoney ? target.targetQuantity : target.receivedQuantity, target.targetQuantity)} />
-        <small>{target.satisfiedByMoney ? "Đã đủ mục tiêu tiền, đã đóng nhận hiện vật cho khoản này." : `Đã nhận ${target.receivedQuantity} / ${target.targetQuantity} ${target.unit}${target.reservedQuantity > 0 ? ` · ${target.reservedQuantity} ${target.unit} đã được duyệt, chờ giao` : ""}`}</small>
-      </div>)}
-    </div>}
+    <div className={css.modeTabs} role="group" aria-label="Loại ủng hộ">
+      <button type="button" aria-pressed={supportMode === "money"} onClick={() => setSupportMode("money")}>Ủng hộ tài chính</button>
+      <button type="button" aria-pressed={supportMode === "in-kind"} onClick={() => setSupportMode("in-kind")}>Ủng hộ hiện vật</button>
+    </div>
+    {summary && (supportMode === "money" ? <MoneyProgress summary={summary} /> : <GoodsProgress targets={summary.inKindTargets} />)}
+    {summary && supportMode === "money" && <CampaignDonationDisclosure campaignId={campaign.id} />}
     {!summary && !error && <p role="status">Đang tải tiến độ gây quỹ…</p>}
-    {!targets.length && <p className={css.footnote}>Chiến dịch chưa công bố mục tiêu quyên góp theo từng khoản chi.</p>}
-    {!user && !loading && <div className={css.login}>Đăng nhập để tạo khoản ủng hộ và nhận thông báo xác nhận. <Link href="/login">Đăng nhập</Link></div>}
+    {!targets.length && supportMode === "money" && <p className={css.footnote}>Chiến dịch chưa công bố mục tiêu quyên góp theo từng khoản chi.</p>}
+    {supportMode === "money" && !user && !loading && !summary?.isClosed && <div className={css.login}>Đăng nhập để tạo khoản ủng hộ và nhận thông báo xác nhận. <Link href={loginPath}>Đăng nhập</Link></div>}
     {summary?.isClosed && <div className={css.closed} role="status"><strong>Đã đạt đủ mục tiêu ủng hộ</strong><p>Chiến dịch vẫn tiếp tục, nhưng hiện không nhận thêm tiền hoặc hiện vật.</p></div>}
-    {!summary?.isClosed && <div className={css.modeTabs} role="tablist" aria-label="Loại ủng hộ">
-      <button type="button" role="tab" aria-selected={supportMode === "money"} onClick={() => setSupportMode("money")}>Ủng hộ tài chính</button>
-      <button type="button" role="tab" aria-selected={supportMode === "in-kind"} onClick={() => setSupportMode("in-kind")}>Ủng hộ hiện vật</button>
-    </div>}
-    {!summary?.isClosed && supportMode === "money" && user && !donation && openMoneyTargets.length > 0 && <form className={css.form} onSubmit={(event) => void create(event)}>
+    {supportMode === "money" && (canDonateMoney || donation) && donation?.status !== "EXPIRED" &&
+      <ProcessSteps labels={paymentSteps} current={donation ? otpChallenge ? 2 : 1 : 0}
+        finished={donation?.status === "CONFIRMED"} />}
+    {supportMode === "money" && bank && <details className={css.goodsInfo}>
+      <summary>Thông tin nhận tài trợ của chiến dịch</summary>
+      <p>{bank.bankName} · {bank.accountHolder} · {bank.accountNumber}</p>
+      {bank.transferNote && <p>{bank.transferNote}</p>}
+      {bank.qrMediaId && <img className={css.bankQr} src={`/api/campaigns/${campaign.id}/media/${bank.qrMediaId}`} alt="Ảnh QR nhận tài trợ do tổ chức cung cấp" />}
+    </details>}
+    {summary && !summary.isClosed && supportMode === "money" && !canDonateMoney && <p role="status">
+      {summary.moneyAvailability === "SCHEDULED" ? "Ủng hộ tài chính chưa đến ngày mở." : "Hiện chưa nhận ủng hộ tài chính."}
+    </p>}
+    {canDonateMoney && supportMode === "money" && user && !donation && openMoneyTargets.length > 0 && <form className={css.form} onSubmit={(event) => void create(event)}>
       <label>Ủng hộ cho khoản<select required value={targetId} onChange={(event) => setTargetId(event.target.value)}>
         {openMoneyTargets.map((target) => <option key={target.id} value={target.id}>{target.name} · mục tiêu {money(target.amount)}</option>)}
       </select></label>
       <label>Số tiền (VND)<input required type="number" inputMode="numeric" min={1} max={1_000_000_000_000_000} step={1}
         value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
       <button type="submit" disabled={busy || !targetId}>{busy ? "Đang tạo…" : "Tiếp tục ủng hộ"} ↗</button>
+      <label className={`${css.fullField} ${css.publishName}`}><input type="checkbox" checked={publishDonorName}
+        onChange={(event) => setPublishDonorName(event.target.checked)} /> Hiện tên tôi trong kê khai công khai</label>
     </form>}
     {!summary?.isClosed && supportMode === "money" && summary && targets.length > 0 && openMoneyTargets.length === 0 &&
       <p className={css.footnote}>Các khoản tiền đã đóng vì mục tiêu từng khoản đã đủ bằng tiền hoặc hiện vật.</p>}
@@ -186,23 +237,29 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
       {goods.address && <p>Địa chỉ: {goods.address}</p>}
       {goods.receivingHours && <p>Thời gian: {goods.receivingHours}</p>}
       {goods.contact && <p>Liên hệ: {goods.contact}</p>}
+      <p>Bạn có thể đến trực tiếp trong giờ tiếp nhận hoặc đặt lịch giao trước.</p>
     </div>}
-    {!summary?.isClosed && summary && supportMode === "in-kind" && !pledge && openInKindTargets.length > 0 && <form className={css.form} onSubmit={(event) => void submitInKind(event)}>
+    {!summary?.isClosed && summary && supportMode === "in-kind" && user && !pledge && goods && openInKindTargets.length > 0 && <form className={css.form} onSubmit={(event) => void submitInKind(event)}>
       <label>Tặng hiện vật<select required value={inKindTargetId} onChange={(event) => setInKindTargetId(event.target.value)}>
         {openInKindTargets.map((target) => <option key={target.budgetItemId} value={target.budgetItemId}>
-          {target.name} · còn thiếu {target.remainingQuantity} {target.unit}
+          {target.name} · còn hẹn được {schedulable(target)} {target.unit}
         </option>)}
       </select></label>
-      <label>Số lượng<input required type="number" min="1" max={summary.inKindTargets.find((target) => target.budgetItemId === inKindTargetId)?.remainingQuantity ?? 1}
+      <label>Số lượng<input required type="number" min="1" max={schedulable(openInKindTargets.find((target) => target.budgetItemId === inKindTargetId))}
         step="0.01" value={inKindQuantity} onChange={(event) => setInKindQuantity(event.target.value)} /></label>
+      <label>Ngày và giờ giao theo thiết bị<input required type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} /></label>
       <label className={css.fullField}>Ghi chú (không bắt buộc)<input maxLength={1000} value={inKindNote} onChange={(event) => setInKindNote(event.target.value)} placeholder="Loại, kích cỡ hoặc lưu ý giao nhận" /></label>
-      <button type="submit" disabled={busy || !user || !inKindTargetId}>{busy ? "Đang gửi…" : "Gửi đề nghị tặng hiện vật"} ↗</button>
+      <button type="submit" disabled={busy || !inKindTargetId}>{busy ? "Đang đặt…" : "Đặt lịch giao hiện vật"} ↗</button>
     </form>}
     {!summary?.isClosed && summary && supportMode === "in-kind" && summary.inKindTargets.length > 0 && openInKindTargets.length === 0 &&
-      <p className={css.footnote}>Các chỉ tiêu hiện vật đã đóng vì từng khoản đã đủ bằng tiền hoặc hiện vật.</p>}
+      <p className={css.footnote}>Hiện chưa còn số lượng để đặt lịch giao. Hãy xem tiến độ thực nhận ở trên.</p>}
     {!summary?.isClosed && supportMode === "in-kind" && !summary?.inKindTargets.length && <p className={css.footnote}>Chiến dịch chưa khai báo chỉ tiêu hiện vật theo từng khoản.</p>}
-    {supportMode === "in-kind" && !user && !loading && !summary?.isClosed && <div className={css.login}>Đăng nhập để gửi đề nghị tặng hiện vật. <Link href="/login">Đăng nhập</Link></div>}
-    {donation && donation.status !== "CONFIRMED" && <section className={css.success} aria-label="Thanh toán sandbox">
+    {supportMode === "in-kind" && !user && !loading && !summary?.isClosed && <div className={css.login}>Đăng nhập để đặt lịch giao hiện vật. <Link href={loginPath}>Đăng nhập</Link></div>}
+    {supportMode === "money" && donation?.status === "EXPIRED" && <section className={css.success} role="status">
+      <strong>Giao dịch {donation.reference} đã hết hạn</strong>
+      <button type="button" onClick={() => { setDonation(undefined); setError(""); }}>Tạo khoản ủng hộ mới</button>
+    </section>}
+    {supportMode === "money" && donation && ["PENDING", "OTP_PENDING"].includes(donation.status) && <section className={css.success} aria-label="Thanh toán sandbox">
       <div className={css.successHead}><strong>Ủng hộ {money(donation.amount)} cho “{donation.targetName}”</strong><span className={css.mockBadge}>{donation.status === "OTP_PENDING" ? "Chờ OTP" : "Chờ thanh toán"}</span></div>
       <div className={css.qrCard}><SimulatedQr reference={donation.reference} /><div className={css.qrNote}>
         <strong>Thanh toán sandbox · {donation.reference}</strong>
@@ -226,14 +283,23 @@ export default function DonationPanel({ campaign, onClose }: { campaign: Campaig
       </form>}
       <p className={css.footnote}>Sandbox không kết nối ngân hàng, không gửi SMS và không chuyển tiền thật. OTP thử nghiệm chỉ hiển thị ở môi trường phát triển.</p>
     </section>}
-    {donation?.status === "CONFIRMED" && <section className={css.success} role="status">
+    {supportMode === "money" && donation?.status === "CONFIRMED" && <section className={css.success} role="status">
       <strong>Đã ghi nhận ủng hộ mô phỏng · {donation.reference}</strong>
       {success && <p>{success}</p>}
-      <button type="button" onClick={() => { setDonation(undefined); setSuccess(""); }}>Tạo giao dịch thử khác</button>
+      <div className={css.actions}><button type="button" onClick={() => { setDonation(undefined); setSuccess(""); }}>Tạo giao dịch thử khác</button>
+        <button type="button" onClick={onVolunteer}>Đăng ký tình nguyện</button></div>
     </section>}
-    {pledge && <section className={css.success} role="status"><strong>Đề nghị tặng hiện vật đã gửi · Chờ quản lý duyệt</strong>
-      {success && <p>{success}</p>}<button type="button" onClick={() => { setPledge(undefined); setSuccess(""); }}>Gửi đề nghị khác</button></section>}
+    {supportMode === "in-kind" && pledge && <section className={css.success} role="status"><strong>{pledge.status === "CANCELLED" ? "Đã hủy lịch giao" : "Đã xác nhận lịch giao hiện vật"}</strong>
+      <p>{pledge.quantity} {pledge.unit} · {pledge.targetName} · {new Date(pledge.scheduledAt).toLocaleString("vi-VN")}</p>
+      {pledge.status !== "CANCELLED" && <p>Mã lịch giao <code>{pledge.id}</code></p>}
+      <div className={css.actions}><button type="button" onClick={() => setPledge(undefined)}>Đặt lịch khác</button>
+        {pledge.status === "APPROVED" && <button type="button" disabled={busy} onClick={() => void cancelAppointment()}>Hủy lịch giao</button>}
+        <button type="button" onClick={onVolunteer}>Đăng ký tình nguyện</button></div></section>}
     {error && <p className={css.error} role="alert">{error}</p>}
-    <p className={css.footnote}>Bản thử nghiệm không kết nối ngân hàng: khoản ủng hộ chỉ được ghi nhận sau khi xác nhận OTP sandbox.</p>
+    {supportMode === "money" && !donation && <p className={css.footnote}>Khoản ủng hộ mô phỏng được ghi nhận sau khi xác nhận OTP sandbox.</p>}
   </section>;
+}
+
+function schedulable(target?: InKindTarget) {
+  return target?.availableToSchedule ?? target?.remainingQuantity ?? 0;
 }

@@ -8,6 +8,23 @@ import { api } from "@/shared/api/api";
 import { useNotifications } from "@/features/notifications/components/NotificationProvider";
 import type { InboxItem, InboxPage } from "@/features/notifications/types";
 import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
+import { StatusPill } from "@/shared/ui/StatusVisuals";
+
+function inboxDestination(item: InboxItem) {
+  const { url, kind } = item;
+  if (/^\/(?:admin\/)?organizations\/[0-9a-f-]+(?:\/manage)?$/.test(url)) return url;
+  if (kind === "CAMPAIGN_ASSIGNED" && /^\/organizations\/[0-9a-f-]{36}\/manage\/campaigns\?campaign=[0-9a-f-]{36}$/.test(url)) return url;
+  if (kind === "ACTIVITY_PHOTO_REPORT" && /^\/organizations\/[0-9a-f-]{36}\/manage\/campaigns\/[0-9a-f-]{36}\?tab=operations#activity-reports$/.test(url)) return url;
+  if (kind === "CAMPAIGN_STARTED" && /^\/organizations\/[0-9a-f-]{36}\/manage\/campaigns\/[0-9a-f-]{36}\/readiness$/.test(url)) return url;
+  if (kind === "CAMPAIGN_SCHEDULE_CHANGED" && /^\/chien-dich\/[0-9a-f-]{36}$/.test(url)) return url;
+  if (kind.startsWith("VOLUNTEER_REGISTRATION_") && (
+    /^\/account\/history\?registration=[0-9a-f-]{36}$/.test(url) ||
+    /^\/organizations\/[0-9a-f-]{36}\/manage\/operations\/[0-9a-f-]{36}$/.test(url))) return url;
+  if ((kind.startsWith("IN_KIND_PLEDGE_") || kind === "DONATION_CONFIRMED" || kind === "FUNDRAISING_GOAL_REACHED") && (
+    /^\/account\/payments\?(?:pledge|payment)=[0-9a-f-]{36}$/.test(url) ||
+    /^\/organizations\/[0-9a-f-]{36}\/manage\/budget\/[0-9a-f-]{36}$/.test(url))) return url;
+  return null;
+}
 
 export default function NotificationInboxScreen() {
   return (
@@ -48,13 +65,8 @@ function Inbox() {
     try {
       await api(`/api/notifications/${item.id}/read`, { method: "PUT" });
       await refresh();
-      const organizationUrl = /^\/(?:admin\/)?organizations\/[0-9a-f-]+(?:\/manage)?$/;
-      const campaignUrl = /^\/organizations\/[0-9a-f-]{36}\/manage\/campaigns\?campaign=[0-9a-f-]{36}$/;
-      const activityReportUrl = /^\/organizations\/[0-9a-f-]{36}\/manage\/campaigns\/[0-9a-f-]{36}\?tab=operations#activity-reports$/;
-      if (organizationUrl.test(item.url) ||
-        (item.kind === "CAMPAIGN_ASSIGNED" && campaignUrl.test(item.url)) ||
-        (item.kind === "ACTIVITY_PHOTO_REPORT" && activityReportUrl.test(item.url)))
-        router.push(item.url);
+      const destination = inboxDestination(item);
+      if (destination) router.push(destination);
     } catch (ex) {
       setError((ex as Error).message);
     } finally {
@@ -79,16 +91,13 @@ function Inbox() {
   return (
     <LocalizedTree>
       <section className={notificationsStyles.inbox}>
-        <div className="page-title">
+        <div className={`page-title ${notificationsStyles.inboxHero}`}>
           <div>
-            <p className="eyebrow">Give-AID · Cập nhật của bạn</p>
             <h1>Thông báo</h1>
-            <p className="muted">
-              {result?.unreadCount ?? 0} chưa đọc ·{" "}
-              {connected
-                ? "Đã kết nối realtime"
-                : "Đang kết nối realtime; danh sách vẫn tự cập nhật"}
-            </p>
+            <div className={notificationsStyles.inboxLabels}>
+              {result && <StatusPill tone={result.unreadCount ? "info" : "neutral"}>{result.unreadCount} chưa đọc</StatusPill>}
+              <StatusPill tone={connected ? "positive" : "neutral"}>{connected ? "Đã kết nối" : "Đang kết nối"}</StatusPill>
+            </div>
           </div>
           <button
             className="secondary"
@@ -118,6 +127,7 @@ function Inbox() {
         <div className={notificationsStyles.actions}>
           <button
             className={!unread ? "" : "secondary"}
+            aria-pressed={!unread}
             onClick={() => {
               setUnread(false);
               setPage(1);
@@ -127,6 +137,7 @@ function Inbox() {
           </button>
           <button
             className={unread ? "" : "secondary"}
+            aria-pressed={unread}
             onClick={() => {
               setUnread(true);
               setPage(1);
@@ -150,18 +161,18 @@ function Inbox() {
               {result.items.map((item) => (
                 <li key={item.id} className={item.readAt ? "" : notificationsStyles.isUnread}>
                   <button onClick={() => open(item)} disabled={working}>
-                    <span
-                      className={notificationsStyles.dot}
-                      aria-label={item.readAt ? "Đã đọc" : "Chưa đọc"}
-                    />
+                    <span className={notificationsStyles.dot} aria-hidden="true" />
                     <span>
-                      <strong>{item.title}</strong>
+                      <span className={notificationsStyles.inboxLabels}>
+                        <strong>{item.title}</strong>
+                        {!item.readAt && <StatusPill tone="info">Chưa đọc</StatusPill>}
+                      </span>
                       <span className={notificationsStyles.message}>{item.message}</span>
                       <time dateTime={item.createdAt}>
                         {new Date(item.createdAt).toLocaleString("vi-VN")}
                       </time>
                     </span>
-                    <span aria-hidden="true">→</span>
+                    {inboxDestination(item) && <span aria-hidden="true">→</span>}
                   </button>
                 </li>
               ))}

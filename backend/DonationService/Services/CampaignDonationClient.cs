@@ -7,12 +7,12 @@ namespace DonationService.Services;
 
 public sealed class CampaignDonationClient(IHttpClientFactory clients)
 {
-    public async Task<CampaignDonationContext> Get(Guid campaignId, CancellationToken ct)
+    public async Task<CampaignDonationContext> Get(Guid campaignId, CancellationToken ct, bool includeRecipients = true)
     {
         try
         {
             using var response = await clients.CreateClient("campaign-internal")
-                .GetAsync($"internal/campaigns/{campaignId}/donation-context", ct);
+                .GetAsync($"internal/campaigns/{campaignId}/donation-context?includeRecipients={includeRecipients}", ct);
             if (response.StatusCode == HttpStatusCode.NotFound) throw new ApiException(404, "Chiến dịch chưa mở nhận quyên góp.");
             if (!response.IsSuccessStatusCode) throw new ApiException(503, "Chưa tải được mục tiêu quyên góp của chiến dịch.");
             return await response.Content.ReadFromJsonAsync<CampaignDonationContext>(ct)

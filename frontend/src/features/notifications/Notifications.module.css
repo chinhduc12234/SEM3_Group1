@@ -167,3 +167,8 @@
     padding: 16px;
   }
 }
+
+.inboxHero { flex-wrap: wrap; gap: 1rem; padding: clamp(1rem, 3vw, 1.6rem); border: 1px solid #dbe6de; border-radius: 1rem; background: linear-gradient(125deg, #e9f4ed, #fcfaf2); }
+.inboxLabels { display: flex; gap: .35rem .6rem; align-items: center; flex-wrap: wrap; }
+.inboxHero h1 { margin-bottom: .55rem; }
+.list li.isUnread { border-inline-start: 4px solid #379367; }

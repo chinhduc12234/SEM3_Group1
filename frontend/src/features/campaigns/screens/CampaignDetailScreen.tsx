@@ -107,6 +107,8 @@ export default function CampaignDetailScreen() {
               )}
               <div className={campaignStyles.storyLayout}>
                 <article className={campaignStyles.story} data-cp-story="">
+                  {campaign.status === "PUBLISHED" &&
+                    <CampaignParticipationOptions key={campaign.id} campaign={campaign} />}
                   <section className={campaignStyles.detailSection}>
                     <h2>Thông tin chương trình</h2>
                     <div className={campaignStyles.storyBody}>
@@ -163,8 +165,6 @@ export default function CampaignDetailScreen() {
                     details={details}
                     onDownloadError={setError}
                   />}
-                  {campaign.status === "PUBLISHED" &&
-                    <CampaignParticipationOptions campaign={campaign} details={details} />}
                   <CampaignItinerary
                     schedules={schedules}
                     stops={stops}

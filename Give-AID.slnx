@@ -4,6 +4,7 @@
     <Project Path="backend/OrganizationService/OrganizationService.csproj" />
     <Project Path="backend/NotificationService/NotificationService.csproj" />
     <Project Path="backend/CampaignService/CampaignService.csproj" />
+    <Project Path="backend/CampaignLaunchService/CampaignLaunchService.csproj" />
     <Project Path="backend/DonationService/DonationService.csproj" />
     <Project Path="backend/VolunteerService/VolunteerService.csproj" />
     <Project Path="backend/ContentService/ContentService.csproj" />
