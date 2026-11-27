@@ -1,1 +1,1 @@
-export { default } from "@/features/admin/screens/OrganizationDirectoryScreen";
+export { default } from "@/features/admin/organizations/OrganizationDirectoryScreen";

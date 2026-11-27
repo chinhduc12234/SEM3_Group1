@@ -316,6 +316,9 @@ namespace VolunteerService.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<DateTimeOffset?>("RemovedByCoordinatorAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("ReviewNote")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -347,7 +350,11 @@ namespace VolunteerService.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId", "CampaignId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[Status] <> N'WITHDRAWN'");
+
+                    b.HasIndex("UserId", "RemovedByCoordinatorAt")
+                        .HasFilter("[RemovedByCoordinatorAt] IS NOT NULL");
 
                     b.HasIndex("CampaignId", "Status", "CreatedAt");
 

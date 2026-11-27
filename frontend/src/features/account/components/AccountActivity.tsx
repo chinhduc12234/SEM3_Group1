@@ -17,7 +17,7 @@ export function useActivityList<T>(url: string) {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    api<T[]>(url + "?page=" + page, { signal: controller.signal }).then((data) => {
+    api<T[]>(url + (url.includes("?") ? "&" : "?") + "page=" + page, { signal: controller.signal }).then((data) => {
       if (!controller.signal.aborted) setRows(data);
     }).catch((reason: Error) => {
       if (!controller.signal.aborted) setError(reason.message);
@@ -30,7 +30,7 @@ export function useActivityList<T>(url: string) {
 }
 
 export function ActivityList({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
-  return <section id={id} className={styles.accountActivityList}><h2>{title}</h2>{children}</section>;
+  return <section id={id} tabIndex={id ? -1 : undefined} className={styles.accountActivityList}><h2>{title}</h2>{children}</section>;
 }
 
 export function ActivityPager({ page, next, disabled, onChange }: {

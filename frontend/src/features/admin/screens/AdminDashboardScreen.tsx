@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/features/auth/components/AuthProvider";
 import { api } from "@/shared/api/api";
 import Icon from "@/features/admin/components/AdminIcon";
-import AdminOrganizationOverview from "@/features/admin/components/AdminOrganizationOverview";
+import AdminOrganizationOverview from "@/features/admin/organizations/AdminOrganizationOverview";
 type Item = {
   id: string;
   legalName: string;

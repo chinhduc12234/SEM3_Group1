@@ -15,7 +15,9 @@ public sealed class VolunteerRegistrationEventReceiver(NotificationDb db, IHttpC
     {
         if (item.EventId == Guid.Empty || item.CampaignId == Guid.Empty || item.RegistrationId == Guid.Empty ||
             string.IsNullOrWhiteSpace(item.VolunteerName) || item.VolunteerName.Length > 200 || item.SubmittedAt == default ||
-            item.RecipientUserId == Guid.Empty || item.Outcome is not (null or "OFFERED" or "WAITLISTED" or "UNDER_REVIEW" or "REJECTED" or "EXPIRED"))
+            item.RecipientUserId == Guid.Empty ||
+            item.Outcome is not (null or "OFFERED" or "WAITLISTED" or "UNDER_REVIEW" or "REJECTED" or "EXPIRED" or "REMOVED") ||
+            (item.Outcome == "REMOVED" && item.RecipientUserId is null))
             throw new ApiException(400, "Sự kiện hồ sơ tình nguyện không hợp lệ.");
 
         using var response = await clients.CreateClient("campaign")
@@ -48,8 +50,15 @@ public sealed class VolunteerRegistrationEventReceiver(NotificationDb db, IHttpC
             "UNDER_REVIEW" => "Hồ sơ tình nguyện cần được xem xét",
             "REJECTED" => "Đã có kết quả xét duyệt hồ sơ tình nguyện",
             "EXPIRED" => "Suất tình nguyện đã hết hạn xác nhận",
+            "REMOVED" => "Bạn đã bị gỡ quyền tình nguyện viên",
             _ => "Có hồ sơ tình nguyện mới"
         };
+        var message = item.Outcome == "REMOVED" ? recipients.CampaignTitle :
+            item.RecipientUserId.HasValue ? $"{recipients.CampaignTitle}. Mở Hoạt động của tôi để xem chi tiết."
+            : $"{item.VolunteerName} đã đăng ký tham gia chiến dịch {recipients.CampaignTitle}.";
+        var url = item.Outcome == "REMOVED" ? $"/account/history?removal={item.RegistrationId}" :
+            item.RecipientUserId.HasValue ? $"/account/history?registration={item.RegistrationId}"
+            : $"/organizations/{recipients.OrganizationId}/manage/volunteers/{item.CampaignId}";
         var notifications = targets.Select(userId => new Notification
         {
             EventId = item.EventId,
@@ -57,10 +66,8 @@ public sealed class VolunteerRegistrationEventReceiver(NotificationDb db, IHttpC
             UserId = userId,
             Kind = "VOLUNTEER_REGISTRATION_" + (item.Outcome ?? "SUBMITTED"),
             Title = title,
-            Message = item.RecipientUserId.HasValue ? $"{recipients.CampaignTitle}. Mở Hoạt động của tôi để xem chi tiết."
-                : $"{item.VolunteerName} đã đăng ký tham gia chiến dịch {recipients.CampaignTitle}.",
-            Url = item.RecipientUserId.HasValue ? $"/account/history?registration={item.RegistrationId}"
-                : $"/organizations/{recipients.OrganizationId}/manage/operations/{item.CampaignId}",
+            Message = message,
+            Url = url,
             CreatedAt = item.SubmittedAt
         }).ToArray();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);

@@ -1,4 +1,4 @@
-import NotificationInboxScreen from "@/features/notifications/screens/NotificationInboxScreen";
+import NotificationInboxScreen from "@/features/notifications/inbox/NotificationInboxScreen";
 import DashboardFrame from "@/shared/site/DashboardFrame";
 
 export default function Page() {

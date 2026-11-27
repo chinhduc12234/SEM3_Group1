@@ -4,7 +4,7 @@ import { campaignStatuses } from "@/features/campaigns/types/campaigns";
 import managementStyles from "@/features/campaigns/management/CampaignManagement.module.css";
 import { causes } from "@/features/campaigns/types/campaigns";
 import { downloadDocument } from "@/shared/api/api";
-import CampaignRouteMap from "@/features/campaigns/components/CampaignRouteMap";
+import CampaignRouteMap from "@/features/campaigns/components/itinerary/CampaignRouteMap";
 import { CampaignConceptHistory } from "./CampaignConceptDetails";
 
 type Props = Pick<

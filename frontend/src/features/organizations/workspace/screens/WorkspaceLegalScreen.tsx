@@ -1,7 +1,7 @@
 "use client";
 import { useWorkspace } from "@/features/organizations/workspace/WorkspaceContext";
 import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
-import OrganizationLegalChanges from "@/features/organizations/components/OrganizationLegalChanges";
+import OrganizationLegalChanges from "@/features/organizations/legal/OrganizationLegalChanges";
 export default function WorkspaceLegalScreen() {
   const { data } = useWorkspace();
   if (!data.canManageMembers)

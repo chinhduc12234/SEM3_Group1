@@ -567,9 +567,8 @@
 :global(.ga-user) .accountAreaLayout * {
   font-family: "Segoe UI", Arial, sans-serif !important;
 }
-:global(.ga-user) .accountAreaLayout .accountNavIcon,
-:global(.ga-user) .accountAreaLayout .accountSidebarNote p {
-  font-family: Georgia, "Times New Roman", serif !important;
+:global(.ga-user) .accountAreaLayout .accountNavIcon {
+  font-family: "Times New Roman", Times, serif !important;
 }
 :global(.ga-user) .accountAreaLayout h1,
 :global(.ga-user) .accountAreaLayout h2,
@@ -606,11 +605,6 @@
 .accountSidebar nav a[aria-current="page"] {
   background: #eaf2eb;
   color: var(--ga-green-dark);
-}
-.accountSidebarNote {
-  border: 1px solid #e0e9df;
-  border-radius: 13px;
-  background: #f8faf6;
 }
 @media (max-width: 760px) {
   .accountAreaLayout {
@@ -752,25 +746,6 @@
   border-color: #d6e6d4;
   background: #f6faf3;
   color: #b34d37;
-}
-.accountSidebarNote {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  margin: 20px 3px 0;
-  padding: 12px 10px;
-  border-radius: 9px;
-  background: #f2f6ed;
-}
-.accountSidebarNote > span {
-  color: #c36b4f;
-}
-.accountSidebarNote p {
-  margin: 0;
-  color: #718277;
-  font:
-    italic 11px/1.55 Georgia,
-    serif;
 }
 .accountAreaContent {
   min-width: 0;
@@ -1145,8 +1120,7 @@
     padding: 10px;
   }
   .accountSidebarUser,
-  .accountSidebarLabel,
-  .accountSidebarNote {
+  .accountSidebarLabel {
     display: none;
   }
   .accountSidebar nav {
@@ -1257,9 +1231,6 @@
 .accountSidebar nav strong { font-size: 13px; }
 .accountSidebar nav small { font-size: 11px; }
 .accountNavIcon { width: 36px; height: 36px; }
-.accountSidebarNote { margin-top: 26px; padding: 16px; }
-.accountSidebarNote p { font-size: 12px; }
-
 :global(.ga-user) .accountAreaContent > .userProfilePage {
   width: 100%;
   max-width: none;
@@ -1366,8 +1337,7 @@
   .accountSidebar nav { display: flex; flex: none; flex-wrap: nowrap; overflow: visible; }
   .accountSidebar nav a { flex: none; min-width: 112px; min-height: 64px; }
   .accountSidebar nav strong { font-size: 12px; }
-  .accountSidebar nav small,
-  .accountSidebarNote { display: none; }
+  .accountSidebar nav small { display: none; }
   .userProfileHeading { align-items: flex-start; }
   .userProfilePrivate { white-space: normal; }
 }

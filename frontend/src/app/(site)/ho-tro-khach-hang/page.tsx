@@ -1,1 +1,1 @@
-export { default } from "@/features/public-site/screens/SupportScreen";
+export { default } from "@/features/public-site/information/SupportScreen";

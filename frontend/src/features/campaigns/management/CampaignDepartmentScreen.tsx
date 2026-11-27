@@ -11,17 +11,20 @@ import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
 import { campaignTypes, type Campaign } from "../types/campaigns";
 import { formatCampaignDate } from "../formatCampaignDate";
 import type { CampaignRow } from "./campaignManagement";
-import CampaignOperationsPanel from "./components/CampaignOperationsPanel";
+import CampaignOperationsPanel from "./operations/CampaignOperationsPanel";
+import VolunteerManagementPanel from "./volunteers/VolunteerManagementPanel";
 import CampaignBudgetPanel from "./budget/CampaignBudgetPanel";
 import { BudgetStatus } from "./budget/CampaignBudgetSummary";
-import OperationsStatusBadge from "./components/OperationsStatusBadge";
+import OperationsStatusBadge from "./operations/OperationsStatusBadge";
 import finance from "./budget/BudgetDashboard.module.css";
 import { BudgetHero, BudgetRecordCard } from "./budget/BudgetDashboard";
-import ops from "./components/OperationsDashboard.module.css";
-import { OperationsCards, OperationsCard, OperationsHero } from "./components/OperationsDashboard";
+import ops from "./operations/OperationsDashboard.module.css";
+import { OperationsCards, OperationsCard } from "./operations/OperationsDashboard";
+import { WorkspaceEmpty, WorkspaceHero, WorkspaceLoading } from "@/features/organizations/workspace/components/WorkspaceUI";
 
 const departments = {
   operations: { role: "VOLUNTEER_COORDINATOR", title: "Vận hành", roleLabel: "Quản lý vận hành", list: "Danh sách vận hành" },
+  volunteers: { role: "VOLUNTEER_COORDINATOR", title: "Tình nguyện viên", roleLabel: "Điều phối tình nguyện", list: "Danh sách chiến dịch tình nguyện" },
   budget: { role: "FINANCE_MANAGER", title: "Ngân sách", roleLabel: "Quản lý tài chính", list: "Danh sách ngân sách" },
 } as const;
 
@@ -31,13 +34,14 @@ export default function CampaignDepartmentScreen({ workspace = "operations" }: {
   const { user } = useAuth();
   const actorId = user?.id;
   const department = departments[workspace];
+  const isVolunteerWorkspace = workspace === "volunteers";
   const canOpen = data.roles.includes(department.role);
   const root = `/organizations/${id}/manage`;
   const workspacePath = `${root}/${workspace}`;
   const [campaign, setCampaign] = useState<Campaign>();
   const [list, setList] = useState<PageResult<CampaignRow>>();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("PLANNING");
+  const [status, setStatus] = useState(isVolunteerWorkspace ? "PUBLISHED" : "PLANNING");
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
 
@@ -72,22 +76,26 @@ export default function CampaignDepartmentScreen({ workspace = "operations" }: {
     <p className="notice">Bạn cần quyền {department.roleLabel} để mở mục này.</p>
   </LocalizedTree>;
 
-  if (workspace === "operations") return <LocalizedTree>
+  if (workspace !== "budget") return <LocalizedTree>
     <div className={ops.dashboard}>
-      {campaignId && <Link className={ops.back} href={workspacePath}>← Danh sách vận hành</Link>}
-      <OperationsHero title={campaign?.title ?? "Vận hành"}
-        description={campaign ? "Điều phối lịch, nhân sự và cập nhật hoạt động cho Owner." : "Theo dõi các chiến dịch và sự kiện bạn được phân công phụ trách."}>
-        {campaign && <Link className={ops.heroLink} href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt ↗</Link>}
-      </OperationsHero>
-      {campaign?.status === "PUBLISHED" && <Link href={`${root}/campaigns/${campaign.id}/readiness`}>Xác nhận sẵn sàng</Link>}
+      {isVolunteerWorkspace && campaignId && <Link className={ops.listLink} href={workspacePath}>{department.list}</Link>}
+      <WorkspaceHero title={campaign?.title ?? department.title} icon={isVolunteerWorkspace ? "people" : "operations"}
+        description={isVolunteerWorkspace
+          ? campaign?.status === "PLANNING" ? "Thiết lập nhóm, chỉ tiêu và lịch tuyển cho chiến dịch." : "Quản lý nhóm, thành viên và hồ sơ đăng ký tình nguyện theo từng chiến dịch."
+          : campaign ? "Điều phối lịch, nhân sự và cập nhật hoạt động cho chủ tổ chức." : "Theo dõi các chiến dịch và sự kiện bạn được phân công phụ trách."}>
+        {!isVolunteerWorkspace && campaign && <Link className={ops.heroLink} href={`${root}/campaigns/${campaign.id}`}>Xem hồ sơ đã duyệt ↗</Link>}
+        {!isVolunteerWorkspace && campaign?.status === "PUBLISHED" && <Link className={ops.heroLink} href={`${root}/campaigns/${campaign.id}/readiness`}>Xác nhận sẵn sàng</Link>}
+      </WorkspaceHero>
       {error && <p className="notice error" role="alert">{error} <button type="button" className="quiet"
         onClick={() => setRetry((value) => value + 1)}>Tải lại</button></p>}
-      {campaignId ? campaign ? <CampaignOperationsPanel key={campaign.id} campaign={campaign} /> :
-        !error && <p role="status">Đang tải hồ sơ…</p> :
+      {campaignId ? campaign ? isVolunteerWorkspace && campaign.status === "PUBLISHED"
+        ? <div className={ops.surface}><VolunteerManagementPanel key={campaign.id} campaignId={campaign.id} /></div>
+        : <CampaignOperationsPanel key={campaign.id} campaign={campaign} groupsOnly={isVolunteerWorkspace} /> :
+        !error && <WorkspaceLoading>Đang tải hồ sơ…</WorkspaceLoading> :
         <section className={ops.surface}>
           <div className={ops.listHeader}>
-            <div><h2>Kế hoạch được phân công</h2>
-              {list && <p className="muted">{list.totalCount} hồ sơ</p>}</div>
+            <div><h2>{isVolunteerWorkspace ? department.list : "Kế hoạch được phân công"}</h2>
+              {list && <p className="muted" role="status">{list.totalCount} hồ sơ</p>}</div>
             <label>Trạng thái hồ sơ
               <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
                 <option value="PLANNING">Đang lập kế hoạch</option>
@@ -95,10 +103,11 @@ export default function CampaignDepartmentScreen({ workspace = "operations" }: {
               </select>
             </label>
           </div>
-          {!list && !error && <p role="status" className={ops.empty}>Đang tải hồ sơ…</p>}
-          {list?.items.length === 0 && <p className={ops.empty}>Chưa có hồ sơ được phân công ở trạng thái này.</p>}
+          {!list && !error && <WorkspaceLoading>Đang tải hồ sơ…</WorkspaceLoading>}
+          {list?.items.length === 0 && <WorkspaceEmpty title="Chưa có hồ sơ được phân công ở trạng thái này." icon="folder" />}
           {!!list?.items.length && <OperationsCards>{list.items.map((row) =>
             <OperationsCard key={row.id} title={row.title} href={`${workspacePath}/${row.id}`}
+              actionLabel={isVolunteerWorkspace ? row.status === "PLANNING" ? "Cấu hình nhóm tình nguyện" : "Quản lý tình nguyện viên" : undefined}
               subtitle={[campaignTypes[row.campaignType], row.startDate && row.endDate &&
                 `${formatCampaignDate(row.startDate)} – ${formatCampaignDate(row.endDate)}`].filter(Boolean).join(" · ")}
               status={<OperationsStatusBadge confirmedAt={row.operationsConfirmedAt} />} />)}

@@ -19,10 +19,14 @@ public sealed partial class CampaignApplication
         var dayById = plan.Days.ToDictionary(day => day.Id);
         var activityById = plan.Days.SelectMany(day => day.Activities).ToDictionary(activity => activity.Id);
         var teamById = plan.Teams.ToDictionary(team => team.Id);
-        var organizationMembers = await access.Members(campaign.OrganizationId, ct);
-        var memberNames = organizationMembers.ToDictionary(member => member.UserId, member => member.FullName);
+        var recruitingGroups = (plan.VolunteerGroups ?? []).Where(group => group.VolunteerCount > 0).ToArray();
+        var hasTeamLeader = recruitingGroups.Any(group => group.TeamId is Guid teamId &&
+            teamById.TryGetValue(teamId, out var team) && team.LeadUserId.HasValue);
+        var memberNames = hasTeamLeader
+            ? (await access.Members(campaign.OrganizationId, ct)).ToDictionary(member => member.UserId, member => member.FullName)
+            : new Dictionary<Guid, string>();
         var categoryById = VolunteerGroupCategories.ToDictionary(category => category.Id, category => category.Name, StringComparer.Ordinal);
-        var groups = (plan.VolunteerGroups ?? []).Where(group => group.VolunteerCount > 0)
+        var groups = recruitingGroups
             .Select(group =>
             {
                 var day = group.DayId is Guid dayId ? dayById.GetValueOrDefault(dayId) : null;

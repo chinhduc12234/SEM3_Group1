@@ -11,7 +11,8 @@ const accountLinks = [
   ["/account", "Hồ sơ cá nhân", "◉", "Tài khoản"],
   ["/account/security", "Bảo mật", "◇", "An toàn tài khoản"],
   ["/account/payments", "Ủng hộ của tôi", "₫", "Tiền & hiện vật"],
-  ["/account/history", "Lịch sử tham gia", "◷", "Tình nguyện & nhiệm vụ"],
+  ["/account/participation", "Hồ sơ tham gia", "▤", "Tình nguyện & nhiệm vụ"],
+  ["/account/history", "Lịch sử tham gia", "◷", "Chiến dịch đã tham gia"],
 ] as const;
 
 const supportLinks = [["/account/policies", "Chính sách", "§", "Quyền lợi & quy định"]] as const;
@@ -30,16 +31,17 @@ function AccountNavigation({
   return (
     <LocalizedTree>
       <nav aria-label={label}>
-        {links.map(([href, title, icon, description]) => (
-          <Link key={href} href={href} aria-current={path === href ? "page" : undefined}>
+        {links.map(([href, title, icon, description]) => {
+          const active = path === href || (href === "/account/participation" && path.startsWith(`${href}/`));
+          return <Link key={href} href={href} aria-current={active ? "page" : undefined}>
             <span className={accountStyles.accountNavIcon}>{icon}</span>
             <span>
               <strong>{title}</strong>
               <small>{description}</small>
             </span>
-            {path === href && <i />}
-          </Link>
-        ))}
+            {active && <i />}
+          </Link>;
+        })}
       </nav>
     </LocalizedTree>
   );
@@ -67,10 +69,6 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
             HỖ TRỢ & QUY ĐỊNH
           </p>
           <AccountNavigation label="Hỗ trợ và quy định" links={supportLinks} path={path} />
-          <div className={accountStyles.accountSidebarNote}>
-            <span>✦</span>
-            <p>Mỗi đóng góp của bạn đều góp phần tạo nên thay đổi tích cực.</p>
-          </div>
         </aside>
         <div className={accountStyles.accountAreaContent}>{children}</div>
       </div>

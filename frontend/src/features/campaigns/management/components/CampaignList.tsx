@@ -7,8 +7,8 @@ import managementStyles from "@/features/campaigns/management/CampaignManagement
 import { campaignStatuses, campaignTypes } from "@/features/campaigns/types/campaigns";
 import { formatCampaignDate } from "../../formatCampaignDate";
 import type { CampaignRow } from "../campaignManagement";
-import OperationsStatusBadge from "./OperationsStatusBadge";
-import PlanReadiness from "./PlanReadiness";
+import OperationsStatusBadge from "../operations/OperationsStatusBadge";
+import PlanReadiness from "../review/PlanReadiness";
 
 function CampaignCover({ campaign }: { campaign: CampaignRow }) {
   const [preview, setPreview] = useState("");

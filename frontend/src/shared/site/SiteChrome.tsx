@@ -1,6 +1,5 @@
 "use client";
 import chromeStyles from "@/shared/site/SiteChrome.module.css";
-import notificationsStyles from "@/features/notifications/Notifications.module.css";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -94,7 +93,7 @@ export function Header() {
           <nav className={chromeStyles.nav} aria-label={t("Điều hướng chính")}>
             {links}
           </nav>
-          <div className={notificationsStyles.mobileBell}>
+          <div className={chromeStyles.mobileBell}>
             <NotificationBell />
           </div>
           <div className={chromeStyles.headerActions}>

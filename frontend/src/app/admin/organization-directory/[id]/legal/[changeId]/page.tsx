@@ -1,1 +1,1 @@
-export { default } from "@/features/admin/screens/OrganizationLegalReviewScreen";
+export { default } from "@/features/admin/organizations/OrganizationLegalReviewScreen";

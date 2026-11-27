@@ -192,3 +192,13 @@
 @media (prefers-reduced-motion: reduce) {
   .nav a, .nav a::after, .loginLink { transition: none; }
 }
+
+.mobileBell {
+  display: none;
+}
+@media (max-width: 900px) {
+  .mobileBell {
+    display: flex;
+    margin-left: auto;
+  }
+}

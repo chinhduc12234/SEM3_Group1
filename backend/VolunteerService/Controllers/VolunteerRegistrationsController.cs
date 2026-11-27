@@ -16,10 +16,19 @@ public sealed class VolunteerRegistrationsController(IVolunteerRegistrationServi
     public Task<VolunteerAvailability> Availability(Guid campaignId, CancellationToken ct) => service.Availability(campaignId, ct);
 
     [HttpGet("me/registrations")]
-    public Task<VolunteerRegistrationMine[]> Mine([Range(1, 10000)] int page = 1, CancellationToken ct = default) => service.Mine(Actor, page, ct);
+    public Task<VolunteerRegistrationMine[]> Mine([Range(1, 10000)] int page = 1, Guid? campaignId = null, CancellationToken ct = default) =>
+        service.Mine(Actor, page, campaignId, ct);
 
     [HttpGet("me/registrations/{id:guid}")]
     public Task<VolunteerRegistrationMine> Mine(Guid id, CancellationToken ct) => service.Mine(Actor, id, ct);
+
+    [HttpGet("me/participation-history")]
+    public Task<VolunteerParticipationHistory[]> ParticipationHistory([Range(1, 10000)] int page = 1, CancellationToken ct = default) =>
+        service.ParticipationHistory(Actor, page, ct);
+
+    [HttpGet("me/removal-history")]
+    public Task<VolunteerRemovalHistory[]> RemovalHistory([Range(1, 10000)] int page = 1, Guid? registrationId = null, CancellationToken ct = default) =>
+        service.RemovalHistory(Actor, page, registrationId, ct);
 
     [HttpPost("me/registrations/{id:guid}/offers/{offerId:guid}")]
     public Task<VolunteerRegistrationMine> Respond(Guid id, Guid offerId, VolunteerRespondRequest request, CancellationToken ct) =>
@@ -75,5 +84,12 @@ public sealed class VolunteerRegistrationsController(IVolunteerRegistrationServi
         if (!Guid.TryParse(User.FindFirstValue("sub"), out var reviewerId))
             throw new Shared.ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
         return await service.Review(reviewerId, registrationId, request, ct);
+    }
+
+    [HttpDelete("registrations/{registrationId:guid}")]
+    public async Task<IActionResult> Remove(Guid registrationId, CancellationToken ct)
+    {
+        await service.Remove(Actor, registrationId, ct);
+        return NoContent();
     }
 }

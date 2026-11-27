@@ -235,6 +235,10 @@ public sealed class VolunteerTaskService(IVolunteerTaskRepository repository,
         ValidateIds(userId, assignmentId);
         var assignment = await repository.FindMyAssignment(userId, assignmentId, ct)
             ?? throw new ApiException(404, "Không tìm thấy phân công task của bạn.");
+        await using var gate = await registrations.LockCampaign(assignment.Task.CampaignId, ct);
+        db.ChangeTracker.Clear();
+        assignment = await repository.FindMyAssignment(userId, assignmentId, ct)
+            ?? throw new ApiException(404, "Không tìm thấy phân công task của bạn.");
 
         if (assignment.Status == "COMPLETED") return ToMyTaskView(assignment);
         if (assignment.Status is "CANCELLED" or "DECLINED")

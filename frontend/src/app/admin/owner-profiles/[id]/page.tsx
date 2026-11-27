@@ -1,1 +1,1 @@
-export { default } from "@/features/admin/screens/OwnerProfileDetailScreen";
+export { default } from "@/features/admin/owners/OwnerProfileDetailScreen";

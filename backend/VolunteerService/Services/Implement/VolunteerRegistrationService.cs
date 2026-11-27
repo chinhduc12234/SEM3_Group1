@@ -39,7 +39,7 @@ public sealed partial class VolunteerRegistrationService(
             !openings.Days.Any(day => day.Date == date)))) throw new ApiException(400, "Chọn ít nhất một ngày trong lịch triển khai.");
         var account = await accounts.Get(userId, ct);
         await using var gate = await repository.LockCampaign(request.CampaignId, ct);
-        if (await repository.Exists(userId, request.CampaignId, ct))
+        if (await repository.ExistsNonWithdrawn(userId, request.CampaignId, ct))
             throw new ApiException(409, "Bạn đã gửi hồ sơ tình nguyện cho chiến dịch này.");
 
         var now = DateTimeOffset.UtcNow;
@@ -86,7 +86,7 @@ public sealed partial class VolunteerRegistrationService(
         try { await repository.Save(ct); }
         catch (DbUpdateException)
         {
-            if (await repository.Exists(userId, request.CampaignId, ct))
+            if (await repository.ExistsNonWithdrawn(userId, request.CampaignId, ct))
                 throw new ApiException(409, "Bạn đã gửi hồ sơ tình nguyện cho chiến dịch này.");
             throw;
         }
@@ -224,6 +224,37 @@ public sealed partial class VolunteerRegistrationService(
                 .OrderBy(group => group.AssignedAt)
                 .Select(group => new VolunteerGroupAssignmentResult(group.GroupId, group.Status,
                     group.AssignedBy, group.AssignedAt, group.ConfirmBy, group.ConfirmedAt)).ToArray());
+    }
+
+    public async Task Remove(Guid reviewerId, Guid registrationId, CancellationToken ct)
+    {
+        if (reviewerId == Guid.Empty) throw new ApiException(401, "Tài khoản đăng nhập không hợp lệ.");
+        if (registrationId == Guid.Empty) throw new ApiException(400, "Mã hồ sơ không hợp lệ.");
+        var located = await repository.FindForReview(registrationId, ct)
+            ?? throw new ApiException(404, "Không tìm thấy hồ sơ tình nguyện.");
+        if (!await reviewAccess.CanReview(located.CampaignId, reviewerId, ct))
+            throw new ApiException(403, "Bạn không được quản lý tình nguyện viên của chiến dịch này.");
+        if (located.Status == "WITHDRAWN") return;
+
+        await using var gate = await repository.LockCampaign(located.CampaignId, ct);
+        var registration = await repository.FindForUpdate(registrationId, ct)
+            ?? throw new ApiException(404, "Không tìm thấy hồ sơ tình nguyện.");
+        if (registration.Status == "WITHDRAWN") return;
+        var freesSpots = registration.Status == "APPROVED" && registration.GroupAssignments.Any(offer => offer.Status == "ACTIVE");
+        var openings = freesSpots ? await campaignOpenings.Get(registration.CampaignId, ct) : null;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var assignment in await repository.OpenTaskAssignments(registrationId, ct))
+        {
+            assignment.Status = "CANCELLED";
+            assignment.UpdatedAt = now;
+        }
+        ReleaseRegistration(registration, now);
+        registration.RemovedByCoordinatorAt = now;
+        registration.ReviewedBy = reviewerId;
+        registration.ReviewedAt = now;
+        registration.ReviewNote = "Điều phối viên đã xóa hồ sơ tình nguyện khỏi chiến dịch.";
+        Notify(registration, now, "REMOVED");
+        await SaveAndPromote(openings, now, ct);
     }
 
     public async Task<VolunteerGroupsManagementView> GroupManagement(Guid reviewerId, Guid campaignId, CancellationToken ct)

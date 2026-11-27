@@ -1,4 +1,4 @@
-import NotificationInboxScreen from "@/features/notifications/screens/NotificationInboxScreen";
+import NotificationInboxScreen from "@/features/notifications/inbox/NotificationInboxScreen";
 
 export default function Page() {
   return <NotificationInboxScreen />;

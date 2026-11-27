@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, downloadDocument } from "@/shared/api/api";
 import { ProgressTrack, StatusPill } from "@/shared/ui/StatusVisuals";
-import { GoodsProgress, MoneyProgress, type MoneyTarget as Target, type GoodsTarget as InKindTarget } from "../../components/FundraisingProgress";
+import { GoodsProgress, MoneyProgress, type MoneyTarget as Target, type GoodsTarget as InKindTarget } from "../../components/donation/FundraisingProgress";
 import InKindReceiptForm from "./InKindReceiptForm";
 import css from "./CampaignDonationsTab.module.css";
 

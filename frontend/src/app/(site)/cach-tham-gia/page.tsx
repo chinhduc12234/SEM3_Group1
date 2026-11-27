@@ -1,1 +1,1 @@
-export { default } from "@/features/public-site/screens/ParticipationScreen";
+export { default } from "@/features/public-site/participation/ParticipationScreen";

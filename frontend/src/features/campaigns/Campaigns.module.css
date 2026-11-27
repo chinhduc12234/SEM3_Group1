@@ -1,3 +1,12 @@
+:global(.ga-site):has(.detail),
+.detail {
+  --campaign-font: "Times New Roman", Times, serif;
+  font-family: var(--campaign-font);
+}
+:global(.ga-site):has(.detail) :where(button, input, select, textarea),
+.detail :global(.leaflet-container) {
+  font-family: var(--campaign-font);
+}
 .page {
   --cp-green: var(--ga-green);
   --cp-ink: var(--ga-ink);
@@ -30,7 +39,7 @@
   --cp-cream: #f7f5ee;
   background: #faf9f5;
   color: var(--cp-ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--campaign-font, Arial, Helvetica, sans-serif);
   line-height: 1.65;
 }
 .page a {
@@ -51,7 +60,7 @@
 .page h1,
 .page h2,
 .page h3 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--campaign-font, Georgia, "Times New Roman", serif);
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1.12;
@@ -390,12 +399,8 @@
   padding-bottom: 110px;
 }
 .detailHeading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 40px;
   max-width: 1100px;
-  margin: 34px 0 48px;
+  margin: 24px 0 0;
 }
 .detailHeading h1 {
   font-size: clamp(46px, 6.1vw, 80px);
@@ -423,13 +428,8 @@
 .detailMeta span:first-child {
   color: #bd644d;
 }
-.headingMark {
-  color: #cc8066;
-  font-size: 56px;
-  line-height: 1;
-}
-.detailCover {
-  margin: 0;
+.detail .detailCover {
+  margin-top: 36px;
 }
 .detailCover img {
   width: 100%;
@@ -448,29 +448,20 @@
   padding: 13px 0;
   border-bottom: 1px solid #dde5da;
 }
-.detailNoCover {
-  height: 180px;
-  background: #e5ede2;
-  display: grid;
-  place-items: center;
-  color: #a6b9a6;
-  font-size: 60px;
-}
 .storyLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 90px;
-  padding-top: 75px;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 310px);
+  gap: clamp(28px, 4.2vw, 60px);
+  padding-top: 48px;
 }
 .story {
-  max-width: 720px;
+  min-width: 0;
 }
 .storyKicker {
   color: #ba6d56;
   margin-bottom: 20px;
 }
-.story h2,
-.facts h2 {
+.story h2 {
   font-size: clamp(34px, 3.5vw, 48px);
   margin-bottom: 28px;
 }
@@ -491,43 +482,37 @@
   margin: 48px 0;
 }
 .factsInner {
-  background: #ecf1e9;
-  border: 1px solid #e0e8dd;
-  padding: 28px;
-}
-.facts .eyebrow {
-  margin-bottom: 20px;
+  background: #f2f5ed;
+  border: 1px solid var(--ga-line-strong);
+  border-top: 4px solid #ab5d49;
+  border-radius: 6px;
+  padding: 20px 24px 24px;
 }
 .facts h2 {
-  font-size: 35px;
-  margin-bottom: 14px;
-}
-.factsIntro {
-  font-size: 13px;
-  line-height: 1.8;
-  color: #728478;
+  font-size: 1.5rem;
+  color: var(--ga-green-dark);
 }
 .facts dl {
-  margin: 25px 0 0;
+  margin: 14px 0 0;
 }
 .facts dl div {
-  padding: 16px 0;
+  padding: 12px 0;
   border-top: 1px solid #d6e1d4;
 }
 .facts dt {
-  font-size: 11px;
-  color: #859688;
-  margin-bottom: 4px;
+  font-size: .9375rem;
+  color: #536b5c;
 }
 .facts dd {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.0625rem;
+  line-height: 1.4;
   font-weight: 700;
   color: #2d5740;
   overflow-wrap: anywhere;
 }
 .facts dd small {
-  font-size: 11px;
+  font-size: .875rem;
   font-weight: 400;
 }
 .contact {
@@ -535,15 +520,14 @@
   border-top: 1px solid #d6e1d4;
 }
 .contact span {
-  font-size: 9px;
+  font-size: .75rem;
   letter-spacing: 0.12em;
-  color: #b76d56;
+  color: #8d4e3c;
   font-weight: 700;
 }
 .contact p {
-  font-size: 13px;
+  font-size: 1rem;
   color: #5a7060;
-  margin-top: 8px;
   overflow-wrap: anywhere;
 }
 .backList {
@@ -553,8 +537,15 @@
   color: white !important;
   margin-top: 24px;
   padding: 14px;
-  font-size: 11px;
+  font-size: .9375rem;
   font-weight: 700;
+  border-radius: 4px;
+}
+@media (min-width: 961px) and (min-height: 820px) {
+  .facts { position: sticky; top: 7rem; align-self: start; }
+}
+@media (max-width: 960px) {
+  .storyLayout { grid-template-columns: minmax(0, 1fr); gap: 42px; }
 }
 .galleryGrid {
   display: grid;
@@ -580,10 +571,6 @@
   }
   .introGrid {
     gap: 40px;
-  }
-  .storyLayout {
-    grid-template-columns: 1fr;
-    gap: 45px;
   }
   .facts {
     max-width: 600px;
@@ -637,9 +624,6 @@
   .detailHeading h1 {
     font-size: 45px;
   }
-  .headingMark {
-    display: none;
-  }
   .storyLayout {
     padding-top: 48px;
   }
@@ -664,7 +648,7 @@
 .page h1,
 .page h2,
 .page h3 {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--campaign-font, Arial, Helvetica, sans-serif);
   letter-spacing: normal;
   line-height: 1.35;
   font-weight: 600;
@@ -866,7 +850,7 @@
 }
 .publicCard h3,
 .subheading {
-  font-family: Arial, Helvetica, sans-serif !important;
+  font-family: var(--campaign-font, Arial, Helvetica, sans-serif) !important;
   font-size: 16px !important;
   letter-spacing: 0 !important;
   line-height: 1.5 !important;
@@ -917,8 +901,7 @@
   color: #fff;
   padding: 9px 13px;
   font:
-    600 12px Arial,
-    sans-serif;
+    600 12px var(--campaign-font, Arial, sans-serif);
   cursor: pointer;
 }
 .galleryGrid figure {
@@ -956,7 +939,7 @@
   font-weight: 700;
 }
 .scheduleCard header h3 {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--campaign-font, Arial, Helvetica, sans-serif);
   font-size: 18px;
   letter-spacing: 0;
   line-height: 1.45;

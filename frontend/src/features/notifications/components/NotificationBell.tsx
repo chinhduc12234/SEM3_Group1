@@ -1,5 +1,5 @@
 "use client";
-import notificationsStyles from "@/features/notifications/Notifications.module.css";
+import notificationsStyles from "./NotificationBell.module.css";
 import { LocalizedTree } from "@/shared/i18n/LocalizedTree";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/components/AuthProvider";

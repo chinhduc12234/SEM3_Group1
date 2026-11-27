@@ -69,6 +69,19 @@
   overflow-wrap: anywhere;
 }
 .stat small { display: block; margin-top: .3rem; color: var(--visual-muted); font-size: .77rem; font-weight: 500; }
+.statWithIcon { background: #fff; border-radius: 15px; box-shadow: 0 5px 14px #173e2f08; }
+.statWithIcon dt { display: flex; align-items: center; justify-content: space-between; gap: .35rem; color: #435d51; }
+.statWithIcon dd { color: #173b31; font-size: clamp(1.5rem, 3vw, 2.05rem); }
+.statIcon {
+  display: grid; place-items: center; flex: none; width: 34px; height: 34px;
+  border-radius: 10px; color: var(--tone-ink); background: var(--tone-bg);
+}
+.statIcon svg { width: 17px; height: 17px; }
+@media (max-width: 540px) {
+  .statWithIcon dt { align-items: flex-start; }
+  .statIcon { width: 27px; height: 27px; border-radius: 8px; }
+  .statIcon svg { width: 15px; height: 15px; }
+}
 .track {
   display: flex;
   align-items: stretch;

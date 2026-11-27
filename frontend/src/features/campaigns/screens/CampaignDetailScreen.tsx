@@ -16,7 +16,7 @@ import {
 } from "@/features/campaigns/types/submission";
 import { formatCampaignDate as date } from "../formatCampaignDate";
 import CampaignSupport from "../components/CampaignSupport";
-import CampaignItinerary from "../components/CampaignItinerary";
+import CampaignItinerary from "../components/itinerary/CampaignItinerary";
 import CampaignParticipationOptions from "../components/CampaignParticipationOptions";
 export default function CampaignDetailScreen() {
   const { id } = useParams<{ id: string }>();
@@ -86,11 +86,8 @@ export default function CampaignDetailScreen() {
                     <span>Đã được tổ chức phê duyệt</span>
                   </div>
                 </div>
-                <div className={campaignStyles.headingMark} aria-hidden="true">
-                  ✳
-                </div>
               </header>
-              {cover ? (
+              {cover && (
                 <figure className={campaignStyles.detailCover}>
                   <img
                     src={`/api/campaigns/${id}/media/${cover.id}`}
@@ -100,10 +97,6 @@ export default function CampaignDetailScreen() {
                     {campaignTypes[campaign.campaignType]} <span>GIVE-AID</span>
                   </figcaption>
                 </figure>
-              ) : (
-                <div className={campaignStyles.detailNoCover} aria-hidden="true">
-                  ✳
-                </div>
               )}
               <div className={campaignStyles.storyLayout}>
                 <article className={campaignStyles.story} data-cp-story="">
@@ -174,19 +167,16 @@ export default function CampaignDetailScreen() {
 
                 <aside className={campaignStyles.facts}>
                   <div className={campaignStyles.factsInner}>
-                    <p className={campaignStyles.eyebrow}>
-                      <span /> THÔNG TIN CHIẾN DỊCH
-                    </p>
-                    <h2>
-                      Cùng nhau
-                      <br />
-                      <em>chung tay.</em>
-                    </h2>
-                    <p className={campaignStyles.factsIntro}>
-                      Thông tin do tổ chức cung cấp giúp bạn hiểu rõ mục tiêu và phạm vi của chiến
-                      dịch này.
-                    </p>
+                    <h2>Thông tin chiến dịch</h2>
                     <dl>
+                      <div>
+                        <dt>Thời gian</dt>
+                        <dd>{campaign.startDate === campaign.endDate ? date(campaign.startDate) : `${date(campaign.startDate)} – ${date(campaign.endDate)}`}</dd>
+                      </div>
+                      <div>
+                        <dt>Địa điểm</dt>
+                        <dd>{details.province || campaign.location || (publicPlan?.eventFormat === "ONLINE" ? "Trực tuyến" : "—")}</dd>
+                      </div>
                       <div>
                         <dt>Mục tiêu quyên góp</dt>
                         <dd>
@@ -199,16 +189,6 @@ export default function CampaignDetailScreen() {
                           {campaign.volunteerTarget} <small>người</small>
                         </dd>
                       </div>}
-                      <div>
-                        <dt>Thời gian</dt>
-                        <dd>
-                          {date(campaign.startDate)} — {date(campaign.endDate)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Địa điểm</dt>
-                        <dd>{details.province || campaign.location || (publicPlan?.eventFormat === "ONLINE" ? "Trực tuyến" : "—")}</dd>
-                      </div>
                       <div>
                         <dt>Số lịch biểu</dt>
                         <dd>

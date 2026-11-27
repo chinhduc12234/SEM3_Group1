@@ -69,9 +69,16 @@ public sealed record VolunteerGroupMember(Guid RegistrationId, string FullName, 
 public sealed record VolunteerAvailability(Guid CampaignId, int SubmittedCount, VolunteerGroupAvailability[] Groups);
 public sealed record VolunteerGroupAvailability(Guid GroupId, int Assigned, int Confirmed, int Target, bool CanRegister);
 public sealed record VolunteerRegistrationMine(Guid Id, Guid CampaignId, string Status, string? Note,
-    DateTimeOffset SubmittedAt, VolunteerOfferView[] Offers);
+    DateTimeOffset SubmittedAt, VolunteerOfferView[] Offers, VolunteerRegistrationProfile? Profile = null);
+public sealed record VolunteerRegistrationProfile(string FullName, string Email, string PhoneNumber, DateOnly? DateOfBirth,
+    string? Occupation, string? Skills, string? Experience, string? Motivation, string? EmergencyContactName,
+    string? EmergencyContactPhone, DateOnly[]? AvailableDates, bool CommitsToAllDays, Guid[] PreferredGroupIds);
+public sealed record VolunteerParticipationHistory(Guid CampaignId, DateTimeOffset LastParticipationAt,
+    int AttendanceCount, int CompletedTaskCount);
 public sealed record VolunteerOfferView(Guid Id, Guid GroupId, string Status, DateTimeOffset? ConfirmBy, DateTimeOffset? ConfirmedAt);
 public sealed record VolunteerRespondRequest(bool Accept);
+
+public sealed record VolunteerRemovalHistory(Guid RegistrationId, Guid CampaignId, DateTimeOffset RemovedAt);
 
 // Public, read-only opening data returned by CampaignService. CampaignService remains the source of truth.
 public sealed record CampaignVolunteerOpenings(Guid CampaignId, string CampaignTitle, DateOnly? StartDate,

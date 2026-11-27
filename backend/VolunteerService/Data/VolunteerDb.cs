@@ -26,6 +26,7 @@ public sealed class VolunteerRegistration
     public string Status { get; set; } = "SUBMITTED";
     public Guid? ReviewedBy { get; set; }
     public DateTimeOffset? ReviewedAt { get; set; }
+    public DateTimeOffset? RemovedByCoordinatorAt { get; set; }
     public string? ReviewNote { get; set; }
     public string? RejectionReason { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -168,8 +169,9 @@ public sealed class VolunteerDb(DbContextOptions<VolunteerDb> options) : DbConte
         registration.Property(x => x.Status).HasMaxLength(20);
         registration.Property(x => x.ReviewNote).HasMaxLength(2000);
         registration.Property(x => x.RejectionReason).HasMaxLength(2000);
-        registration.HasIndex(x => new { x.UserId, x.CampaignId }).IsUnique();
+        registration.HasIndex(x => new { x.UserId, x.CampaignId }).IsUnique().HasFilter("[Status] <> N'WITHDRAWN'");
         registration.HasIndex(x => new { x.CampaignId, x.Status, x.CreatedAt });
+        registration.HasIndex(x => new { x.UserId, x.RemovedByCoordinatorAt }).HasFilter("[RemovedByCoordinatorAt] IS NOT NULL");
 
         var preference = b.Entity<RegistrationGroupPreference>();
         preference.ToTable("RegistrationGroupPreferences", t => t.HasCheckConstraint(

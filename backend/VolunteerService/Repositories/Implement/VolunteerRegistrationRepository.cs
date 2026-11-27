@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using VolunteerService.Contracts;
 using VolunteerService.Data;
 
 namespace VolunteerService.Repositories;
 
 public sealed class VolunteerRegistrationRepository(VolunteerDb db) : IVolunteerRegistrationRepository
 {
-    public Task<bool> Exists(Guid userId, Guid campaignId, CancellationToken ct) =>
-        db.Registrations.AnyAsync(x => x.UserId == userId && x.CampaignId == campaignId, ct);
+    public Task<bool> ExistsNonWithdrawn(Guid userId, Guid campaignId, CancellationToken ct) =>
+        db.Registrations.AnyAsync(x => x.UserId == userId && x.CampaignId == campaignId && x.Status != "WITHDRAWN", ct);
 
     public async Task<(VolunteerRegistration[] Items, int TotalCount)> ListForCampaign(Guid campaignId, string status,
         int page, int pageSize, CancellationToken ct)
@@ -28,6 +29,10 @@ public sealed class VolunteerRegistrationRepository(VolunteerDb db) : IVolunteer
     public Task<VolunteerRegistration?> FindForUpdate(Guid registrationId, CancellationToken ct) =>
         db.Registrations.Include(x => x.GroupPreferences).Include(x => x.GroupAssignments)
             .SingleOrDefaultAsync(x => x.Id == registrationId, ct);
+
+    public Task<TaskAssignment[]> OpenTaskAssignments(Guid registrationId, CancellationToken ct) =>
+        db.TaskAssignments.Where(x => x.RegistrationId == registrationId &&
+            (x.Status == "ASSIGNED" || x.Status == "ACCEPTED" || x.Status == "IN_PROGRESS")).ToArrayAsync(ct);
 
     private IQueryable<VolunteerGroupAssignment> Active(DateTimeOffset now) => db.GroupAssignments.AsNoTracking()
         .Where(x => x.Status == "ACTIVE" && x.Registration.Status == "APPROVED" &&
@@ -68,14 +73,46 @@ public sealed class VolunteerRegistrationRepository(VolunteerDb db) : IVolunteer
         }
     }
 
-    public Task<VolunteerRegistration[]> Mine(Guid userId, int page, CancellationToken ct) => db.Registrations.AsNoTracking()
-        .Where(row => row.UserId == userId).OrderByDescending(row => row.CreatedAt).ThenByDescending(row => row.Id)
+    public Task<VolunteerRegistration[]> Mine(Guid userId, int page, Guid? campaignId, CancellationToken ct) => db.Registrations.AsNoTracking()
+        .Where(row => row.UserId == userId && row.Status != "WITHDRAWN" && (campaignId == null || row.CampaignId == campaignId))
+        .OrderByDescending(row => row.CreatedAt).ThenByDescending(row => row.Id)
         .Skip((page - 1) * 20).Take(20).Include(row => row.GroupAssignments).ToArrayAsync(ct);
+
+    public Task<VolunteerParticipationHistory[]> ParticipationHistory(Guid userId, int page, CancellationToken ct)
+    {
+        var registrations = db.Registrations.AsNoTracking().Where(row => row.UserId == userId);
+        var attendance = registrations.SelectMany(row => row.Attendances
+            .Where(entry => entry.Status == "PRESENT" || entry.Status == "LATE")
+            .Select(entry => new { row.CampaignId, At = entry.CheckInAt ?? entry.MarkedAt, Kind = 0 }));
+        var completedTasks = registrations.SelectMany(row => row.TaskAssignments
+            .Where(entry => entry.Status == "COMPLETED")
+            .Select(entry => new { row.CampaignId, At = entry.CompletedAt ?? entry.UpdatedAt, Kind = 1 }));
+
+        return attendance.Concat(completedTasks).GroupBy(entry => entry.CampaignId)
+            .Select(group => new
+            {
+                CampaignId = group.Key,
+                LastParticipationAt = group.Max(entry => entry.At),
+                AttendanceCount = group.Count(entry => entry.Kind == 0),
+                CompletedTaskCount = group.Count(entry => entry.Kind == 1)
+            })
+            .OrderByDescending(row => row.LastParticipationAt).ThenBy(row => row.CampaignId)
+            .Skip((page - 1) * 20).Take(20)
+            .Select(row => new VolunteerParticipationHistory(row.CampaignId, row.LastParticipationAt, row.AttendanceCount, row.CompletedTaskCount))
+            .ToArrayAsync(ct);
+    }
 
     public Task<VolunteerRegistration[]> ExpiredOffers(Guid campaignId, DateTimeOffset now, CancellationToken ct) =>
         db.Registrations.Where(row => row.CampaignId == campaignId && row.Status == "APPROVED" &&
             row.GroupAssignments.Any(offer => offer.Status == "ACTIVE" && offer.ConfirmedAt == null && offer.ConfirmBy <= now))
         .OrderBy(row => row.Id).Take(200).Include(row => row.GroupAssignments).ToArrayAsync(ct);
+
+    public Task<VolunteerRemovalHistory[]> RemovalHistory(Guid userId, int page, Guid? registrationId, CancellationToken ct) =>
+        db.Registrations.AsNoTracking().Where(row => row.UserId == userId && row.RemovedByCoordinatorAt != null &&
+            (registrationId == null || row.Id == registrationId))
+            .OrderByDescending(row => row.RemovedByCoordinatorAt).ThenBy(row => row.Id)
+            .Skip((page - 1) * 20).Take(20)
+            .Select(row => new VolunteerRemovalHistory(row.Id, row.CampaignId, row.RemovedByCoordinatorAt!.Value)).ToArrayAsync(ct);
 
     public Task<Guid[]> CampaignsWithQueue(DateTimeOffset now, CancellationToken ct) => db.Registrations.AsNoTracking()
         .Where(row => row.Status == "APPROVED" && row.GroupAssignments.Any(offer => offer.Status == "ACTIVE" &&

@@ -20,11 +20,24 @@ public sealed partial class VolunteerRegistrationService
                 group.Target, Deadline(group, openings, now) > now)).ToArray());
     }
 
-    public async Task<VolunteerRegistrationMine[]> Mine(Guid userId, int page, CancellationToken ct) =>
-        (await repository.Mine(userId, page, ct)).Select(MineView).ToArray();
+    public async Task<VolunteerRegistrationMine[]> Mine(Guid userId, int page, Guid? campaignId, CancellationToken ct) =>
+        (await repository.Mine(userId, page, campaignId, ct)).Select(MineView).ToArray();
 
-    public async Task<VolunteerRegistrationMine> Mine(Guid userId, Guid id, CancellationToken ct) =>
-        MineView(await FindMine(userId, id, ct));
+    public async Task<VolunteerRegistrationMine> Mine(Guid userId, Guid id, CancellationToken ct)
+    {
+        var row = await FindMine(userId, id, ct);
+        if (row.Status == "WITHDRAWN") throw new ApiException(404, "Hồ sơ này không còn khả dụng.");
+        return MineView(row) with { Profile = new VolunteerRegistrationProfile(
+            row.FullName, row.Email, row.PhoneNumber, row.DateOfBirth, row.Occupation, row.Skills, row.Experience,
+            row.Motivation, row.EmergencyContactName, row.EmergencyContactPhone, Dates(row), row.CommitsToAllDays,
+            row.GroupPreferences.OrderBy(group => group.PreferenceRank).Select(group => group.GroupId).ToArray()) };
+    }
+
+    public Task<VolunteerParticipationHistory[]> ParticipationHistory(Guid userId, int page, CancellationToken ct) =>
+        repository.ParticipationHistory(userId, page, ct);
+
+    public Task<VolunteerRemovalHistory[]> RemovalHistory(Guid userId, int page, Guid? registrationId, CancellationToken ct) =>
+        repository.RemovalHistory(userId, page, registrationId, ct);
 
     public async Task<VolunteerRegistrationMine> Respond(Guid userId, Guid registrationId, Guid offerId, bool accept, CancellationToken ct)
     {
@@ -65,11 +78,16 @@ public sealed partial class VolunteerRegistrationService
         if (row.Status == "WITHDRAWN") return MineView(row);
         if (row.Status == "REJECTED") throw new ApiException(409, "Hồ sơ đã có quyết định từ chối.");
         var now = DateTimeOffset.UtcNow;
+        ReleaseRegistration(row, now);
+        await SaveAndPromote(openings, now, ct);
+        return MineView(row);
+    }
+
+    private static void ReleaseRegistration(VolunteerRegistration row, DateTimeOffset now)
+    {
         foreach (var offer in row.GroupAssignments.Where(offer => offer.Status == "ACTIVE")) offer.Status = "REMOVED";
         row.Status = "WITHDRAWN";
         row.UpdatedAt = now;
-        await SaveAndPromote(openings, now, ct);
-        return MineView(row);
     }
 
     public async Task RefreshOffers(Guid campaignId, CancellationToken ct)

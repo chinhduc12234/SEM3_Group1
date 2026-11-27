@@ -11,11 +11,12 @@ export function StatGrid({ children, label }: { children: ReactNode; label: stri
   return <dl className={styles.stats} aria-label={label}>{children}</dl>;
 }
 
-export function Stat({ label, value, detail, tone = "neutral" }: {
-  label: string; value: ReactNode; detail?: ReactNode; tone?: Tone;
+export function Stat({ label, value, detail, icon, tone = "neutral" }: {
+  label: string; value: ReactNode; detail?: ReactNode; icon?: ReactNode; tone?: Tone;
 }) {
-  return <div className={styles.stat} data-tone={tone}>
-    <dt>{label}</dt><dd><span>{value}</span>{detail && <small>{detail}</small>}</dd>
+  return <div className={icon ? `${styles.stat} ${styles.statWithIcon}` : styles.stat} data-tone={tone}>
+    <dt>{label}{icon && <span aria-hidden="true" className={styles.statIcon}>{icon}</span>}</dt>
+    <dd><span>{value}</span>{detail && <small>{detail}</small>}</dd>
   </div>;
 }
 
